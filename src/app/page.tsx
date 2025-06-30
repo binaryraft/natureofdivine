@@ -2,9 +2,6 @@ import Image from "next/image";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Accordion,
@@ -30,7 +27,7 @@ const bookGlimpseImages = [
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from the book", locked: false },
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "Preface of the book", locked: true },
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the preface", locked: true },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents", locked: true },
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279804/Screenshot_2025-06-24_114959_xv8qxd.png", alt: "Locked page", locked: true },
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279804/Screenshot_2025-06-24_115433_is135r.png", alt: "Locked page", locked: true },
 ];
@@ -42,27 +39,28 @@ export default async function Home() {
     <div className="flex flex-col min-h-[100dvh]">
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-primary/5">
+        <section className="w-full py-20 md:py-32 lg:py-40 relative overflow-hidden">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-secondary via-background to-background"></div>
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:gap-24">
-              <div className="flex flex-col justify-center space-y-4">
+            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-24">
+              <div className="flex flex-col justify-center space-y-6">
                 <div className="space-y-4">
-                  <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
+                  <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none font-headline text-primary">
                     Nature of the Divine
                   </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                  <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
                     A journey into the heart of mystery, faith, and human existence.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                <div className="flex flex-col gap-4 min-[400px]:flex-row">
+                  <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-md hover:shadow-lg transition-shadow">
                     <Link href="/order">
-                      Order Now <ShoppingCart className="ml-2 h-5 w-5" />
+                      Order Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline">
+                  <Button asChild size="lg" variant="outline" className="shadow-sm hover:shadow-md transition-shadow">
                      <a href="#sample-chapters">
-                      Read Sample <BookOpen className="ml-2 h-5 w-5" />
+                      Read a Sample <BookOpen className="ml-2 h-5 w-5" />
                     </a>
                   </Button>
                 </div>
@@ -70,11 +68,12 @@ export default async function Home() {
               <div className="flex items-center justify-center">
                 <Image
                   src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
-                  width="400"
-                  height="600"
+                  width="450"
+                  height="675"
                   alt="Nature of the Divine Book Cover"
-                  className="mx-auto aspect-[3/4] object-contain sm:w-full lg:order-last"
+                  className="mx-auto aspect-[2/3] object-contain sm:w-full lg:order-last rounded-lg shadow-2xl shadow-primary/20"
                   data-ai-hint="book cover"
+                  priority
                 />
               </div>
             </div>
@@ -82,13 +81,13 @@ export default async function Home() {
         </section>
 
         {/* Synopsis Section */}
-        <section id="synopsis" className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section id="synopsis" className="w-full py-16 md:py-24 lg:py-32 bg-background">
           <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-4 max-w-3xl">
-                <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium">Synopsis</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-2"><BookText /> The Story</h2>
-                <p className="text-muted-foreground md:text-xl/relaxed">
+            <div className="flex flex-col items-center justify-center space-y-6 text-center">
+              <div className="space-y-4 max-w-4xl">
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Synopsis</div>
+                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookText /> The Story</h2>
+                <p className="text-muted-foreground text-lg/relaxed md:text-xl/relaxed">
                   {synopsis}
                 </p>
               </div>
@@ -97,22 +96,24 @@ export default async function Home() {
         </section>
 
         {/* Author Bio Section */}
-        <section id="author" className="w-full py-12 md:py-24 lg:py-32 bg-primary/5">
-          <div className="container grid items-center justify-center gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-12">
+        <section id="author" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
+          <div className="container grid items-center justify-center gap-8 px-4 md:px-6 lg:grid-cols-2 lg:gap-16">
             <div className="flex justify-center lg:order-last">
               <Image
-                src="https://placehold.co/400x400.png"
+                src="https://placehold.co/500x500.png"
                 width="400"
                 height="400"
                 alt="Author J.D. Evergreen"
-                className="rounded-full aspect-square object-cover"
+                className="rounded-full aspect-square object-cover shadow-lg"
                 data-ai-hint="author portrait"
               />
             </div>
-            <div className="space-y-4 text-center lg:text-left">
-              <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium">The Author</div>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline flex items-center justify-center lg:justify-start gap-2"><User/> J.D. Evergreen</h2>
-              <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed mx-auto lg:mx-0">
+            <div className="space-y-6 text-center lg:text-left">
+              <div className="space-y-4">
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">The Author</div>
+                <h2 className="text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center justify-center lg:justify-start gap-3"><User/> J.D. Evergreen</h2>
+              </div>
+              <p className="max-w-[600px] text-muted-foreground text-lg/relaxed mx-auto lg:mx-0">
                 {authorBio}
               </p>
             </div>
@@ -120,17 +121,17 @@ export default async function Home() {
         </section>
 
         {/* Sample Chapters Section */}
-        <section id="sample-chapters" className="w-full py-12 md:py-24 lg:py-32">
+        <section id="sample-chapters" className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
-             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-                <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium">Preview</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-2"><BookOpen/> Sample Chapters</h2>
+             <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Preview</div>
+                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookOpen/> Sample Chapters</h2>
               </div>
-            <Accordion type="single" collapsible className="w-full max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto">
               {sampleChapters.map((chapter) => (
                  <AccordionItem value={`item-${chapter.number}`} key={chapter.number}>
-                  <AccordionTrigger className="text-xl font-headline">{chapter.title}</AccordionTrigger>
-                  <AccordionContent className="text-base leading-relaxed text-muted-foreground">
+                  <AccordionTrigger className="text-2xl md:text-3xl font-headline text-left hover:no-underline">&ldquo;{chapter.title}&rdquo;</AccordionTrigger>
+                  <AccordionContent className="pt-4 text-lg/relaxed text-muted-foreground">
                     {chapter.content}
                   </AccordionContent>
                 </AccordionItem>
@@ -140,81 +141,84 @@ export default async function Home() {
         </section>
 
         {/* Gallery Section */}
-        <section id="gallery" className="w-full py-12 md:py-24 lg:py-32 bg-primary/5">
+        <section id="gallery" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
           <div className="container px-4 md:px-6">
-             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-                <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium">Gallery</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-2"><GalleryHorizontal/> A Look Inside</h2>
+             <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Gallery</div>
+                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><GalleryHorizontal/> A Look Inside</h2>
               </div>
-            <Carousel className="w-full max-w-5xl mx-auto">
+            <Carousel className="w-full max-w-6xl mx-auto">
               <CarouselContent>
                 {bookGlimpseImages.map((image, index) => (
                   <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                    <div className="p-1 relative">
-                      <Image
-                        src={image.src}
-                        width="735"
-                        height="960"
-                        alt={image.alt}
-                        className="object-contain w-full h-auto shadow-lg rounded-md"
-                      />
-                      {image.locked && (
-                        <div className="absolute inset-1 bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center text-center text-foreground rounded-md">
-                          <Lock className="w-12 h-12 mb-4" />
-                          <p className="font-semibold">Unlock this chapter</p>
-                          <p className="text-sm">Purchase the book to read more.</p>
-                        </div>
-                      )}
+                    <div className="p-1">
+                      <Card className="overflow-hidden">
+                        <CardContent className="p-0 relative aspect-[3/4]">
+                          <Image
+                            src={image.src}
+                            layout="fill"
+                            objectFit="cover"
+                            alt={image.alt}
+                            className="transition-transform duration-300 hover:scale-105"
+                          />
+                          {image.locked && (
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 text-foreground">
+                              <Lock className="w-12 h-12 mb-4 text-primary" />
+                              <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
+                              <p className="text-sm text-muted-foreground mt-1">Purchase the book to read more.</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                     </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
+              <CarouselPrevious className="ml-[-1.5rem]" />
+              <CarouselNext className="mr-[-1.5rem]" />
             </Carousel>
           </div>
         </section>
         
         {/* Review Summary Section */}
-        <section id="reviews" className="w-full py-12 md:py-24 lg:py-32">
+        <section id="reviews" className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
-            <Card className="max-w-3xl mx-auto border-2 border-accent/50 shadow-lg bg-primary/5">
-              <CardHeader className="text-center items-center p-6">
-                 <Sparkles className="w-12 h-12 text-accent" />
-                <CardTitle className="text-3xl font-headline mt-2">AI-Powered Review Summary</CardTitle>
-                <CardDescription>We've summarized hundreds of online reviews to give you the consensus.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="border-t border-border pt-6">
-                    <p className="text-lg text-center leading-relaxed text-muted-foreground italic">"{summary}"</p>
+            <Card className="max-w-4xl mx-auto border-2 border-accent/50 shadow-xl shadow-accent/10 bg-secondary/30 overflow-hidden">
+                <div className="p-8 md:p-12 text-center">
+                    <div className="inline-flex items-center gap-3 rounded-full bg-accent/10 px-4 py-2 text-accent-foreground mb-6">
+                        <Sparkles className="w-5 h-5 text-accent" />
+                        <span className="font-medium">AI-Powered Review Summary</span>
+                    </div>
+                    <blockquote className="text-xl/relaxed md:text-2xl/relaxed font-medium text-foreground/80 italic">
+                        &ldquo;{summary}&rdquo;
+                    </blockquote>
                 </div>
-              </CardContent>
             </Card>
           </div>
         </section>
         
         {/* Quotes Carousel Section */}
-        <section id="quotes" className="w-full py-12 md:py-24 lg:py-32 bg-primary/5">
+        <section id="quotes" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
           <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-                <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium">Praise</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-2"><Quote/> Critical Acclaim</h2>
+            <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Praise</div>
+                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> Critical Acclaim</h2>
               </div>
             <Carousel
               opts={{
                 align: "start",
+                loop: true,
               }}
-              className="w-full max-w-4xl mx-auto"
+              className="w-full max-w-5xl mx-auto"
             >
               <CarouselContent>
                 {quotes.map((quote, index) => (
-                  <CarouselItem key={index} className="md:basis-1/2">
-                    <div className="p-1 h-full">
-                      <Card className="h-full flex flex-col">
-                        <CardContent className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
-                          <MessageSquareQuote className="w-12 h-12 text-accent" />
-                          <p className="text-xl font-medium leading-relaxed">&ldquo;{quote.text}&rdquo;</p>
-                          <footer className="text-sm text-muted-foreground">&mdash; {quote.author}</footer>
+                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-2 h-full">
+                      <Card className="h-full flex flex-col justify-center border-l-4 border-accent">
+                        <CardContent className="p-8 text-left space-y-4">
+                          <p className="text-lg/relaxed font-medium">&ldquo;{quote.text}&rdquo;</p>
+                          <footer className="text-base font-semibold text-muted-foreground">&mdash; {quote.author}</footer>
                         </CardContent>
                       </Card>
                     </div>
@@ -228,22 +232,23 @@ export default async function Home() {
         </section>
 
         {/* Buy Now Section */}
-        <section id="buy" className="w-full py-12 md:py-24 lg:py-32 bg-primary text-primary-foreground">
+        <section id="buy" className="w-full py-20 md:py-28 lg:py-32 bg-primary text-primary-foreground">
           <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">Get Your Copy Today</h2>
+            <div className="flex flex-col items-center space-y-6 text-center">
+              <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl font-headline">Get Your Copy Today</h2>
               <p className="max-w-[600px] text-primary-foreground/80 md:text-xl">
                 Available at your favorite online retailers. Or place a direct order for a signed copy.
               </p>
-              <div className="flex flex-wrap justify-center gap-4 pt-4">
+              <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
                 {buyLinks.map((link) => (
-                  <Button key={link.name} asChild variant="secondary" size="lg">
+                  <Button key={link.name} asChild variant="secondary" size="lg" className="shadow-md hover:shadow-lg transition-shadow">
                     <a href={link.url} target="_blank" rel="noopener noreferrer">
                       {link.name}
                     </a>
                   </Button>
                 ))}
-                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                <div className="text-sm font-medium mx-2">OR</div>
+                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
                   <Link href="/order">
                     Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
                   </Link>
@@ -252,7 +257,6 @@ export default async function Home() {
             </div>
           </div>
         </section>
-
       </main>
     </div>
   );

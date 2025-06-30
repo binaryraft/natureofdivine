@@ -1,21 +1,22 @@
 import type { Metadata } from "next";
-import { Alegreya, Lato } from "next/font/google";
+import { Lora, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Toaster } from "@/components/ui/toaster";
 
-const alegreya = Alegreya({
+const lora = Lora({
   subsets: ["latin"],
-  variable: "--font-alegreya",
+  variable: "--font-lora",
   weight: ['400', '700'],
+  style: ['normal', 'italic']
 });
 
-const lato = Lato({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-lato',
-  weight: ['400', '700'],
+  variable: '--font-inter',
+  weight: ['400', '500', '700'],
 });
 
 export const metadata: Metadata = {
@@ -34,8 +35,8 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          alegreya.variable,
-          lato.variable
+          lora.variable,
+          inter.variable
         )}
       >
         <div className="relative flex min-h-screen flex-col">

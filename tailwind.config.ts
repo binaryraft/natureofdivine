@@ -16,8 +16,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-lato)', 'sans-serif'],
-        headline: ['var(--font-alegreya)', 'serif'],
+        sans: ['var(--font-inter)', 'sans-serif'],
+        headline: ['var(--font-lora)', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
