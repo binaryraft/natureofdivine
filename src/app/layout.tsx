@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Alegreya } from "next/font/google";
+import { Alegreya, Lato } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -9,6 +9,13 @@ import { Toaster } from "@/components/ui/toaster";
 const alegreya = Alegreya({
   subsets: ["latin"],
   variable: "--font-alegreya",
+  weight: ['400', '700'],
+});
+
+const lato = Lato({
+  subsets: ['latin'],
+  variable: '--font-lato',
+  weight: ['400', '700'],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +34,8 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          alegreya.variable
+          alegreya.variable,
+          lato.variable
         )}
       >
         <div className="relative flex min-h-screen flex-col">
