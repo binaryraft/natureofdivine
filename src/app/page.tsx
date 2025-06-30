@@ -20,7 +20,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, Feather, MessageSquareQuote, ShoppingCart, UserCircle } from "lucide-react";
+import { BookOpen, Feather, Lock, MessageSquareQuote, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 
@@ -28,16 +28,18 @@ import { summarizeReviews } from "@/ai/flows/summarize-reviews";
 import { authorBio, bookReviews, quotes, sampleChapters, synopsis, buyLinks } from "@/lib/data";
 
 const bookGlimpseImages = [
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from the book" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "Preface of the book" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the preface" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279804/Screenshot_2025-06-24_114959_xv8qxd.png", alt: "Photo of the book" },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from the book", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "Preface of the book", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the preface", locked: true },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279804/Screenshot_2025-06-24_114959_xv8qxd.png", alt: "Locked page", locked: true },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279804/Screenshot_2025-06-24_115433_is135r.png", alt: "Locked page", locked: true },
 ];
 
 export default async function Home() {
-  const { summary } = await summarizeReviews({ reviews: bookReviews.join("\n\n") });
+  // const { summary } = await summarizeReviews({ reviews: bookReviews.join("\n\n") });
+  const summary = "Readers praise the book for its thrilling plot, deep philosophical questions, and meticulous historical detail, calling it a captivating, thought-provoking masterpiece that stays with you long after the final page.";
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -73,7 +75,7 @@ export default async function Home() {
                 width="600"
                 height="800"
                 alt="Nature of the Divine Book Cover"
-                className="mx-auto aspect-[3/4] overflow-hidden rounded-xl object-cover sm:w-full lg:order-last"
+                className="mx-auto object-contain sm:w-full lg:order-last"
               />
             </div>
           </div>
@@ -110,7 +112,7 @@ export default async function Home() {
                 width="400"
                 height="400"
                 alt="The book Nature of the Divine"
-                className="overflow-hidden rounded-lg object-cover"
+                className="object-contain"
               />
             </div>
           </div>
@@ -145,14 +147,21 @@ export default async function Home() {
               <CarouselContent>
                 {bookGlimpseImages.map((image, index) => (
                   <CarouselItem key={index}>
-                    <div className="p-1">
+                    <div className="p-1 relative">
                       <Image
                         src={image.src}
                         width="735"
                         height="960"
                         alt={image.alt}
-                        className="rounded-lg object-contain w-full h-auto aspect-[735/960] shadow-lg"
+                        className="object-contain w-full h-auto shadow-lg"
                       />
+                      {image.locked && (
+                        <div className="absolute inset-1 bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center text-center text-foreground">
+                          <Lock className="w-12 h-12 mb-4" />
+                          <p className="font-semibold">Unlock this chapter</p>
+                          <p className="text-sm">Purchase the book to read more.</p>
+                        </div>
+                      )}
                     </div>
                   </CarouselItem>
                 ))}
