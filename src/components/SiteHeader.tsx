@@ -16,7 +16,6 @@ const navLinks = [
   { href: '/#synopsis', label: 'About' },
   { href: '/#reviews', label: 'Reviews' },
   { href: '/order', label: 'Order' },
-  { href: '/admin', label: 'Admin' },
 ];
 
 export function SiteHeader() {

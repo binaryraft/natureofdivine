@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldCheck, LogIn, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -20,6 +21,69 @@ const statusColors: Record<OrderStatus, string> = {
     delivered: 'bg-green-500',
     cancelled: 'bg-red-500'
 }
+
+const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChange: (orderId: string, newStatus: OrderStatus) => void }) => {
+    if (orders.length === 0) {
+        return <p className="text-center py-8 text-muted-foreground">No orders in this category.</p>;
+    }
+
+    return (
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-right">Change Status</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {orders.map((order) => (
+                        <TableRow key={order.id}>
+                            <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                            <TableCell>
+                                <div className="font-medium">{order.name}</div>
+                                <div className="text-sm text-muted-foreground">{order.email}</div>
+                                <div className="text-sm text-muted-foreground">{order.phone}</div>
+                            </TableCell>
+                            <TableCell className="text-xs">
+                                {order.address}, {order.street}, {order.state}, {order.country} - {order.pinCode}
+                            </TableCell>
+                            <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
+                            <TableCell className="text-center">
+                                 <Badge variant="secondary" className="capitalize text-white" style={{backgroundColor: statusColors[order.status].replace('bg-', '').replace('-500', '')}}>
+                                    {order.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <Select
+                                    defaultValue={order.status}
+                                    onValueChange={(value) => onStatusChange(order.id, value as OrderStatus)}
+                                >
+                                    <SelectTrigger className="w-[150px] ml-auto">
+                                        <SelectValue placeholder="Change status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="new">New</SelectItem>
+                                        <SelectItem value="dispatched">Dispatched</SelectItem>
+                                        <SelectItem value="delivered">Delivered</SelectItem>
+                                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+};
+
 
 export function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,8 +95,6 @@ export function AdminDashboard() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // This is not secure for production. Use a proper auth system.
-    // For this demo, we use an environment variable.
     if (passcode === process.env.NEXT_PUBLIC_ADMIN_PASSCODE) {
       setIsAuthenticated(true);
       setError('');
@@ -69,7 +131,6 @@ export function AdminDashboard() {
         title: 'Success',
         description: result.message,
       });
-      // Optimistically update UI
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId ? { ...order, status: newStatus } : order
@@ -84,9 +145,16 @@ export function AdminDashboard() {
     }
   };
 
+  const categorizedOrders = {
+    new: orders.filter(o => o.status === 'new'),
+    dispatched: orders.filter(o => o.status === 'dispatched'),
+    delivered: orders.filter(o => o.status === 'delivered'),
+    cancelled: orders.filter(o => o.status === 'cancelled'),
+  };
+
   if (!isAuthenticated) {
     return (
-      <div className="flex justify-center items-center">
+      <div className="flex justify-center items-center min-h-[60vh]">
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle className="text-2xl font-headline">Admin Access</CardTitle>
@@ -123,68 +191,32 @@ export function AdminDashboard() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-            <Table>
-            <TableHeader>
-                <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                 <TableHead>Address</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Change Status</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {isPending && orders.length === 0 ? (
-                    <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                        </TableCell>
-                    </TableRow>
-                ) : orders.map((order) => (
-                <TableRow key={order.id}>
-                    <TableCell className="font-mono text-xs">{order.id}</TableCell>
-                    <TableCell>
-                        <div className="font-medium">{order.name}</div>
-                        <div className="text-sm text-muted-foreground">{order.email}</div>
-                         <div className="text-sm text-muted-foreground">{order.phone}</div>
-                    </TableCell>
-                     <TableCell className="text-xs">
-                        {order.address}, {order.street}, {order.state}, {order.country} - {order.pinCode}
-                    </TableCell>
-                    <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
-                    <TableCell className="text-center">
-                        <Badge variant="secondary" className="capitalize text-white" style={{backgroundColor: statusColors[order.status].replace('bg-', '').replace('-500', '')}}>
-                             {order.status}
-                        </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                    <Select
-                        defaultValue={order.status}
-                        onValueChange={(value) => handleStatusChange(order.id, value as OrderStatus)}
-                    >
-                        <SelectTrigger className="w-[150px] ml-auto">
-                        <SelectValue placeholder="Change status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="new">New</SelectItem>
-                        <SelectItem value="dispatched">Dispatched</SelectItem>
-                        <SelectItem value="delivered">Delivered</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    </TableCell>
-                </TableRow>
-                ))}
-            </TableBody>
-            </Table>
-            {!isPending && orders.length === 0 && (
-                <p className="text-center py-8 text-muted-foreground">No orders yet.</p>
-            )}
-        </div>
+         {isPending ? (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+         ) : (
+            <Tabs defaultValue="new">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
+                    <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
+                    <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
+                    <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
+                </TabsList>
+                <TabsContent value="new" className="mt-4">
+                    <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} />
+                </TabsContent>
+                <TabsContent value="dispatched" className="mt-4">
+                    <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} />
+                </TabsContent>
+                <TabsContent value="delivered" className="mt-4">
+                    <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} />
+                </TabsContent>
+                 <TabsContent value="cancelled" className="mt-4">
+                    <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} />
+                </TabsContent>
+            </Tabs>
+         )}
       </CardContent>
     </Card>
   );

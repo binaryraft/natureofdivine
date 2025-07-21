@@ -2,21 +2,27 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ShoppingCart, ShieldCheck } from 'lucide-react';
+import { Home, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/order', label: 'Order', icon: ShoppingCart },
-  { href: '/admin', label: 'Admin', icon: ShieldCheck },
 ];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
 
+  // Hide nav on admin page
+  if (pathname === '/admin') {
+    return null;
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
-      <div className="mx-auto grid h-full max-w-lg grid-cols-3 font-medium">
+      <div className={cn("mx-auto grid h-full max-w-lg font-medium", 
+        navLinks.length === 2 ? "grid-cols-2" : "grid-cols-3"
+      )}>
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
