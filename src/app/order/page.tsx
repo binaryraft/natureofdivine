@@ -11,7 +11,7 @@ export default function OrderPage() {
     <div className="container mx-auto py-12 md:py-24 max-w-3xl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-headline">Buy Now</CardTitle>
+          <CardTitle className="text-3xl font-headline">Secure Checkout</CardTitle>
           <CardDescription>
             Fill out the form below to get a copy of "Nature of the Divine" delivered to your doorstep.
           </CardDescription>

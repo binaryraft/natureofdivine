@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 
 export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
@@ -22,22 +22,26 @@ export default function OrderSuccessPage() {
         </CardHeader>
         <CardContent>
           {orderId ? (
-            <p className="text-lg">
-              Your Order ID is: <strong className="font-mono text-primary">{orderId}</strong>
-            </p>
+            <div>
+                <p className="text-lg">
+                Your Order ID is: <strong className="font-mono text-primary">{orderId}</strong>
+                </p>
+                <Button variant="link" asChild className="mt-4 text-lg">
+                    <Link href={`/order-status?orderId=${orderId}`}>
+                        Check Status <ArrowRight className="ml-2 h-5 w-5"/>
+                    </Link>
+                </Button>
+            </div>
           ) : (
             <p className="text-lg text-muted-foreground">Your order is being processed.</p>
           )}
           <p className="text-muted-foreground mt-2">
-            You will receive an email confirmation shortly. You can use your Order ID to track the status.
+            You will receive an email confirmation shortly.
           </p>
         </CardContent>
         <CardFooter className="flex justify-center gap-4">
           <Button asChild>
             <Link href="/">Back to Home</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/order-status">Track My Order</Link>
           </Button>
         </CardFooter>
       </Card>

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Toaster } from "@/components/ui/toaster";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -41,9 +42,10 @@ export default function RootLayout({
       >
         <div className="relative flex min-h-screen flex-col">
           <SiteHeader />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pb-24 md:pb-0">{children}</main>
           <SiteFooter />
         </div>
+        <MobileBottomNav />
         <Toaster />
       </body>
     </html>

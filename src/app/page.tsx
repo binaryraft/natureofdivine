@@ -55,7 +55,7 @@ export default async function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
-                  <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-md hover:shadow-lg transition-shadow">
+                  <Button asChild size="lg" className="cta-button">
                     <Link href="/order">
                       Buy Now <ShoppingCart className="ml-2 h-5 w-5" />
                     </Link>
@@ -168,7 +168,7 @@ export default async function Home() {
                               <Lock className="w-12 h-12 mb-4 text-primary" />
                               <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
                               <p className="text-sm text-muted-foreground mt-1">Purchase the book to read the full story.</p>
-                               <Button asChild size="sm" className="mt-4">
+                               <Button asChild size="sm" className="mt-4 cta-button">
                                 <Link href="/order">Buy Now</Link>
                               </Button>
                             </div>
@@ -188,11 +188,11 @@ export default async function Home() {
         {/* Review Summary Section */}
         <section id="reviews" className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
-            <Card className="max-w-4xl mx-auto border-2 border-accent/50 shadow-xl shadow-accent/10 bg-secondary/30 overflow-hidden">
+            <Card className="max-w-4xl mx-auto border-2 border-primary/50 shadow-xl shadow-primary/10 bg-secondary/30 overflow-hidden">
                 <div className="p-8 md:p-12 text-center">
-                    <div className="inline-flex items-center gap-3 rounded-full bg-accent/10 px-4 py-2 text-accent-foreground mb-6">
-                        <Sparkles className="w-5 h-5 text-accent" />
-                        <span className="font-medium">AI-Powered Review Summary</span>
+                    <div className="inline-flex items-center gap-3 rounded-full bg-primary/10 px-4 py-2 text-primary-foreground mb-6">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                        <span className="font-medium text-primary">AI-Powered Review Summary</span>
                     </div>
                     <blockquote className="text-xl/relaxed md:text-2xl/relaxed font-medium text-foreground/80 italic">
                         &ldquo;{summary}&rdquo;
@@ -220,7 +220,7 @@ export default async function Home() {
                 {quotes.map((quote, index) => (
                   <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-2 h-full">
-                      <Card className="h-full flex flex-col justify-center border-l-4 border-accent">
+                      <Card className="h-full flex flex-col justify-center border-l-4 border-primary">
                         <CardContent className="p-8 text-left space-y-4">
                            <h3 className="text-xl font-bold font-headline">{quote.author}</h3>
                           <p className="text-lg/relaxed">&ldquo;{quote.text}&rdquo;</p>
@@ -253,7 +253,7 @@ export default async function Home() {
                   </Button>
                 ))}
                  <div className="text-sm font-medium mx-2">OR</div>
-                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
+                <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
                   <Link href="/order">
                     Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
                   </Link>

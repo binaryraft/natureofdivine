@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShoppingCart, CreditCard, Truck } from 'lucide-react';
+import { Loader2, ShoppingCart, CreditCard, Truck, ArrowRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 // A simple hardcoded list of countries and their states.
 const countries = [
@@ -53,13 +53,14 @@ export function OrderForm() {
      return (
         <form action={dispatch}>
             <input type="hidden" name="formData" value={state.formData} />
-            <Card>
+            <Card className="border-none shadow-none">
                 <CardHeader>
                     <CardTitle>Payment Method</CardTitle>
+                    <CardDescription>Choose how you'd like to pay.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <RadioGroup name="paymentMethod" defaultValue="cod" className="space-y-4">
-                        <Label className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary">
+                        <Label className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all">
                              <RadioGroupItem value="cod" id="cod" />
                              <div className="flex-grow">
                                 <span className="font-semibold flex items-center gap-2"><Truck/> Cash on Delivery</span>
@@ -74,7 +75,7 @@ export function OrderForm() {
                              </div>
                         </Label>
                     </RadioGroup>
-                    <SubmitButton />
+                    <SubmitButton text="Place Order"/>
                 </CardContent>
             </Card>
         </form>
@@ -146,16 +147,16 @@ export function OrderForm() {
           {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
         </div>
       </div>
-      <SubmitButton />
+      <SubmitButton text="Proceed to Payment" />
     </form>
   );
 }
 
-function SubmitButton() {
+function SubmitButton({text}: {text: string}) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={pending} className="w-full bg-accent text-accent-foreground hover:bg-accent/90" size="lg">
+    <Button type="submit" disabled={pending} className="w-full cta-button" size="lg">
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -163,8 +164,8 @@ function SubmitButton() {
         </>
       ) : (
         <>
-         <ShoppingCart className="mr-2 h-4 w-4" />
-          Proceed to Payment
+         {text}
+         <ArrowRight className="ml-2 h-4 w-4" />
         </>
       )}
     </Button>
