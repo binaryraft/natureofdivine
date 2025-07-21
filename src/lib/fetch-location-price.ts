@@ -1,7 +1,8 @@
 
 'use server';
 
-import { countries, Country } from './countries';
+import { headers } from 'next/headers';
+import { countries } from './countries';
 
 export interface PriceData {
     paperback: number;
@@ -21,23 +22,30 @@ const exchangeRates: Record<string, number> = {
     GBP: 0.0095,
     AUD: 0.018,
     CAD: 0.016,
-    // Add more rates as needed
 };
 
 // This function runs on the server and can safely use APIs.
 export async function fetchLocationAndPrice(): Promise<PriceData> {
+    let countryCode = '';
     try {
-        const response = await fetch('http://ip-api.com/json/?fields=countryCode', {
-            next: { revalidate: 3600 } // Revalidate every hour
-        });
+        // Use Next.js headers to get the user's country from the request
+        const headersList = headers();
+        const vercelCountry = headersList.get('x-vercel-ip-country');
         
-        if (!response.ok) {
-            throw new Error('Failed to fetch location from IP');
+        if (vercelCountry) {
+            countryCode = vercelCountry;
+        } else {
+             // Fallback to IP API if not on Vercel or header is not present
+            const response = await fetch('http://ip-api.com/json/?fields=countryCode', {
+                cache: 'no-store' // Ensure no caching
+            });
+            if (!response.ok) {
+                throw new Error('Failed to fetch location from IP');
+            }
+            const location = await response.json();
+            countryCode = location.countryCode;
         }
-
-        const location = await response.json();
-        const countryCode = location.countryCode;
-
+       
         // Force INR for India
         if (countryCode === 'IN') {
              return {
@@ -63,12 +71,13 @@ export async function fetchLocationAndPrice(): Promise<PriceData> {
         console.error("Geolocation/price fetch error:", error);
     }
 
-    // Default to USD if location is not India and not in the exchange rate list
+    // Default to USD if location is not India and not in the exchange rate list, or if an error occurred.
     const rate = exchangeRates['USD'];
+    const countryInfo = countries.find(c => c.iso2 === 'US');
     return {
         paperback: Math.ceil(basePrices.paperback * rate),
         hardcover: Math.ceil(basePrices.hardcover * rate),
-        symbol: '$',
+        symbol: countryInfo?.currency_symbol || '$',
         country: 'US', // Default country for display
     };
 }
