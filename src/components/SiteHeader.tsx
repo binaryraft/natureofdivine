@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -15,7 +16,7 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/#synopsis', label: 'About' },
   { href: '/#reviews', label: 'Reviews' },
-  { href: '/order', label: 'Order' },
+  { href: '/order', label: 'Track Order' },
 ];
 
 export function SiteHeader() {
@@ -36,7 +37,7 @@ export function SiteHeader() {
                 href={link.href}
                 className={cn(
                   'transition-colors hover:text-foreground/80',
-                  (pathname === link.href || (link.href === '/order' && pathname === '/checkout')) ? 'text-foreground' : 'text-foreground/60'
+                  (pathname === link.href || (link.href === '/order' && pathname.startsWith('/order'))) ? 'text-foreground' : 'text-foreground/60'
                 )}
               >
                 {link.label}

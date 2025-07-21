@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -27,7 +28,7 @@ export default function OrderSuccessPage() {
                 Your Order ID is: <strong className="font-mono text-primary">{orderId}</strong>
                 </p>
                 <Button variant="link" asChild className="mt-4 text-lg">
-                    <Link href={`/order-status?orderId=${orderId}`}>
+                    <Link href={`/order?orderId=${orderId}`}>
                         Check Status <ArrowRight className="ml-2 h-5 w-5"/>
                     </Link>
                 </Button>
