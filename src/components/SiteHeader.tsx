@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Package2, User, Settings, LogOut } from 'lucide-react';
+import { Menu, Package2, Settings, LogOut } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useLocation } from '@/hooks/useLocation';
+import { getCountryFlag } from '@/lib/countries';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -59,7 +61,8 @@ function SunflowerIcon(props: React.SVGProps<SVGSVGElement>) {
 export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { priceData, loading: locationLoading } = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -125,8 +128,19 @@ export function SiteHeader() {
           </Sheet>
         </div>
 
-        <div className="flex w-full items-center justify-end gap-4">
-           {loading ? (
+        <div className="flex flex-1 w-full items-center justify-end gap-4">
+           {locationLoading ? (
+               <div className="h-6 w-10 animate-pulse rounded-md bg-muted" />
+           ) : (
+                priceData && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>{getCountryFlag(priceData.country)}</span>
+                        <span>{priceData.country}</span>
+                    </div>
+                )
+           )}
+
+           {authLoading ? (
              <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
            ) : user ? (
             <DropdownMenu>

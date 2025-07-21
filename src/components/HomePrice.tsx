@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { fetchLocationAndPrice, PriceData } from '@/lib/fetch-location-price';
+import { useState } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { Book, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLocation } from '@/hooks/useLocation';
 
 type Variant = 'paperback' | 'hardcover';
 
@@ -22,30 +22,8 @@ function PriceSkeleton() {
 }
 
 export function HomePrice() {
-    const [priceData, setPriceData] = useState<PriceData | null>(null);
+    const { priceData, loading } = useLocation();
     const [selectedVariant, setSelectedVariant] = useState<Variant>('paperback');
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        async function getPrice() {
-            try {
-                const data = await fetchLocationAndPrice();
-                setPriceData(data);
-            } catch (error) {
-                console.error("Failed to fetch price data", error);
-                // Fallback to default INR prices
-                setPriceData({
-                    paperback: 299,
-                    hardcover: 499,
-                    symbol: '₹',
-                    country: 'IN',
-                });
-            } finally {
-                setLoading(false);
-            }
-        }
-        getPrice();
-    }, []);
 
     if (loading || !priceData) {
         return <PriceSkeleton />;

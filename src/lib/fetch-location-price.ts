@@ -1,6 +1,8 @@
 
 'use server';
 
+import { countries, Country } from './countries';
+
 export interface PriceData {
     paperback: number;
     hardcover: number;
@@ -13,25 +15,20 @@ const basePrices = {
     hardcover: 499, // INR
 };
 
-const exchangeRates = {
+const exchangeRates: Record<string, number> = {
     USD: 0.012,
     EUR: 0.011,
+    GBP: 0.0095,
+    AUD: 0.018,
+    CAD: 0.016,
+    // Add more rates as needed
 };
 
-const currencySymbols: Record<string, string> = {
-    INR: '₹',
-    USD: '$',
-    EUR: '€',
-};
-
-// This function can be called from a client component to get the price.
-// It runs on the server and can safely use APIs.
+// This function runs on the server and can safely use APIs.
 export async function fetchLocationAndPrice(): Promise<PriceData> {
     try {
-        // No API key needed for ip-api.com
-        const response = await fetch('http://ip-api.com/json', {
-            // Revalidate every hour
-            next: { revalidate: 3600 } 
+        const response = await fetch('http://ip-api.com/json/?fields=countryCode', {
+            next: { revalidate: 3600 } // Revalidate every hour
         });
         
         if (!response.ok) {
@@ -41,38 +38,37 @@ export async function fetchLocationAndPrice(): Promise<PriceData> {
         const location = await response.json();
         const countryCode = location.countryCode;
 
-        let currency = 'INR';
-
-        // Explicitly set currency based on country code
+        // Force INR for India
         if (countryCode === 'IN') {
-            currency = 'INR';
-        } else if (countryCode === 'US') {
-            currency = 'USD';
-        } else if (location.currency && ['EUR'].includes(location.currency)) {
-            // ip-api provides currency for EU countries
-            currency = 'EUR';
-        }
-        
-        if (currency !== 'INR' && (currency === 'USD' || currency === 'EUR')) {
-            const rate = exchangeRates[currency];
-            return {
-                paperback: Math.ceil(basePrices.paperback * rate),
-                hardcover: Math.ceil(basePrices.hardcover * rate),
-                symbol: currencySymbols[currency],
-                country: countryCode,
+             return {
+                paperback: basePrices.paperback,
+                hardcover: basePrices.hardcover,
+                symbol: '₹',
+                country: 'IN',
             };
         }
 
+        const countryInfo = countries.find(c => c.iso2 === countryCode);
+
+        if (countryInfo && exchangeRates[countryInfo.currency_code]) {
+            const rate = exchangeRates[countryInfo.currency_code];
+            return {
+                paperback: Math.ceil(basePrices.paperback * rate),
+                hardcover: Math.ceil(basePrices.hardcover * rate),
+                symbol: countryInfo.currency_symbol,
+                country: countryCode,
+            };
+        }
     } catch (error) {
         console.error("Geolocation/price fetch error:", error);
-        // Fallback to INR on any error
     }
 
-    // Default to INR
+    // Default to USD if location is not India and not in the exchange rate list
+    const rate = exchangeRates['USD'];
     return {
-        paperback: basePrices.paperback,
-        hardcover: basePrices.hardcover,
-        symbol: currencySymbols.INR,
-        country: 'IN',
+        paperback: Math.ceil(basePrices.paperback * rate),
+        hardcover: Math.ceil(basePrices.hardcover * rate),
+        symbol: '$',
+        country: 'US', // Default country for display
     };
 }
