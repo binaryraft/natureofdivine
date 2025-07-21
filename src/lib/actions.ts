@@ -4,8 +4,17 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus } from './order-store';
-import type { OrderStatus } from './definitions';
-import { auth } from './firebase';
+import type { BookVariant, OrderStatus } from './definitions';
+import { decreaseStock, getStock } from './stock-store';
+
+const variantDetails: Record<BookVariant, { name: string; price: number; }> = {
+    paperback: { name: 'Paperback', price: 299 },
+    hardcover: { name: 'Hardcover', price: 499 },
+};
+
+const variantSchema = z.object({
+    variant: z.enum(['paperback', 'hardcover'], { required_error: 'Please select a book type.' }),
+});
 
 const addressSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -17,17 +26,19 @@ const addressSchema = z.object({
   country: z.string().min(2, { message: 'Please select a country.' }),
   state: z.string().min(2, { message: 'Please select a state.' }),
   pinCode: z.string().min(3, { message: 'Please enter a valid PIN code.' }),
+  variantData: z.string(), // JSON string
 });
 
 const paymentSchema = z.object({
     paymentMethod: z.enum(['cod', 'prepaid']),
-    formData: z.string(),
+    addressData: z.string(), // JSON string
     userId: z.string().optional(),
     saveAddress: z.string().optional(),
 });
 
 export type State = {
   errors?: {
+    variant?: string[];
     name?: string[];
     phone?: string[];
     email?: string[];
@@ -41,34 +52,64 @@ export type State = {
   };
   message?: string | null;
   orderId?: string | null;
-  step: 'address' | 'payment' | 'success';
-  formData?: string | null;
+  step: 'variant' | 'address' | 'payment' | 'success';
+  variantData?: string | null;
+  addressData?: string | null;
 };
 
 export async function placeOrder(prevState: State, formData: FormData): Promise<State> {
-  // Step 1: Validate address and move to payment step
-  if (prevState.step === 'address') {
+  const currentStep = prevState.step;
+  
+  if (currentStep === 'variant') {
+    const validatedVariant = variantSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!validatedVariant.success) {
+      return {
+        errors: validatedVariant.error.flatten().fieldErrors,
+        message: 'Missing Fields. Failed to Proceed.',
+        step: 'variant',
+      };
+    }
+
+    const stock = await getStock();
+    if (stock[validatedVariant.data.variant] <= 0) {
+        return {
+             errors: { variant: ['This item is out of stock.'] },
+             message: 'Selected variant is out of stock.',
+             step: 'variant',
+        }
+    }
+
+    return {
+        step: 'address',
+        variantData: JSON.stringify(validatedVariant.data),
+    };
+  }
+
+  if (currentStep === 'address') {
     const validatedFields = addressSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validatedFields.success) {
       return {
+        ...prevState,
         errors: validatedFields.error.flatten().fieldErrors,
         message: 'Missing Fields. Failed to Proceed.',
         step: 'address',
       };
     }
     
+    const variantData = JSON.parse(validatedFields.data.variantData);
+    const fullData = { ...variantData, ...validatedFields.data };
+
     return {
         step: 'payment',
-        formData: JSON.stringify(validatedFields.data),
+        addressData: JSON.stringify(fullData),
     };
   }
 
-  // Step 2: Validate payment method and create order
-  if (prevState.step === 'payment') {
+  if (currentStep === 'payment') {
      const validatedPayment = paymentSchema.safeParse(Object.fromEntries(formData.entries()));
 
-     if (!validatedPayment.success || !validatedPayment.data.formData) {
+     if (!validatedPayment.success || !validatedPayment.data.addressData) {
         return {
             ...prevState,
             message: 'Invalid payment details.',
@@ -76,12 +117,16 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
         }
      }
      
-     const orderData = JSON.parse(validatedPayment.data.formData);
+     const addressData = JSON.parse(validatedPayment.data.addressData);
      const { userId, saveAddress } = validatedPayment.data;
+     const { variant } = addressData;
      
      try {
+        await decreaseStock(variant, 1);
+     
         const newOrder = await addOrder({
-            ...orderData,
+            ...addressData,
+            price: variantDetails[variant].price,
             paymentMethod: validatedPayment.data.paymentMethod,
             userId: userId || null,
         });
@@ -92,23 +137,24 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
 
         revalidatePath('/admin');
         revalidatePath('/orders');
+        revalidatePath('/checkout');
         return { 
             step: 'success', 
             message: 'Order created successfully!', 
             orderId: newOrder.id 
         };
-      } catch (error) {
+      } catch (error: any) {
         return {
-          message: 'Database Error: Failed to Create Order.',
+          message: error.message || 'Database Error: Failed to Create Order.',
           step: 'payment',
-          formData: validatedPayment.data.formData,
+          addressData: validatedPayment.data.addressData,
         };
       }
   }
 
   // Fallback for invalid state
   return {
-    step: 'address',
+    step: 'variant',
     message: 'An unexpected error occurred.',
   };
 }

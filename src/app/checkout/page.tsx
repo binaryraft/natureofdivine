@@ -2,6 +2,7 @@
 import { OrderForm } from './OrderForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Suspense } from 'react';
+import { getStock } from '@/lib/stock-store';
 
 export const metadata = {
   title: 'Checkout | Nature of the Divine',
@@ -9,7 +10,8 @@ export const metadata = {
 };
 
 
-function CheckoutPageContent() {
+async function CheckoutPageContent() {
+    const stock = await getStock();
     return (
         <div className="container mx-auto py-12 md:py-24 max-w-3xl">
           <Card>
@@ -20,7 +22,7 @@ function CheckoutPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <OrderForm />
+              <OrderForm stock={stock} />
             </CardContent>
           </Card>
         </div>

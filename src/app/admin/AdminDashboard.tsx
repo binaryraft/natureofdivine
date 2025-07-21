@@ -3,17 +3,19 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { fetchOrders, changeOrderStatus } from '@/lib/actions';
-import { type Order, type OrderStatus } from '@/lib/definitions';
+import { type Order, type OrderStatus, Stock, BookVariant } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getStock, updateStock } from '@/lib/stock-store';
+import { Label } from '@/components/ui/label';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -36,6 +38,7 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                         <TableHead>Order ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Address</TableHead>
+                        <TableHead>Variant</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead className="text-center">Status</TableHead>
@@ -53,6 +56,10 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                             </TableCell>
                             <TableCell className="text-xs">
                                 {order.address}, {order.street}, {order.city}, {order.state}, {order.country} - {order.pinCode}
+                            </TableCell>
+                             <TableCell>
+                                <Badge variant={order.variant === 'hardcover' ? 'default' : 'secondary'} className="capitalize">{order.variant}</Badge>
+                                <div>₹{order.price}</div>
                             </TableCell>
                             <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
@@ -85,8 +92,71 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
     );
 };
 
+function StockManager({ initialStock }: { initialStock: Stock }) {
+    const { toast } = useToast();
+    const [stock, setStock] = useState(initialStock);
+    const [isSaving, setIsSaving] = useState(false);
 
-export function AdminDashboard() {
+    const handleStockChange = (variant: BookVariant, value: string) => {
+        const quantity = parseInt(value, 10);
+        if (!isNaN(quantity) && quantity >= 0) {
+            setStock(prev => ({ ...prev, [variant]: quantity }));
+        }
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateStock(stock);
+            toast({ title: 'Success', description: 'Stock levels updated successfully.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update stock.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Warehouse/> Stock Management</CardTitle>
+                <CardDescription>Update the quantity for each book variant.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="paperback-stock">Paperback Quantity</Label>
+                        <Input 
+                            id="paperback-stock"
+                            type="number" 
+                            value={stock.paperback}
+                            onChange={(e) => handleStockChange('paperback', e.target.value)}
+                            min="0"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="hardcover-stock">Hardcover Quantity</Label>
+                        <Input 
+                            id="hardcover-stock"
+                            type="number"
+                            value={stock.hardcover}
+                             onChange={(e) => handleStockChange('hardcover', e.target.value)}
+                             min="0"
+                        />
+                    </div>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+                    Save Stock
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
+export function AdminDashboard({ initialStock }: { initialStock: Stock }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState('');
@@ -179,46 +249,49 @@ export function AdminDashboard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-start">
-            <div>
-                <CardTitle className="text-3xl font-headline flex items-center gap-2"><ShieldCheck /> Order Management</CardTitle>
-                <CardDescription>View and manage all incoming orders.</CardDescription>
+    <div className="space-y-8">
+        <StockManager initialStock={initialStock} />
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="text-3xl font-headline flex items-center gap-2"><ShieldCheck /> Order Management</CardTitle>
+                    <CardDescription>View and manage all incoming orders.</CardDescription>
+                </div>
+                <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
+                    <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
+                </Button>
             </div>
-            <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
-                <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
-            </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-         {isPending ? (
-            <div className="flex justify-center items-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-         ) : (
-            <Tabs defaultValue="new">
-                <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
-                    <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
-                    <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
-                    <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
-                </TabsList>
-                <TabsContent value="new" className="mt-4">
-                    <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} />
-                </TabsContent>
-                <TabsContent value="dispatched" className="mt-4">
-                    <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} />
-                </TabsContent>
-                <TabsContent value="delivered" className="mt-4">
-                    <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} />
-                </TabsContent>
-                 <TabsContent value="cancelled" className="mt-4">
-                    <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} />
-                </TabsContent>
-            </Tabs>
-         )}
-      </CardContent>
-    </Card>
+          </CardHeader>
+          <CardContent>
+             {isPending ? (
+                <div className="flex justify-center items-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+             ) : (
+                <Tabs defaultValue="new">
+                    <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
+                        <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
+                        <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
+                        <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="new" className="mt-4">
+                        <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} />
+                    </TabsContent>
+                    <TabsContent value="dispatched" className="mt-4">
+                        <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} />
+                    </TabsContent>
+                    <TabsContent value="delivered" className="mt-4">
+                        <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} />
+                    </TabsContent>
+                     <TabsContent value="cancelled" className="mt-4">
+                        <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} />
+                    </TabsContent>
+                </Tabs>
+             )}
+          </CardContent>
+        </Card>
+    </div>
   );
 }

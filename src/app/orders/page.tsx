@@ -25,20 +25,26 @@ function OrderItem({ order }: { order: Order }) {
   const { Icon, color, label } = statusInfo[order.status];
   return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-medium">Order ID: <span className="font-mono text-sm">{order.id}</span></CardTitle>
-        <Badge variant="secondary" className={cn("capitalize text-white", color)}>
-            <Icon className="mr-2 h-4 w-4" />
-            {label}
-        </Badge>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <CardTitle className="text-base font-medium">Order ID: <span className="font-mono text-sm">{order.id}</span></CardTitle>
+            <Badge variant="secondary" className={cn("capitalize text-white w-fit", color)}>
+                <Icon className="mr-2 h-4 w-4" />
+                {label}
+            </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground pt-1">
           Ordered on: {new Date(order.createdAt).toLocaleDateString()}
         </p>
-         <div className="text-sm mt-2">
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+         <div className="text-sm">
             <p className="font-medium">Shipping to: {order.name}</p>
             <p className="text-muted-foreground">{order.address}, {order.city}, {order.state} {order.pinCode}</p>
+         </div>
+         <div className="text-sm sm:text-right">
+             <p className="font-medium">Item</p>
+             <p className="text-muted-foreground capitalize">{order.variant} (₹{order.price})</p>
          </div>
       </CardContent>
     </Card>
