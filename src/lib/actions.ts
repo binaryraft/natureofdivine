@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -11,9 +12,10 @@ const addressSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   address: z.string().min(5, { message: 'Address must be at least 5 characters.' }),
   street: z.string().optional(),
+  city: z.string().min(2, { message: 'Please enter a valid city.' }),
   country: z.string().min(2, { message: 'Please select a country.' }),
   state: z.string().min(2, { message: 'Please select a state.' }),
-  pinCode: z.string().min(4, { message: 'Please enter a valid PIN code.' }),
+  pinCode: z.string().min(3, { message: 'Please enter a valid PIN code.' }),
 });
 
 const paymentSchema = z.object({
@@ -28,6 +30,7 @@ export type State = {
     email?: string[];
     address?: string[];
     street?: string[];
+    city?: string[];
     country?: string[];
     state?: string[];
     pinCode?: string[];

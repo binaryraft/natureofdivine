@@ -1,3 +1,4 @@
+
 export type OrderStatus = 'new' | 'dispatched' | 'delivered' | 'cancelled';
 
 export type Order = {
@@ -7,6 +8,7 @@ export type Order = {
   email: string;
   address: string;
   street: string;
+  city: string;
   country: string;
   state: string;
   pinCode:string;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -51,7 +52,7 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                                 <div className="text-sm text-muted-foreground">{order.phone}</div>
                             </TableCell>
                             <TableCell className="text-xs">
-                                {order.address}, {order.street}, {order.state}, {order.country} - {order.pinCode}
+                                {order.address}, {order.street}, {order.city}, {order.state}, {order.country} - {order.pinCode}
                             </TableCell>
                             <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
