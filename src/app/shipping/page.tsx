@@ -1,4 +1,5 @@
 
+import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = {
@@ -8,6 +9,9 @@ export const metadata = {
 export default function ShippingPage() {
   return (
     <div className="container mx-auto py-12 md:py-24 max-w-4xl">
+       <div className="mb-4">
+        <BackButton />
+      </div>
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl font-headline">Shipping Policy</CardTitle>

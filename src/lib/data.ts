@@ -6,55 +6,55 @@ export const authorBio = `Alfas B, a computer engineer with a vision of a world 
 export const sampleChapters = [
   {
     number: 1,
-    title: "Chapter 1: God",
+    title: "God",
     content: `Chapter one explains the nature of the divine and the creator behind it all. It guides readers beyond the mere concept of God, opening their eyes to the unseen yet tangible truths of existence. The chapter explores how everything connects to God and how, by aligning with the divine, one can move from blind trust to truly sensing God's presence.`,
     locked: false
   },
   {
     number: 2,
-    title: "Chapter 2: Man",
+    title: "Man",
     content: `Chapter two illuminates man's real and divine position as God's most beloved creation and clarifies his purpose. It introduces a uniquely powerful meditation habit designed to help readers align with the divine. Through this practice, man can uncover his true destiny, finding both himself and his creator.`,
     locked: false
   },
   {
     number: 3,
-    title: "Chapter 3: Actions",
+    title: "Actions",
     content: ``,
     locked: true
   },
    {
     number: 4,
-    title: "Chapter 4: Journey",
+    title: "Journey",
     content: ``,
     locked: true
   },
    {
     number: 5,
-    title: "Chapter 5: Knowledge",
+    title: "Knowledge",
     content: ``,
     locked: true
   },
    {
     number: 6,
-    title: "Chapter 6: Society",
+    title: "Society",
     content: ``,
     locked: true
   },
    {
     number: 7,
-    title: "Chapter 7: Religion",
+    title: "Religion",
     content: `This chapter addresses religion directly, showing how aligning with the divine nature of existence can cure blind faith and resolve misunderstandings about spirituality, love, and life itself. It offers clarity on the true essence of God, moving beyond dogma to a place of genuine understanding.`,
     locked: true
   },
   {
     number: 8,
-    title: "Chapter 8: Love",
+    title: "Love",
     content: ``,
     locked: true
   },
    {
     number: 9,
-    title: "Chapter 9: Farewell",
+    title: "Farewell",
     content: ``,
     locked: true
   }
