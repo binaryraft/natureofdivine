@@ -129,17 +129,6 @@ export function SiteHeader() {
         </div>
 
         <div className="flex flex-1 w-full items-center justify-end gap-4">
-           {locationLoading ? (
-               <div className="h-6 w-10 animate-pulse rounded-md bg-muted" />
-           ) : (
-                priceData && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{getCountryFlag(priceData.country)}</span>
-                        <span>{priceData.country}</span>
-                    </div>
-                )
-           )}
-
            {authLoading ? (
              <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
            ) : user ? (
