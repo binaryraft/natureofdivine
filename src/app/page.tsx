@@ -22,7 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { authorBio, quotes, sampleChapters, buyLinks } from "@/lib/data";
+import { synopsis, authorBio, quotes, sampleChapters, buyLinks } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
