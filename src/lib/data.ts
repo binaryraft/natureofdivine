@@ -1,26 +1,61 @@
 
 export const synopsis = `
-A metaphysical thriller that follows a disillusioned symbologist who discovers an ancient manuscript that challenges the foundations of faith and reality. Hunted by a shadowy organization, he races from the Vatican to Tibet to unveil a truth that could either unite or shatter humanity.
+This profound philosophical work delves into humanity's complex struggles, offering a singular, elegant solution. It serves as a guide to understanding God, helping readers align their minds with the divine nature of existence. Moving beyond typical self-improvement, this book presents a transformative path: to ascend and radiate brilliance by embracing God and His divine essence.
 `;
 
 export const authorBio = `
-Alfas B is a historian and novelist with a passion for ancient mysteries and theological philosophy. With a Ph.D. in Comparative Religion, Alfas has spent two decades traveling the globe, studying forgotten texts and exploring sacred sites. This extensive research provides the authentic and richly detailed backdrop for "Nature of the Divine," Alfas's debut novel.
+Alfas B, a computer engineer, was guided by a vision of a world steeped in the divine nature of existence. Through years of disciplined self-monitoring, he discovered that the most powerful journey of personal transformation is one taken with God. He uncovered a path that, while demanding, feels as light as a feather—a way for readers to move mountains with the effort of lifting a single quill.
 `;
 
 export const sampleChapters = [
   {
     number: 1,
-    title: "The Gilded Cage",
-    content: `The air in the Vatican's secret archives was thick with the scent of aging parchment and beeswax. Dr. Aris Thorne ran a gloved finger over the spine of a leather-bound codex, its title long faded into obscurity. He felt a familiar thrill, the electric hum of discovery that had driven him from the hallowed halls of academia to the dusty, forgotten corners of history. This codex, rumored to be a heresy of the highest order, was said to contain a truth so profound it could rewrite the story of humanity. For Aris, it was more than a relic; it was the culmination of a lifelong obsession, a key that might unlock the very nature of the divine.`,
+    title: "God",
+    content: `Chapter one explains the nature of the divine and the creator behind it all. It guides readers beyond the mere concept of God, opening their eyes to the unseen yet tangible truths of existence. The chapter explores how everything connects to God and how, by aligning with the divine, one can move from blind trust to truly sensing God's presence.`,
   },
   {
     number: 2,
-    title: "A Shadow in the Alleys",
-    content: ``,
+    title: "Man",
+    content: `Chapter two illuminates man's real and divine position as God's most beloved creation and clarifies his purpose. It introduces a uniquely powerful meditation habit designed to help readers align with the divine. Through this practice, man can uncover his true destiny, finding both himself and his creator.`,
   },
   {
     number: 3,
-    title: "Echoes of the Forgotten",
+    title: "Actions",
+    content: ``
+  },
+   {
+    number: 4,
+    title: "Journey",
+    content: ``
+  },
+   {
+    number: 5,
+    title: "Knowledge",
+    content: ``
+  },
+   {
+    number: 6,
+    title: "Society",
+    content: ``
+  },
+   {
+    number: 7,
+    title: "Religion",
+    content: ``
+  },
+  {
+    number: 8,
+    title: "Love",
+    content: ``
+  },
+   {
+    number: 9,
+    title: "Farewell",
+    content: ``
+  },
+  {
+    number: 10,
+    title: "Bonus: The Celestial Cadence",
     content: ``
   }
 ];
