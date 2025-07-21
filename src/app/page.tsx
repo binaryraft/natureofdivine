@@ -43,6 +43,7 @@ const isOutOfStock = true;
 export default function Home() {
   const summary = "Readers praise the book for its thrilling plot, deep philosophical questions, and meticulous historical detail, calling it a captivating, thought-provoking masterpiece that stays with you long after the final page.";
   const showAuthorPhoto = false;
+  const hasReviews = quotes && quotes.length > 0;
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -228,56 +229,60 @@ export default function Home() {
           </div>
         </section>
         
-        {/* Review Summary Section */}
-        <section id="reviews" className="w-full py-16 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <Card className="max-w-4xl mx-auto border-2 border-accent/50 shadow-xl shadow-accent/10 bg-secondary/30 overflow-hidden">
-                <div className="p-8 md:p-12 text-center">
-                    <div className="inline-flex items-center gap-3 rounded-full bg-accent/10 px-4 py-2 text-accent-foreground mb-6">
-                        <Sparkles className="w-5 h-5 text-accent" />
-                        <span className="font-medium text-accent">AI-Powered Review Summary</span>
+        {hasReviews && (
+          <>
+            {/* Review Summary Section */}
+            <section id="reviews" className="w-full py-16 md:py-24 lg:py-32">
+              <div className="container px-4 md:px-6">
+                <Card className="max-w-4xl mx-auto border-2 border-accent/50 shadow-xl shadow-accent/10 bg-secondary/30 overflow-hidden">
+                    <div className="p-8 md:p-12 text-center">
+                        <div className="inline-flex items-center gap-3 rounded-full bg-accent/10 px-4 py-2 text-accent-foreground mb-6">
+                            <Sparkles className="w-5 h-5 text-accent" />
+                            <span className="font-medium text-accent">AI-Powered Review Summary</span>
+                        </div>
+                        <blockquote className="text-xl/relaxed md:text-2xl/relaxed font-medium text-foreground/80 italic">
+                            &ldquo;{summary}&rdquo;
+                        </blockquote>
                     </div>
-                    <blockquote className="text-xl/relaxed md:text-2xl/relaxed font-medium text-foreground/80 italic">
-                        &ldquo;{summary}&rdquo;
-                    </blockquote>
-                </div>
-            </Card>
-          </div>
-        </section>
-        
-        {/* Quotes Carousel Section */}
-        <section id="quotes" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
-                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
+                </Card>
               </div>
-            <Carousel
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-              className="w-full max-w-5xl mx-auto"
-            >
-              <CarouselContent>
-                {quotes.map((quote, index) => (
-                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                    <div className="p-2 h-full">
-                      <Card className="h-full flex flex-col justify-center border-l-4 border-accent">
-                        <CardContent className="p-8 text-left space-y-4">
-                           <h3 className="text-xl font-bold font-headline">{quote.author}</h3>
-                          <p className="text-lg/relaxed">&ldquo;{quote.text}&rdquo;</p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          </div>
-        </section>
+            </section>
+            
+            {/* Quotes Carousel Section */}
+            <section id="quotes" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
+              <div className="container px-4 md:px-6">
+                <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
+                    <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
+                    <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
+                  </div>
+                <Carousel
+                  opts={{
+                    align: "start",
+                    loop: true,
+                  }}
+                  className="w-full max-w-5xl mx-auto"
+                >
+                  <CarouselContent>
+                    {quotes.map((quote, index) => (
+                      <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                        <div className="p-2 h-full">
+                          <Card className="h-full flex flex-col justify-center border-l-4 border-accent">
+                            <CardContent className="p-8 text-left space-y-4">
+                               <h3 className="text-xl font-bold font-headline">{quote.author}</h3>
+                              <p className="text-lg/relaxed">&ldquo;{quote.text}&rdquo;</p>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </Carousel>
+              </div>
+            </section>
+          </>
+        )}
 
         {/* Buy Now Section */}
         <section id="buy" className="w-full py-20 md:py-28 lg:py-32 bg-primary text-primary-foreground">
