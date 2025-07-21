@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { placeOrder, type State } from '@/lib/actions';
@@ -25,7 +25,7 @@ export function OrderForm() {
   const router = useRouter();
   const { toast } = useToast();
   const initialState: State = { message: null, errors: {}, step: 'address' };
-  const [state, dispatch] = useFormState(placeOrder, initialState);
+  const [state, dispatch] = useActionState(placeOrder, initialState);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
   const [states, setStates] = useState<string[]>([]);
   
