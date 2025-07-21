@@ -38,6 +38,7 @@ const bookGlimpseImages = [
 
 export default function Home() {
   const summary = "Readers praise the book for its thrilling plot, deep philosophical questions, and meticulous historical detail, calling it a captivating, thought-provoking masterpiece that stays with you long after the final page.";
+  const showAuthorPhoto = false;
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -55,6 +56,18 @@ export default function Home() {
                   <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
                     A journey into the heart of mystery, faith, and human existence.
                   </p>
+                </div>
+                 <div className="space-y-4">
+                  <div className="flex items-baseline gap-4">
+                     <div className="flex flex-col">
+                        <span className="text-4xl font-bold text-foreground">₹299</span>
+                        <span className="text-sm text-muted-foreground">Paperback</span>
+                     </div>
+                      <div className="flex flex-col">
+                        <span className="text-4xl font-bold text-foreground">₹499</span>
+                        <span className="text-sm text-muted-foreground">Hardcover</span>
+                     </div>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
                   <Button asChild size="lg" className="cta-button">
@@ -101,23 +114,25 @@ export default function Home() {
 
         {/* Author Bio Section */}
         <section id="author" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
-          <div className="container grid items-center justify-center gap-8 px-4 md:px-6 lg:grid-cols-2 lg:gap-16">
-            <div className="flex justify-center lg:order-last">
-              <Image
-                src="https://placehold.co/400x400.png"
-                width="400"
-                height="400"
-                alt="Author Alfas B"
-                className="rounded-full aspect-square object-cover shadow-lg"
-                data-ai-hint="author portrait"
-              />
-            </div>
-            <div className="space-y-6 text-center lg:text-left">
+          <div className={`container grid items-center justify-center gap-8 px-4 md:px-6 ${showAuthorPhoto ? 'lg:grid-cols-2 lg:gap-16' : 'lg:grid-cols-1'}`}>
+            {showAuthorPhoto && (
+                <div className="flex justify-center lg:order-last">
+                  <Image
+                    src="https://placehold.co/400x400.png"
+                    width="400"
+                    height="400"
+                    alt="Author Alfas B"
+                    className="rounded-full aspect-square object-cover shadow-lg"
+                    data-ai-hint="author portrait"
+                  />
+                </div>
+            )}
+            <div className={`space-y-6 ${showAuthorPhoto ? 'text-center lg:text-left' : 'text-center'}`}>
               <div className="space-y-4">
                 <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">The Author</div>
-                <h2 className="text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center justify-center lg:justify-start gap-3"><User/> Alfas B</h2>
+                <h2 className={`text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center gap-3 ${showAuthorPhoto ? 'justify-center lg:justify-start' : 'justify-center'}`}><User/> Alfas B</h2>
               </div>
-              <p className="max-w-[600px] text-muted-foreground text-lg/relaxed mx-auto lg:mx-0">
+              <p className={`max-w-[600px] text-muted-foreground text-lg/relaxed ${showAuthorPhoto ? 'mx-auto lg:mx-0' : 'mx-auto'}`}>
                 {authorBio}
               </p>
             </div>

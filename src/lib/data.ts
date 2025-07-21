@@ -100,5 +100,9 @@ export const buyLinks = [
     {
         name: "Flipkart",
         url: "#"
+    },
+    {
+        name: "E-book",
+        url: "/checkout"
     }
 ]
