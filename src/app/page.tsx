@@ -38,6 +38,7 @@ const bookGlimpseImages = [
   { src: "https://placehold.co/600x800.png", alt: "Locked page 8", locked: true, "data-ai-hint": "book page" },
 ];
 
+const isOutOfStock = true;
 
 export default function Home() {
   const summary = "Readers praise the book for its thrilling plot, deep philosophical questions, and meticulous historical detail, calling it a captivating, thought-provoking masterpiece that stays with you long after the final page.";
@@ -72,11 +73,15 @@ export default function Home() {
                     <HomePrice />
                  </Suspense>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
-                  <Button asChild size="lg" className="cta-button">
-                    <Link href="/checkout">
-                      Buy Now <ShoppingCart className="ml-2 h-5 w-5" />
-                    </Link>
-                  </Button>
+                  {isOutOfStock ? (
+                    <Button size="lg" disabled>Out of Stock</Button>
+                  ) : (
+                    <Button asChild size="lg" className="cta-button">
+                      <Link href="/checkout">
+                        Buy Now <ShoppingCart className="ml-2 h-5 w-5" />
+                      </Link>
+                    </Button>
+                  )}
                   <Button asChild size="lg" variant="outline" className="shadow-sm hover:shadow-md transition-shadow">
                      <a href="#sample-chapters">
                       Read a Sample <BookOpen className="ml-2 h-5 w-5" />
@@ -160,9 +165,13 @@ export default function Home() {
                   <AccordionContent className="pt-4 text-lg/relaxed text-muted-foreground">
                     {!chapter.locked ? chapter.content : (
                       <div className="p-8 text-center bg-secondary/50 rounded-lg">
-                          <Button asChild size="lg" className="cta-button">
-                              <Link href="/checkout">Buy Now</Link>
-                          </Button>
+                          {isOutOfStock ? (
+                            <Button size="lg" disabled>Out of Stock</Button>
+                          ) : (
+                            <Button asChild size="lg" className="cta-button">
+                                <Link href="/checkout">Buy Now</Link>
+                            </Button>
+                          )}
                       </div>
                     )}
                   </AccordionContent>
@@ -198,9 +207,13 @@ export default function Home() {
                               <Lock className="w-12 h-12 mb-4 text-accent" />
                               <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
                               <p className="text-sm text-muted-foreground mt-1">Purchase the book to read the full story.</p>
-                               <Button asChild size="sm" className="mt-4 cta-button">
-                                <Link href="/checkout">Buy Now</Link>
-                              </Button>
+                               {isOutOfStock ? (
+                                <Button size="sm" className="mt-4" disabled>Out of Stock</Button>
+                               ) : (
+                                <Button asChild size="sm" className="mt-4 cta-button">
+                                  <Link href="/checkout">Buy Now</Link>
+                                </Button>
+                               )}
                             </div>
                           )}
                         </CardContent>
@@ -283,11 +296,15 @@ export default function Home() {
                   </Button>
                 ))}
                  <div className="text-sm font-medium mx-2">OR</div>
-                <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
-                  <Link href="/checkout">
-                    Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
+                 {isOutOfStock ? (
+                    <Button size="lg" className="bg-background text-foreground hover:bg-background/90" disabled>Out of Stock</Button>
+                 ) : (
+                    <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
+                      <Link href="/checkout">
+                        Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
+                      </Link>
+                    </Button>
+                 )}
               </div>
             </div>
           </div>
