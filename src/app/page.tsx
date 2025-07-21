@@ -136,18 +136,15 @@ export default function Home() {
                  <AccordionItem value={`item-${chapter.number}`} key={chapter.number}>
                   <AccordionTrigger className="text-2xl md:text-3xl font-headline text-left hover:no-underline">
                     <div className="flex items-center gap-4">
-                      {chapter.number > 1 && <Lock className="w-6 h-6 text-primary/50" />}
+                      {chapter.locked && <Lock className="w-6 h-6 text-primary/50" />}
                       <span>{chapter.title}</span>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 text-lg/relaxed text-muted-foreground">
-                    {chapter.number === 1 ? chapter.content : (
+                    {!chapter.locked ? chapter.content : (
                       <div className="p-8 text-center bg-secondary/50 rounded-lg">
-                          <Lock className="w-10 h-10 mb-4 text-primary mx-auto" />
-                          <h3 className="font-headline text-xl text-foreground mb-2">Unlock This Chapter</h3>
-                          <p className="text-muted-foreground mb-4">Purchase the book to read the full story.</p>
                           <Button asChild size="lg" className="cta-button">
-                              <Link href="/checkout">Buy Now</Link>
+                              <Link href="/checkout">Buy Now to Read</Link>
                           </Button>
                       </div>
                     )}
