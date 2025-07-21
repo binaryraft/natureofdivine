@@ -2,9 +2,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Package2, User, Settings, LogOut, Sun } from 'lucide-react';
+import { Menu, Package2, User, Settings, LogOut } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,14 +43,14 @@ function SunflowerIcon(props: React.SVGProps<SVGSVGElement>) {
         <path d="M12 21c.21-.63.33-1.3.36-1.98.05-1.18-.15-2.35-.55-3.48-.42-1.2-.95-2.3-1.58-3.34" />
         <path d="M15.5 19.5c-.34-.63-.6-1.32-.78-2.06-.22-.9-.2-1.9-.02-2.88.2-1.12.6-2.22 1.16-3.24" />
         <path d="M19.25 16c-.64-.63-1.22-1.33-1.7-2.12-.57-.96-.98-2.07-1.14-3.24-.18-1.3-.12-2.68.15-4.02" />
-        <path d="M16.5 6.25c.34.63.6 1.32.78 2.06.22.9.2 1.9.02 2.88-.2 1.12-.6 2.22-1.16 3.24" />
+        <path d="M16.5 6.25c.34.63.6 1.32.78 2.06.22.9.2 1.9.02 2.88-.2 1.12-.6 2.22-1.16-3.24" />
         <path d="M4.75 8c-.64.63-1.22 1.33-1.7 2.12C2.48 11.08 2.07 12.2 1.9 13.36c-.18 1.3-.12 2.68.15 4.02" />
         <path d="M7.5 17.75c-.34-.63-.6-1.32-.78-2.06-.22-.9-.2-1.9-.02-2.88.2-1.12.6-2.22 1.16-3.24" />
-        <path d="M12 3c-.21.63-.33 1.3-.36 1.98-.05 1.18.15 2.35.55 3.48.42 1.2.95 2.3 1.58 3.34" />
+        <path d="M12 3c-.21.63-.33 1.3-.36 1.98-.05-1.18.15 2.35.55 3.48.42 1.2.95 2.3 1.58 3.34" />
         <path d="M15.5 19.5c-.34-.63-.6-1.32-.78-2.06-.22-.9-.2-1.9-.02-2.88.2-1.12.6-2.22 1.16-3.24" />
         <path d="M19.25 16c-.64-.63-1.22-1.33-1.7-2.12-.57-.96-.98-2.07-1.14-3.24-.18-1.3-.12-2.68.15-4.02" />
         <path d="M16.5 6.25c.34.63.6 1.32.78 2.06.22.9.2 1.9.02 2.88-.2 1.12-.6 2.22-1.16-3.24" />
-        <path d="M8.5 6.25c-.34.63-.6 1.32-.78 2.06-.22-.9-.2-1.9-.02-2.88.2-1.12.6-2.22 1.16-3.24" />
+        <path d="M8.5 6.25c-.34.63-.6 1.32-.78-2.06-.22-.9-.2-1.9-.02-2.88.2-1.12.6-2.22 1.16-3.24" />
         <circle cx="12" cy="12" r="2.5" />
       </svg>
     )
@@ -108,6 +108,7 @@ export function SiteHeader() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
+               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium">
                 <Link
                   href="/"
