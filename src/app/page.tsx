@@ -1,3 +1,5 @@
+'use client';
+
 import Image from "next/image";
 import {
   Card,
@@ -19,7 +21,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Sparkles } from "lucide-react";
 import Link from "next/link";
-
 import { authorBio, quotes, sampleChapters, synopsis, buyLinks } from "@/lib/data";
 
 const bookGlimpseImages = [
@@ -34,7 +35,7 @@ const bookGlimpseImages = [
 ];
 
 
-export default async function Home() {
+export default function Home() {
   const summary = "Readers praise the book for its thrilling plot, deep philosophical questions, and meticulous historical detail, calling it a captivating, thought-provoking masterpiece that stays with you long after the final page.";
 
   return (

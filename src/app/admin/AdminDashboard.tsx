@@ -56,7 +56,7 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                             <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
                             <TableCell className="text-center">
-                                 <Badge variant="secondary" className="capitalize text-white" style={{backgroundColor: statusColors[order.status].replace('bg-', '').replace('-500', '')}}>
+                                 <Badge variant="secondary" className={cn("capitalize text-white", statusColors[order.status])}>
                                     {order.status}
                                 </Badge>
                             </TableCell>

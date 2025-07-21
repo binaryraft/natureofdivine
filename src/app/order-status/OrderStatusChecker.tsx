@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchOrderStatus } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -23,33 +23,31 @@ export function OrderStatusChecker() {
   const [orderId, setOrderId] = useState(searchParams.get('orderId') || '');
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [searched, setSearched] = useState(false);
 
-  const handleSearch = async (idToSearch: string) => {
+  const handleSearch = (idToSearch: string) => {
     if (!idToSearch) {
       setError('Please enter an Order ID.');
-      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
     setError(null);
     setOrder(null);
     setSearched(true);
-
-    try {
-        const result = await fetchOrderStatus(idToSearch.trim());
-        if (result) {
-          setOrder(result);
-        } else {
-          setError(`Order with ID "${idToSearch}" not found.`);
+    
+    startTransition(async () => {
+        try {
+            const result = await fetchOrderStatus(idToSearch.trim());
+            if (result) {
+            setOrder(result);
+            } else {
+            setError(`Order with ID "${idToSearch}" not found.`);
+            }
+        } catch (e) {
+            setError('Could not fetch order status. Please try again later.');
         }
-    } catch (e) {
-        setError('Could not fetch order status. Please try again later.');
-    } finally {
-        setIsLoading(false);
-    }
+    });
   };
 
   useEffect(() => {
@@ -83,8 +81,8 @@ export function OrderStatusChecker() {
             defaultValue={orderId}
           />
         </div>
-        <Button type="submit" disabled={isLoading} className="self-end">
-          {isLoading ? (
+        <Button type="submit" disabled={isPending} className="self-end">
+          {isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <PackageSearch className="mr-2 h-4 w-4" />
@@ -93,13 +91,13 @@ export function OrderStatusChecker() {
         </Button>
       </form>
 
-      {isLoading && (
+      {isPending && (
         <div className="flex justify-center items-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
 
-      {error && (
+      {error && !isPending && (
         <Alert variant="destructive">
           <XCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
@@ -107,7 +105,7 @@ export function OrderStatusChecker() {
         </Alert>
       )}
 
-      {order && (
+      {order && !isPending &&(
         <div className="pt-4 border-t">
             <h3 className="text-lg font-semibold">Order Details</h3>
             <div className="text-sm text-muted-foreground mt-2 space-y-1">
@@ -144,7 +142,7 @@ export function OrderStatusChecker() {
         </div>
       )}
       
-      {!isLoading && !error && !order && searched && (
+      {!isPending && !error && !order && searched && (
           <p className="text-center py-8 text-muted-foreground">No order found.</p>
       )}
     </div>
