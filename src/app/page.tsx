@@ -22,7 +22,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { authorBio, quotes, sampleChapters, synopsis, buyLinks } from "@/lib/data";
+import { authorBio, quotes, sampleChapters, buyLinks } from "@/lib/data";
+import { HomePrice } from "@/components/HomePrice";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const bookGlimpseImages = [
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book", locked: false },
@@ -57,18 +60,17 @@ export default function Home() {
                     A journey into the heart of mystery, faith, and human existence.
                   </p>
                 </div>
-                 <div className="space-y-4">
-                  <div className="flex items-baseline gap-4">
-                     <div className="flex flex-col">
-                        <span className="text-4xl font-bold text-foreground">₹299</span>
-                        <span className="text-sm text-muted-foreground">Paperback</span>
-                     </div>
-                      <div className="flex flex-col">
-                        <span className="text-4xl font-bold text-foreground">₹499</span>
-                        <span className="text-sm text-muted-foreground">Hardcover</span>
-                     </div>
-                  </div>
-                </div>
+                 <Suspense fallback={
+                    <div className="space-y-4">
+                        <Skeleton className="h-16 w-48" />
+                        <div className="flex gap-4">
+                            <Skeleton className="h-12 w-1/2" />
+                            <Skeleton className="h-12 w-1/2" />
+                        </div>
+                    </div>
+                 }>
+                    <HomePrice />
+                 </Suspense>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
                   <Button asChild size="lg" className="cta-button">
                     <Link href="/checkout">
@@ -159,7 +161,7 @@ export default function Home() {
                     {!chapter.locked ? chapter.content : (
                       <div className="p-8 text-center bg-secondary/50 rounded-lg">
                           <Button asChild size="lg" className="cta-button">
-                              <Link href="/checkout">Buy Now to Read</Link>
+                              <Link href="/checkout">Buy Now</Link>
                           </Button>
                       </div>
                     )}
