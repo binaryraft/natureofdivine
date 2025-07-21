@@ -24,7 +24,7 @@ export function MobileBottomNav() {
         navLinks.length === 2 ? "grid-cols-2" : "grid-cols-3"
       )}>
         {navLinks.map((link) => {
-          const isActive = pathname === link.href;
+          const isActive = pathname === link.href || (link.href === '/order' && pathname === '/checkout');
           return (
             <Link
               key={link.href}

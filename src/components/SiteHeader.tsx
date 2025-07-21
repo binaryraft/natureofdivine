@@ -36,7 +36,7 @@ export function SiteHeader() {
                 href={link.href}
                 className={cn(
                   'transition-colors hover:text-foreground/80',
-                  pathname === link.href ? 'text-foreground' : 'text-foreground/60'
+                  (pathname === link.href || (link.href === '/order' && pathname === '/checkout')) ? 'text-foreground' : 'text-foreground/60'
                 )}
               >
                 {link.label}

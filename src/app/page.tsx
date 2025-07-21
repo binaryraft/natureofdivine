@@ -57,7 +57,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
                   <Button asChild size="lg" className="cta-button">
-                    <Link href="/order">
+                    <Link href="/checkout">
                       Buy Now <ShoppingCart className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
@@ -74,7 +74,7 @@ export default function Home() {
                   width="450"
                   height="675"
                   alt="Nature of the Divine Book Cover"
-                  className="mx-auto aspect-[2/3] object-contain sm:w-full lg:order-last rounded-lg shadow-2xl shadow-primary/20"
+                  className="mx-auto aspect-[2/3] object-contain sm:w-full lg:order-last rounded-lg"
                   data-ai-hint="book cover"
                   priority
                 />
@@ -170,7 +170,7 @@ export default function Home() {
                               <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
                               <p className="text-sm text-muted-foreground mt-1">Purchase the book to read the full story.</p>
                                <Button asChild size="sm" className="mt-4 cta-button">
-                                <Link href="/order">Buy Now</Link>
+                                <Link href="/checkout">Buy Now</Link>
                               </Button>
                             </div>
                           )}
@@ -255,7 +255,7 @@ export default function Home() {
                 ))}
                  <div className="text-sm font-medium mx-2">OR</div>
                 <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
-                  <Link href="/order">
+                  <Link href="/checkout">
                     Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
