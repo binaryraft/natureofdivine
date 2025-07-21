@@ -3,8 +3,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { addOrder, getOrder, getOrders, updateOrderStatus } from './order-store';
+import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus } from './order-store';
 import type { OrderStatus } from './definitions';
+import { auth } from './firebase';
 
 const addressSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -21,6 +22,8 @@ const addressSchema = z.object({
 const paymentSchema = z.object({
     paymentMethod: z.enum(['cod', 'prepaid']),
     formData: z.string(),
+    userId: z.string().optional(),
+    saveAddress: z.string().optional(),
 });
 
 export type State = {
@@ -74,13 +77,21 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
      }
      
      const orderData = JSON.parse(validatedPayment.data.formData);
+     const { userId, saveAddress } = validatedPayment.data;
      
      try {
         const newOrder = await addOrder({
             ...orderData,
             paymentMethod: validatedPayment.data.paymentMethod,
+            userId: userId || null,
         });
+
+        if (userId && saveAddress === 'true') {
+            // TODO: Logic to save the address to user's profile in Firestore
+        }
+
         revalidatePath('/admin');
+        revalidatePath('/orders');
         return { 
             step: 'success', 
             message: 'Order created successfully!', 
@@ -106,15 +117,16 @@ export async function fetchOrders() {
     return await getOrders();
 }
 
-export async function fetchOrderStatus(id: string) {
-    if (!id) return null;
-    return await getOrder(id);
+export async function fetchUserOrders(userId: string) {
+    if (!userId) return [];
+    return await getOrdersByUserId(userId);
 }
 
 export async function changeOrderStatus(id: string, status: OrderStatus) {
     try {
         await updateOrderStatus(id, status);
         revalidatePath('/admin');
+        revalidatePath('/orders');
         return { success: true, message: `Order ${id} status updated to ${status}` };
     } catch (error) {
         return { success: false, message: 'Failed to update order status.' };

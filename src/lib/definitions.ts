@@ -3,6 +3,7 @@ export type OrderStatus = 'new' | 'dispatched' | 'delivered' | 'cancelled';
 
 export type Order = {
   id: string;
+  userId: string | null;
   name: string;
   phone: string;
   email: string;

@@ -1,26 +1,27 @@
+
 export const synopsis = `
-  A metaphysical thriller that follows a disillusioned symbologist who discovers an ancient manuscript that challenges the foundations of faith and reality. Hunted by a shadowy organization, he races from the Vatican to Tibet to unveil a truth that could either unite or shatter humanity.
+A metaphysical thriller that follows a disillusioned symbologist who discovers an ancient manuscript that challenges the foundations of faith and reality. Hunted by a shadowy organization, he races from the Vatican to Tibet to unveil a truth that could either unite or shatter humanity.
 `;
 
 export const authorBio = `
-  Alfas B is a historian and novelist with a passion for ancient mysteries and theological philosophy. With a Ph.D. in Comparative Religion, Alfas has spent two decades traveling the globe, studying forgotten texts and exploring sacred sites. This extensive research provides the authentic and richly detailed backdrop for "Nature of the Divine," Alfas's debut novel.
+Alfas B is a historian and novelist with a passion for ancient mysteries and theological philosophy. With a Ph.D. in Comparative Religion, Alfas has spent two decades traveling the globe, studying forgotten texts and exploring sacred sites. This extensive research provides the authentic and richly detailed backdrop for "Nature of the Divine," Alfas's debut novel.
 `;
 
 export const sampleChapters = [
   {
     number: 1,
     title: "The Gilded Cage",
-    content: `The air in the Vatican's secret archives was thick with the scent of aging parchment and beeswax. Dr. Aris Thorne ran a gloved finger over the spine of a leather-bound codex, its title long faded into obscurity.`,
+    content: `The air in the Vatican's secret archives was thick with the scent of aging parchment and beeswax. Dr. Aris Thorne ran a gloved finger over the spine of a leather-bound codex, its title long faded into obscurity. He felt a familiar thrill, the electric hum of discovery that had driven him from the hallowed halls of academia to the dusty, forgotten corners of history. This codex, rumored to be a heresy of the highest order, was said to contain a truth so profound it could rewrite the story of humanity. For Aris, it was more than a relic; it was the culmination of a lifelong obsession, a key that might unlock the very nature of the divine.`,
   },
   {
     number: 2,
     title: "A Shadow in the Alleys",
-    content: `Rome's labyrinthine streets were a welcome chaos after the sterile silence of the archives. Aris clutched the satchel containing the codex, its weight a constant, unnerving reminder of his transgression.`,
+    content: ``,
   },
   {
     number: 3,
     title: "Echoes of the Forgotten",
-    content: "The codex felt ancient, its pages brittle beneath his gloved fingers. Each symbol was a mystery, a breadcrumb on a trail laid centuries ago by hands that held secrets too dangerous for their time. He had to know more."
+    content: ``
   }
 ];
 
@@ -35,12 +36,12 @@ export const bookReviews = [
 
 export const quotes = [
   {
-    text: "A stunning debut that redefines the metaphysical thriller. Evergreen is a master of suspense.",
+    text: "A stunning debut that redefines the metaphysical thriller. Alfas B is a master of suspense.",
     author: "The Literary Times",
   },
   {
     text: "Intelligent, thrilling, and deeply profound. This book will stay with you long after you've turned the final page.",
-    author: "Eleanor Vance",
+    author: "Eleanor Vance, Bestselling Author",
   },
   {
     text: "A high-stakes adventure that is both a page-turner and a meditation on the nature of existence.",

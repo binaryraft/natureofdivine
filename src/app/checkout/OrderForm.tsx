@@ -13,6 +13,8 @@ import { Loader2, ArrowRight, Truck, CreditCard } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Types for the API responses
 interface Country {
@@ -28,6 +30,7 @@ interface StateData {
 export function OrderForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
   const initialState: State = { message: null, errors: {}, step: 'address' };
   const [state, dispatch] = useActionState(placeOrder, initialState);
   
@@ -38,6 +41,11 @@ export function OrderForm() {
   
   const [city, setCity] = useState('');
   const [autoFilledState, setAutoFilledState] = useState('');
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [useSavedAddress, setUseSavedAddress] = useState(false);
+  
+  // TODO: Implement fetching and using saved addresses from user profile
+  const savedAddresses: any[] = []; 
 
   const [isLoading, setIsLoading] = useState({
       countries: true,
@@ -130,7 +138,11 @@ export function OrderForm() {
       });
     }
     if (state.step === 'success' && state.orderId) {
-      router.push(`/order/success?orderId=${state.orderId}`);
+      toast({
+        title: 'Order Placed!',
+        description: `Your order ID is ${state.orderId}.`,
+      });
+      router.push(`/orders`);
     }
   }, [state, router, toast]);
 
@@ -138,6 +150,7 @@ export function OrderForm() {
      return (
         <form action={dispatch}>
             <input type="hidden" name="formData" value={state.formData} />
+             {user && <input type="hidden" name="userId" value={user.uid} />}
             <Card className="border-none shadow-none">
                 <CardHeader>
                     <CardTitle>Payment Method</CardTitle>
@@ -169,15 +182,28 @@ export function OrderForm() {
 
   return (
     <form action={dispatch} className="space-y-4">
+       {user && (
+         <div className="space-y-4 rounded-md border p-4 bg-secondary/50">
+            <h3 className="font-semibold">Shipping Address</h3>
+            {/* TODO: Saved Addresses */}
+            {savedAddresses.length > 0 && (
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="use-saved-address" checked={useSavedAddress} onCheckedChange={(checked) => setUseSavedAddress(!!checked)} />
+                    <Label htmlFor="use-saved-address">Use a saved address</Label>
+                </div>
+            )}
+         </div>
+       )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Full Name</Label>
-          <Input id="name" name="name" placeholder="John Doe" required />
+          <Input id="name" name="name" placeholder="John Doe" required defaultValue={user?.displayName || ''} />
           {state.errors?.name && <p className="text-sm text-destructive">{state.errors.name[0]}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email Address</Label>
-          <Input id="email" name="email" type="email" placeholder="m@example.com" required />
+          <Input id="email" name="email" type="email" placeholder="m@example.com" required defaultValue={user?.email || ''} />
            {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
         </div>
       </div>
@@ -243,6 +269,14 @@ export function OrderForm() {
         <Label htmlFor="street">Apartment, suite, etc. (optional)</Label>
         <Input id="street" name="street" placeholder="Apt #4B" />
       </div>
+
+      {user && (
+         <div className="flex items-center space-x-2">
+            <Checkbox id="save-address" checked={saveAddress} onCheckedChange={(checked) => setSaveAddress(!!checked)} />
+            <Label htmlFor="save-address">Save this address for future orders</Label>
+            <input type="hidden" name="saveAddress" value={String(saveAddress)} />
+         </div>
+      )}
 
       <SubmitButton text="Proceed to Payment" />
     </form>

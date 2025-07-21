@@ -1,5 +1,6 @@
+
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 
 const ordersCollection = collection(db, 'orders');
@@ -14,6 +15,19 @@ export const getOrders = async (): Promise<Order[]> => {
       ...data,
       createdAt: (data.createdAt as Timestamp).toMillis(),
     } as Order;
+  });
+};
+
+export const getOrdersByUserId = async (userId: string): Promise<Order[]> => {
+  const q = query(ordersCollection, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toMillis(),
+    } as Order
   });
 };
 

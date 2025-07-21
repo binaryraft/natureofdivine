@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Lora, Inter } from "next/font/google";
 import "./globals.css";
@@ -6,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { AuthProvider } from "@/hooks/useAuth";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -40,13 +42,15 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <div className="relative flex min-h-screen flex-col">
-          <SiteHeader />
-          <main className="flex-1 pb-24 md:pb-0">{children}</main>
-          <SiteFooter />
-        </div>
-        <MobileBottomNav />
-        <Toaster />
+        <AuthProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <SiteHeader />
+            <main className="flex-1 pb-24 md:pb-0">{children}</main>
+            <SiteFooter />
+          </div>
+          <MobileBottomNav />
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

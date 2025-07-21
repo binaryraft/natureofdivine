@@ -104,7 +104,7 @@ export default function Home() {
           <div className="container grid items-center justify-center gap-8 px-4 md:px-6 lg:grid-cols-2 lg:gap-16">
             <div className="flex justify-center lg:order-last">
               <Image
-                src="https://placehold.co/500x500.png"
+                src="https://placehold.co/400x400.png"
                 width="400"
                 height="400"
                 alt="Author Alfas B"
@@ -131,12 +131,26 @@ export default function Home() {
                 <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Preview</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookOpen/> Sample Chapters</h2>
               </div>
-            <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto">
+            <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto" defaultValue="item-1">
               {sampleChapters.map((chapter) => (
                  <AccordionItem value={`item-${chapter.number}`} key={chapter.number}>
-                  <AccordionTrigger className="text-2xl md:text-3xl font-headline text-left hover:no-underline">{chapter.title}</AccordionTrigger>
+                  <AccordionTrigger className="text-2xl md:text-3xl font-headline text-left hover:no-underline">
+                    <div className="flex items-center gap-4">
+                      {chapter.number > 1 && <Lock className="w-6 h-6 text-primary/50" />}
+                      <span>{chapter.title}</span>
+                    </div>
+                  </AccordionTrigger>
                   <AccordionContent className="pt-4 text-lg/relaxed text-muted-foreground">
-                    {chapter.content}
+                    {chapter.number === 1 ? chapter.content : (
+                      <div className="p-8 text-center bg-secondary/50 rounded-lg">
+                          <Lock className="w-10 h-10 mb-4 text-primary mx-auto" />
+                          <h3 className="font-headline text-xl text-foreground mb-2">Unlock This Chapter</h3>
+                          <p className="text-muted-foreground mb-4">Purchase the book to read the full story.</p>
+                          <Button asChild size="lg" className="cta-button">
+                              <Link href="/checkout">Buy Now</Link>
+                          </Button>
+                      </div>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -161,7 +175,7 @@ export default function Home() {
                           <Image
                             src={image.src}
                             layout="fill"
-                            objectFit="contain"
+                            objectFit="cover"
                             alt={image.alt}
                             className="transition-transform duration-300 hover:scale-105"
                           />
@@ -208,7 +222,7 @@ export default function Home() {
         <section id="quotes" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Praise</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
               </div>
             <Carousel
