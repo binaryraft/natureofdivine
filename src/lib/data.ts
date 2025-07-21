@@ -41,7 +41,7 @@ export const sampleChapters = [
    {
     number: 7,
     title: "Religion",
-    content: ``
+    content: `This chapter addresses religion directly, showing how aligning with the divine nature of existence can cure blind faith and resolve misunderstandings about spirituality, love, and life itself. It offers clarity on the true essence of God, moving beyond dogma to a place of genuine understanding.`
   },
   {
     number: 8,
@@ -102,3 +102,4 @@ export const buyLinks = [
         url: "#"
     }
 ]
+
