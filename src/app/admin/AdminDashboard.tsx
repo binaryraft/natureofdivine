@@ -31,7 +31,9 @@ export function AdminDashboard() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode === 'admin1212') {
+    // This is not secure for production. Use a proper auth system.
+    // For this demo, we use an environment variable.
+    if (passcode === process.env.NEXT_PUBLIC_ADMIN_PASSCODE) {
       setIsAuthenticated(true);
       setError('');
     } else {
@@ -41,8 +43,16 @@ export function AdminDashboard() {
 
   const loadOrders = () => {
     startTransition(async () => {
-        const fetchedOrders = await fetchOrders();
-        setOrders(fetchedOrders);
+        try {
+            const fetchedOrders = await fetchOrders();
+            setOrders(fetchedOrders);
+        } catch(e) {
+             toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: "Failed to load orders. Check Firestore configuration.",
+             });
+        }
     });
   }
 
@@ -119,7 +129,9 @@ export function AdminDashboard() {
                 <TableRow>
                 <TableHead>Order ID</TableHead>
                 <TableHead>Customer</TableHead>
+                 <TableHead>Address</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-right">Change Status</TableHead>
                 </TableRow>
@@ -127,18 +139,23 @@ export function AdminDashboard() {
             <TableBody>
                 {isPending && orders.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8">
+                        <TableCell colSpan={7} className="text-center py-8">
                              <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                         </TableCell>
                     </TableRow>
                 ) : orders.map((order) => (
                 <TableRow key={order.id}>
-                    <TableCell className="font-mono">{order.id}</TableCell>
+                    <TableCell className="font-mono text-xs">{order.id}</TableCell>
                     <TableCell>
                         <div className="font-medium">{order.name}</div>
                         <div className="text-sm text-muted-foreground">{order.email}</div>
+                         <div className="text-sm text-muted-foreground">{order.phone}</div>
+                    </TableCell>
+                     <TableCell className="text-xs">
+                        {order.address}, {order.street}, {order.state}, {order.country} - {order.pinCode}
                     </TableCell>
                     <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
                     <TableCell className="text-center">
                         <Badge variant="secondary" className="capitalize text-white" style={{backgroundColor: statusColors[order.status].replace('bg-', '').replace('-500', '')}}>
                              {order.status}

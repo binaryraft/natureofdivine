@@ -39,13 +39,18 @@ export function OrderStatusChecker() {
       return;
     }
 
-    const result = await fetchOrderStatus(orderId.trim());
-    if (result) {
-      setOrder(result);
-    } else {
-      setError(`Order with ID "${orderId}" not found.`);
+    try {
+        const result = await fetchOrderStatus(orderId.trim());
+        if (result) {
+          setOrder(result);
+        } else {
+          setError(`Order with ID "${orderId}" not found.`);
+        }
+    } catch (e) {
+        setError('Could not fetch order status. Please try again later.');
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const currentStep = order ? statusSteps[order.status].step : 0;

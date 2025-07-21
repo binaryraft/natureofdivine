@@ -1,70 +1,53 @@
-// This is a simple in-memory store for demonstration purposes.
-// In a real application, this would be replaced by a database.
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 
-let orders: Order[] = [];
-
-// Seed with some initial data for demonstration
-if (process.env.NODE_ENV === 'development' && orders.length === 0) {
-  orders.push({
-    id: 'ORD-12345',
-    name: 'John Doe',
-    phone: '123-456-7890',
-    email: 'john.doe@example.com',
-    address: '123 Main St',
-    street: 'Apt 4B',
-    pinCode: '10001',
-    country: 'USA',
-    status: 'new',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-  });
-  orders.push({
-    id: 'ORD-67890',
-    name: 'Jane Smith',
-    phone: '098-765-4321',
-    email: 'jane.smith@example.com',
-    address: '456 Oak Ave',
-    street: '',
-    pinCode: '90210',
-    country: 'USA',
-    status: 'dispatched',
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-  });
-}
-
+const ordersCollection = collection(db, 'orders');
 
 export const getOrders = async (): Promise<Order[]> => {
-  // Simulate async operation
-  await new Promise(resolve => setTimeout(resolve, 100));
-  return orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const q = query(ordersCollection, orderBy('createdAt', 'desc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toMillis(),
+    } as Order;
+  });
 };
 
-export const getOrder = async (id: string): Promise<Order | undefined> => {
-    // Simulate async operation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return orders.find(order => order.id === id);
+export const getOrder = async (id: string): Promise<Order | null> => {
+    const docRef = doc(db, 'orders', id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+            id: docSnap.id,
+            ...data,
+            createdAt: (data.createdAt as Timestamp).toMillis(),
+        } as Order;
+    } else {
+        return null;
+    }
 };
 
 export const addOrder = async (orderData: Omit<Order, 'id' | 'status' | 'createdAt'>): Promise<Order> => {
-    // Simulate async operation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const newOrder: Order = {
+    const newOrderData = {
         ...orderData,
-        id: `ORD-${Date.now()}`,
-        status: 'new',
-        createdAt: new Date(),
+        status: 'new' as OrderStatus,
+        createdAt: Timestamp.now(),
     };
-    orders.unshift(newOrder);
-    return newOrder;
+    const docRef = await addDoc(ordersCollection, newOrderData);
+    return {
+        ...newOrderData,
+        id: docRef.id,
+        createdAt: newOrderData.createdAt.toMillis(),
+    };
 };
 
-export const updateOrderStatus = async (id: string, status: OrderStatus): Promise<Order | undefined> => {
-    // Simulate async operation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const orderIndex = orders.findIndex(order => order.id === id);
-    if (orderIndex !== -1) {
-        orders[orderIndex].status = status;
-        return orders[orderIndex];
-    }
-    return undefined;
+export const updateOrderStatus = async (id:string, status: OrderStatus): Promise<void> => {
+    const orderDoc = doc(db, 'orders', id);
+    await updateDoc(orderDoc, { status });
 };

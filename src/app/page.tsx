@@ -17,7 +17,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Feather, Lock, MessageSquareQuote, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Sparkles } from "lucide-react";
+import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { authorBio, quotes, sampleChapters, synopsis, buyLinks } from "@/lib/data";
@@ -25,12 +25,14 @@ import { authorBio, quotes, sampleChapters, synopsis, buyLinks } from "@/lib/dat
 const bookGlimpseImages = [
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book", locked: false },
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from the book", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "Preface of the book", locked: true },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the preface", locked: true },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents", locked: true },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279804/Screenshot_2025-06-24_114959_xv8qxd.png", alt: "Locked page", locked: true },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279804/Screenshot_2025-06-24_115433_is135r.png", alt: "Locked page", locked: true },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "Preface of the book", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the preface", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents", locked: false },
+  { src: "https://placehold.co/600x800.png", alt: "Locked page 6", locked: true, "data-ai-hint": "book page" },
+  { src: "https://placehold.co/600x800.png", alt: "Locked page 7", locked: true, "data-ai-hint": "book page" },
+  { src: "https://placehold.co/600x800.png", alt: "Locked page 8", locked: true, "data-ai-hint": "book page" },
 ];
+
 
 export default async function Home() {
   const summary = "Readers praise the book for its thrilling plot, deep philosophical questions, and meticulous historical detail, calling it a captivating, thought-provoking masterpiece that stays with you long after the final page.";
@@ -55,7 +57,7 @@ export default async function Home() {
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
                   <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-md hover:shadow-lg transition-shadow">
                     <Link href="/order">
-                      Order Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
+                      Buy Now <ShoppingCart className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="shadow-sm hover:shadow-md transition-shadow">
@@ -80,13 +82,13 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Synopsis Section */}
+        {/* About the Book Section */}
         <section id="synopsis" className="w-full py-16 md:py-24 lg:py-32 bg-background">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-6 text-center">
               <div className="space-y-4 max-w-4xl">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Synopsis</div>
-                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookText /> The Story</h2>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">About the Book</div>
+                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookText /> Nature of the Divine</h2>
                 <p className="text-muted-foreground text-lg/relaxed md:text-xl/relaxed">
                   {synopsis}
                 </p>
@@ -103,7 +105,7 @@ export default async function Home() {
                 src="https://placehold.co/500x500.png"
                 width="400"
                 height="400"
-                alt="Author J.D. Evergreen"
+                alt="Author Alfas B"
                 className="rounded-full aspect-square object-cover shadow-lg"
                 data-ai-hint="author portrait"
               />
@@ -111,7 +113,7 @@ export default async function Home() {
             <div className="space-y-6 text-center lg:text-left">
               <div className="space-y-4">
                 <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">The Author</div>
-                <h2 className="text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center justify-center lg:justify-start gap-3"><User/> J.D. Evergreen</h2>
+                <h2 className="text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center justify-center lg:justify-start gap-3"><User/> Alfas B</h2>
               </div>
               <p className="max-w-[600px] text-muted-foreground text-lg/relaxed mx-auto lg:mx-0">
                 {authorBio}
@@ -130,7 +132,7 @@ export default async function Home() {
             <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto">
               {sampleChapters.map((chapter) => (
                  <AccordionItem value={`item-${chapter.number}`} key={chapter.number}>
-                  <AccordionTrigger className="text-2xl md:text-3xl font-headline text-left hover:no-underline">&ldquo;{chapter.title}&rdquo;</AccordionTrigger>
+                  <AccordionTrigger className="text-2xl md:text-3xl font-headline text-left hover:no-underline">{chapter.title}</AccordionTrigger>
                   <AccordionContent className="pt-4 text-lg/relaxed text-muted-foreground">
                     {chapter.content}
                   </AccordionContent>
@@ -157,7 +159,7 @@ export default async function Home() {
                           <Image
                             src={image.src}
                             layout="fill"
-                            objectFit="cover"
+                            objectFit="contain"
                             alt={image.alt}
                             className="transition-transform duration-300 hover:scale-105"
                           />
@@ -165,7 +167,10 @@ export default async function Home() {
                             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 text-foreground">
                               <Lock className="w-12 h-12 mb-4 text-primary" />
                               <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
-                              <p className="text-sm text-muted-foreground mt-1">Purchase the book to read more.</p>
+                              <p className="text-sm text-muted-foreground mt-1">Purchase the book to read the full story.</p>
+                               <Button asChild size="sm" className="mt-4">
+                                <Link href="/order">Buy Now</Link>
+                              </Button>
                             </div>
                           )}
                         </CardContent>
@@ -174,8 +179,8 @@ export default async function Home() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="ml-[-1.5rem]" />
-              <CarouselNext className="mr-[-1.5rem]" />
+              <CarouselPrevious className="ml-[-1rem] md:ml-[-2.5rem]" />
+              <CarouselNext className="mr-[-1rem] md:mr-[-2.5rem]" />
             </Carousel>
           </div>
         </section>
@@ -202,7 +207,7 @@ export default async function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
                 <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Praise</div>
-                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> Critical Acclaim</h2>
+                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
               </div>
             <Carousel
               opts={{
@@ -217,8 +222,8 @@ export default async function Home() {
                     <div className="p-2 h-full">
                       <Card className="h-full flex flex-col justify-center border-l-4 border-accent">
                         <CardContent className="p-8 text-left space-y-4">
-                          <p className="text-lg/relaxed font-medium">&ldquo;{quote.text}&rdquo;</p>
-                          <footer className="text-base font-semibold text-muted-foreground">&mdash; {quote.author}</footer>
+                           <h3 className="text-xl font-bold font-headline">{quote.author}</h3>
+                          <p className="text-lg/relaxed">&ldquo;{quote.text}&rdquo;</p>
                         </CardContent>
                       </Card>
                     </div>
@@ -247,7 +252,7 @@ export default async function Home() {
                     </a>
                   </Button>
                 ))}
-                <div className="text-sm font-medium mx-2">OR</div>
+                 <div className="text-sm font-medium mx-2">OR</div>
                 <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
                   <Link href="/order">
                     Order a Signed Copy <Feather className="ml-2 h-5 w-5" />

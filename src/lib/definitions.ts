@@ -7,8 +7,10 @@ export type Order = {
   email: string;
   address: string;
   street: string;
-  pinCode: string;
   country: string;
+  state: string;
+  pinCode:string;
+  paymentMethod: 'cod' | 'prepaid';
   status: OrderStatus;
-  createdAt: Date;
+  createdAt: number; // Storing as timestamp for Firestore
 };
