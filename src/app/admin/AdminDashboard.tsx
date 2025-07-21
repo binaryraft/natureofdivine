@@ -97,19 +97,36 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
     );
 };
 
-function StockManager({ initialStock }: { initialStock: Stock }) {
+function StockManager() {
     const { toast } = useToast();
-    const [stock, setStock] = useState(initialStock);
+    const [stock, setStock] = useState<Stock | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLoadingStock, setIsLoadingStock] = useState(true);
+
+    useEffect(() => {
+        async function loadStock() {
+            try {
+                const fetchedStock = await getStock();
+                setStock(fetchedStock);
+            } catch (error) {
+                 toast({ variant: 'destructive', title: 'Error', description: 'Failed to load stock levels.' });
+            } finally {
+                setIsLoadingStock(false);
+            }
+        }
+        loadStock();
+    }, [toast]);
 
     const handleStockChange = (variant: BookVariant, value: string) => {
+        if (!stock) return;
         const quantity = parseInt(value, 10);
         if (!isNaN(quantity) && quantity >= 0) {
-            setStock(prev => ({ ...prev, [variant]: quantity }));
+            setStock(prev => ({ ...prev!, [variant]: quantity }));
         }
     };
 
     const handleSave = async () => {
+        if (!stock) return;
         setIsSaving(true);
         try {
             await updateStock(stock);
@@ -120,6 +137,22 @@ function StockManager({ initialStock }: { initialStock: Stock }) {
             setIsSaving(false);
         }
     };
+
+    if (isLoadingStock || !stock) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Warehouse/> Stock Management</CardTitle>
+                    <CardDescription>Update the quantity for each book variant. E-book stock is unlimited.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center items-center p-4">
+                        <Loader2 className="animate-spin" />
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>
@@ -161,7 +194,7 @@ function StockManager({ initialStock }: { initialStock: Stock }) {
     );
 }
 
-export function AdminDashboard({ initialStock }: { initialStock: Stock }) {
+export function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState('');
@@ -255,7 +288,7 @@ export function AdminDashboard({ initialStock }: { initialStock: Stock }) {
 
   return (
     <div className="space-y-8">
-        <StockManager initialStock={initialStock} />
+        <StockManager />
         <Card>
           <CardHeader>
             <div className="flex justify-between items-start">
@@ -300,5 +333,3 @@ export function AdminDashboard({ initialStock }: { initialStock: Stock }) {
     </div>
   );
 }
-
-    
