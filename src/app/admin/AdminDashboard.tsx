@@ -52,13 +52,18 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                             <TableCell>
                                 <div className="font-medium">{order.name}</div>
                                 <div className="text-sm text-muted-foreground">{order.email}</div>
-                                <div className="text-sm text-muted-foreground">{order.phone}</div>
+                                {order.phone && <div className="text-sm text-muted-foreground">{order.phone}</div>}
                             </TableCell>
                             <TableCell className="text-xs">
-                                {order.address}, {order.street}, {order.city}, {order.state}, {order.country} - {order.pinCode}
+                                {order.address ? `${order.address}, ${order.street}, ${order.city}, ${order.state}, ${order.country} - ${order.pinCode}` : 'N/A (E-book)'}
                             </TableCell>
                              <TableCell>
-                                <Badge variant={order.variant === 'hardcover' ? 'default' : 'secondary'} className="capitalize">{order.variant}</Badge>
+                                <Badge 
+                                    variant={order.variant === 'hardcover' ? 'default' : (order.variant === 'paperback' ? 'secondary' : 'outline')} 
+                                    className="capitalize"
+                                >
+                                    {order.variant}
+                                </Badge>
                                 <div>₹{order.price}</div>
                             </TableCell>
                             <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
@@ -120,7 +125,7 @@ function StockManager({ initialStock }: { initialStock: Stock }) {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Warehouse/> Stock Management</CardTitle>
-                <CardDescription>Update the quantity for each book variant.</CardDescription>
+                <CardDescription>Update the quantity for each book variant. E-book stock is unlimited.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -295,3 +300,5 @@ export function AdminDashboard({ initialStock }: { initialStock: Stock }) {
     </div>
   );
 }
+
+    

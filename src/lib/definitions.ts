@@ -2,7 +2,7 @@
 
 export type OrderStatus = 'new' | 'dispatched' | 'delivered' | 'cancelled';
 
-export type BookVariant = 'paperback' | 'hardcover';
+export type BookVariant = 'paperback' | 'hardcover' | 'ebook';
 
 export type Order = {
   id: string;
@@ -26,4 +26,7 @@ export type Order = {
 export type Stock = {
   paperback: number;
   hardcover: number;
+  ebook: number;
 };
+
+    

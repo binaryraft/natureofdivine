@@ -10,10 +10,11 @@ import { decreaseStock, getStock } from './stock-store';
 const variantDetails: Record<BookVariant, { name: string; price: number; }> = {
     paperback: { name: 'Paperback', price: 299 },
     hardcover: { name: 'Hardcover', price: 499 },
+    ebook: { name: 'E-book', price: 149 },
 };
 
 const variantSchema = z.object({
-    variant: z.enum(['paperback', 'hardcover'], { required_error: 'Please select a book type.' }),
+    variant: z.enum(['paperback', 'hardcover', 'ebook'], { required_error: 'Please select a book type.' }),
 });
 
 const addressSchema = z.object({
@@ -36,6 +37,16 @@ const paymentSchema = z.object({
     saveAddress: z.string().optional(),
 });
 
+// For E-book orders
+const ebookOrderSchema = z.object({
+    name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+    email: z.string().email({ message: 'Please enter a valid email address.' }),
+    variantData: z.string(),
+    userId: z.string().optional(),
+    paymentMethod: z.enum(['cod', 'prepaid']),
+});
+
+
 export type State = {
   errors?: {
     variant?: string[];
@@ -56,6 +67,52 @@ export type State = {
   variantData?: string | null;
   addressData?: string | null;
 };
+
+async function handleEbookOrder(formData: FormData) {
+    const validatedFields = ebookOrderSchema.safeParse(Object.fromEntries(formData.entries()));
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to place E-book order.',
+            step: 'payment' as const,
+            addressData: validatedFields.data.variantData,
+        };
+    }
+    
+    const { name, email, userId, paymentMethod, variantData } = validatedFields.data;
+    const { variant } = JSON.parse(variantData);
+
+    try {
+        const newOrder = await addOrder({
+            name,
+            email,
+            variant,
+            price: variantDetails[variant].price,
+            paymentMethod,
+            userId: userId || null,
+            // No shipping details for ebooks
+            phone: '', address: '', street: '', city: '', country: '', state: '', pinCode: '',
+        });
+
+        revalidatePath('/admin');
+        revalidatePath('/orders');
+        revalidatePath('/checkout');
+        
+        return { 
+            step: 'success' as const, 
+            message: 'E-book order created successfully!', 
+            orderId: newOrder.id 
+        };
+    } catch (error: any) {
+        return {
+            message: error.message || 'Database Error: Failed to Create E-book Order.',
+            step: 'payment' as const,
+            addressData: variantData,
+        };
+    }
+}
+
 
 export async function placeOrder(prevState: State, formData: FormData): Promise<State> {
   const currentStep = prevState.step;
@@ -79,9 +136,23 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
         }
     }
 
+    const variantData = JSON.stringify(validatedVariant.data);
+
+    if (validatedVariant.data.variant === 'ebook') {
+        // For ebooks, we can skip the address and go directly to payment,
+        // but the payment step will be simpler. Let's create a combined step.
+        // For simplicity, let's just make an "ebook" payment form.
+        // Or even better, handle it as a separate flow after this.
+        return {
+            step: 'payment',
+            addressData: variantData, // Using addressData to carry the variant info
+        }
+    }
+
+
     return {
         step: 'address',
-        variantData: JSON.stringify(validatedVariant.data),
+        variantData: variantData,
     };
   }
 
@@ -107,6 +178,42 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
   }
 
   if (currentStep === 'payment') {
+     const addressDataString = formData.get('addressData') as string;
+     if (!addressDataString) {
+        return { ...prevState, message: 'Invalid data.', step: 'variant' };
+     }
+     const addressData = JSON.parse(addressDataString);
+
+     // Handle E-book order separately
+     if(addressData.variant === 'ebook') {
+        const validatedPayment = z.object({ paymentMethod: z.enum(['cod', 'prepaid']) }).safeParse(Object.fromEntries(formData.entries()));
+        const { name, email } = addressData; // In this simple flow, we need to collect name/email differently
+        
+        try {
+            const newOrder = await addOrder({
+                name: formData.get('name') as string, // Assuming name/email fields are shown for ebook
+                email: formData.get('email') as string,
+                userId: formData.get('userId') as string || null,
+                variant: 'ebook',
+                price: variantDetails.ebook.price,
+                paymentMethod: validatedPayment.success ? validatedPayment.data.paymentMethod : 'prepaid',
+                phone: '', address: '', street: '', city: '', country: '', state: '', pinCode: '',
+            });
+
+            revalidatePath('/admin');
+            revalidatePath('/orders');
+            revalidatePath('/checkout');
+            return { step: 'success', message: 'E-book Order Placed!', orderId: newOrder.id };
+        } catch(e: any) {
+            return {
+                message: e.message || 'Database Error: Failed to Create Order.',
+                step: 'payment',
+                addressData: addressDataString,
+            };
+        }
+     }
+
+     // Handle Physical book order
      const validatedPayment = paymentSchema.safeParse(Object.fromEntries(formData.entries()));
 
      if (!validatedPayment.success || !validatedPayment.data.addressData) {
@@ -117,15 +224,15 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
         }
      }
      
-     const addressData = JSON.parse(validatedPayment.data.addressData);
+     const fullAddressData = JSON.parse(validatedPayment.data.addressData);
      const { userId, saveAddress } = validatedPayment.data;
-     const { variant } = addressData;
+     const { variant } = fullAddressData;
      
      try {
         await decreaseStock(variant, 1);
      
         const newOrder = await addOrder({
-            ...addressData,
+            ...fullAddressData,
             price: variantDetails[variant].price,
             paymentMethod: validatedPayment.data.paymentMethod,
             userId: userId || null,
@@ -159,6 +266,7 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
   };
 }
 
+
 export async function fetchOrders() {
     return await getOrders();
 }
@@ -178,3 +286,5 @@ export async function changeOrderStatus(id: string, status: OrderStatus) {
         return { success: false, message: 'Failed to update order status.' };
     }
 }
+
+    

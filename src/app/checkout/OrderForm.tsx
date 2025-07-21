@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Package } from 'lucide-react';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Package, Download, CheckCircle, Circle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,9 +31,10 @@ interface StateData {
     iso2: string;
 }
 
-const variantDetails: Record<BookVariant, { name: string; price: number; }> = {
-    paperback: { name: 'Paperback', price: 299 },
-    hardcover: { name: 'Hardcover', price: 499 },
+const variantDetails: Record<BookVariant, { name: string; price: number; icon: React.ElementType, description: string }> = {
+    paperback: { name: 'Paperback', price: 299, icon: Book, description: "The classic physical copy." },
+    hardcover: { name: 'Hardcover', price: 499, icon: Book, description: "A durable, premium edition." },
+    ebook: { name: 'E-book', price: 149, icon: Download, description: "Read instantly on any device." },
 }
 
 export function OrderForm({ stock }: { stock: Stock }) {
@@ -53,7 +54,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const [saveAddress, setSaveAddress] = useState(false);
   const [useSavedAddress, setUseSavedAddress] = useState(false);
   
-  // TODO: Implement fetching and using saved addresses from user profile
   const savedAddresses: any[] = []; 
 
   const [isLoading, setIsLoading] = useState({
@@ -167,24 +167,39 @@ export function OrderForm({ stock }: { stock: Stock }) {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {state.errors?.variant && <p className="text-sm text-destructive -mt-4 mb-2">{state.errors.variant[0]}</p>}
-                    <RadioGroup name="variant" onValueChange={(v) => setSelectedVariant(v as BookVariant)} className="space-y-4">
+                    
+                    <input type="hidden" name="variant" value={selectedVariant || ''} />
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {(Object.keys(variantDetails) as BookVariant[]).map(variant => {
                             const isAvailable = stock[variant] > 0;
+                            const isSelected = selectedVariant === variant;
+                            const { name, price, icon: Icon, description } = variantDetails[variant];
+
                             return (
-                                <Label key={variant} className={cn("flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all", !isAvailable && "opacity-50 cursor-not-allowed")}>
-                                    <RadioGroupItem value={variant} id={variant} disabled={!isAvailable} />
-                                    <div className="flex-grow">
-                                        <span className="font-semibold flex items-center gap-2">
-                                            <Book/> {variantDetails[variant].name}
-                                        </span>
-                                        <p className="text-sm text-muted-foreground">Price: ₹{variantDetails[variant].price}</p>
-                                    </div>
-                                    {!isAvailable && <Badge variant="destructive">Out of Stock</Badge>}
-                                </Label>
+                                <div 
+                                    key={variant} 
+                                    onClick={() => isAvailable && setSelectedVariant(variant)}
+                                    className={cn(
+                                        "relative rounded-lg border-2 p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center",
+                                        isSelected ? "border-primary bg-primary/5 shadow-lg" : "border-border hover:border-primary/50",
+                                        !isAvailable && "opacity-50 cursor-not-allowed bg-muted/50"
+                                    )}
+                                >
+                                    {isSelected && <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary" />}
+                                    {!isSelected && <Circle className="absolute top-2 right-2 h-5 w-5 text-muted-foreground/50" />}
+                                    
+                                    <Icon className="h-10 w-10 mb-2 text-primary"/>
+                                    <p className="font-bold text-lg">{name}</p>
+                                    <p className="font-semibold text-xl font-headline text-primary">₹{price}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{description}</p>
+                                    {!isAvailable && <Badge variant="destructive" className="mt-2">Out of Stock</Badge>}
+                                </div>
                             )
                         })}
-                    </RadioGroup>
-                    <SubmitButton text="Proceed to Address" disabled={!selectedVariant} />
+                    </div>
+
+                    <SubmitButton text="Proceed" disabled={!selectedVariant} />
                 </CardContent>
             </Card>
         </form>
@@ -366,3 +381,5 @@ function SubmitButton({text, disabled = false}: {text: string, disabled?: boolea
     </Button>
   );
 }
+
+    
