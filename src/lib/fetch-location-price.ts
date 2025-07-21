@@ -42,7 +42,11 @@ export async function fetchLocationAndPrice(): Promise<PriceData> {
         const countryCode = location.countryCode;
 
         let currency = 'INR';
-        if (countryCode === 'US') {
+
+        // Explicitly set currency based on country code
+        if (countryCode === 'IN') {
+            currency = 'INR';
+        } else if (countryCode === 'US') {
             currency = 'USD';
         } else if (location.currency && ['EUR'].includes(location.currency)) {
             // ip-api provides currency for EU countries
