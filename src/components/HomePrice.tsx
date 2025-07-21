@@ -21,6 +21,18 @@ function PriceSkeleton() {
     );
 }
 
+const getLocaleFromCountry = (countryCode: string) => {
+    // This is a simplification. A robust solution might map country codes to primary locales.
+    // e.g., DE -> de-DE, FR -> fr-FR. For now, we'll use a generic approach.
+    try {
+        // @ts-ignore
+        return new Intl.Locale(navigator.language).language + '-' + countryCode;
+    } catch (e) {
+        return 'en-' + countryCode;
+    }
+}
+
+
 export function HomePrice() {
     const { priceData, loading } = useLocation();
     const [selectedVariant, setSelectedVariant] = useState<Variant>('paperback');
@@ -31,10 +43,28 @@ export function HomePrice() {
     
     const displayPrice = selectedVariant === 'paperback' ? priceData.paperback : priceData.hardcover;
 
+    const formattedPrice = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), {
+        style: 'currency',
+        currency: priceData.currencyCode,
+        minimumFractionDigits: 2,
+    }).format(displayPrice);
+    
+    const formattedPaperback = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), {
+        style: 'currency',
+        currency: priceData.currencyCode,
+        minimumFractionDigits: 2,
+    }).format(priceData.paperback);
+
+     const formattedHardcover = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), {
+        style: 'currency',
+        currency: priceData.currencyCode,
+        minimumFractionDigits: 2,
+    }).format(priceData.hardcover);
+
     return (
         <div className="space-y-4">
              <div className="text-6xl font-bold text-foreground font-headline">
-                {priceData.symbol}{displayPrice}
+                {formattedPrice}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -48,7 +78,7 @@ export function HomePrice() {
                     <Book className="h-6 w-6 text-primary" />
                     <div>
                         <p className="font-semibold">Paperback</p>
-                        <p className="text-xs text-muted-foreground">{priceData.symbol}{priceData.paperback}</p>
+                        <p className="text-xs text-muted-foreground">{formattedPaperback}</p>
                     </div>
                     {selectedVariant === 'paperback' && <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary" />}
                 </div>
@@ -63,7 +93,7 @@ export function HomePrice() {
                     <Book className="h-6 w-6 text-primary" />
                     <div>
                         <p className="font-semibold">Hardcover</p>
-                        <p className="text-xs text-muted-foreground">{priceData.symbol}{priceData.hardcover}</p>
+                        <p className="text-xs text-muted-foreground">{formattedHardcover}</p>
                     </div>
                      {selectedVariant === 'hardcover' && <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary" />}
                 </div>

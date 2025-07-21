@@ -9,6 +9,7 @@ export interface PriceData {
     hardcover: number;
     symbol: string;
     country: string;
+    currencyCode: string;
 }
 
 const basePrices = {
@@ -37,7 +38,7 @@ export async function fetchLocationAndPrice(): Promise<PriceData> {
         } else {
              // Fallback to IP API if not on Vercel or header is not present
             const response = await fetch('http://ip-api.com/json/?fields=countryCode', {
-                cache: 'no-store' // Ensure no caching
+                cache: 'no-store' 
             });
             if (!response.ok) {
                 throw new Error('Failed to fetch location from IP');
@@ -53,6 +54,7 @@ export async function fetchLocationAndPrice(): Promise<PriceData> {
                 hardcover: basePrices.hardcover,
                 symbol: '₹',
                 country: 'IN',
+                currencyCode: 'INR',
             };
         }
 
@@ -65,6 +67,7 @@ export async function fetchLocationAndPrice(): Promise<PriceData> {
                 hardcover: Math.ceil(basePrices.hardcover * rate),
                 symbol: countryInfo.currency_symbol,
                 country: countryCode,
+                currencyCode: countryInfo.currency_code,
             };
         }
     } catch (error) {
@@ -78,6 +81,7 @@ export async function fetchLocationAndPrice(): Promise<PriceData> {
         paperback: Math.ceil(basePrices.paperback * rate),
         hardcover: Math.ceil(basePrices.hardcover * rate),
         symbol: countryInfo?.currency_symbol || '$',
-        country: 'US', // Default country for display
+        country: 'US',
+        currencyCode: 'USD',
     };
 }

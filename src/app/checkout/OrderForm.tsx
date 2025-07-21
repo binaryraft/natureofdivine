@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import type { Stock, BookVariant } from '@/lib/definitions';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useLocation } from '@/hooks/useLocation';
 
 
 // Types for the API responses
@@ -31,16 +32,17 @@ interface StateData {
     iso2: string;
 }
 
-const variantDetails: Record<BookVariant, { name: string; price: number; icon: React.ElementType, description: string }> = {
-    paperback: { name: 'Paperback', price: 299, icon: Book, description: "The classic physical copy." },
-    hardcover: { name: 'Hardcover', price: 499, icon: Book, description: "A durable, premium edition." },
-    ebook: { name: 'E-book', price: 149, icon: Download, description: "Read instantly on any device." },
+const variantDetails: Record<BookVariant, { name: string; icon: React.ElementType, description: string }> = {
+    paperback: { name: 'Paperback', icon: Book, description: "The classic physical copy." },
+    hardcover: { name: 'Hardcover', icon: Book, description: "A durable, premium edition." },
+    ebook: { name: 'E-book', icon: Download, description: "Read instantly on any device." },
 }
 
 export function OrderForm({ stock }: { stock: Stock }) {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { priceData, loading: priceLoading } = useLocation();
   const initialState: State = { message: null, errors: {}, step: 'variant' };
   const [state, dispatch] = useActionState(placeOrder, initialState);
   
@@ -63,6 +65,16 @@ export function OrderForm({ stock }: { stock: Stock }) {
   });
   
   const [selectedVariant, setSelectedVariant] = useState<BookVariant | null>(null);
+
+  const getLocaleFromCountry = (countryCode: string | undefined) => {
+    if (!countryCode) return 'en-US';
+    try {
+        // @ts-ignore
+        return new Intl.Locale(navigator.language).language + '-' + countryCode;
+    } catch (e) {
+        return 'en-' + countryCode;
+    }
+  }
 
   // Fetch countries on component mount
   useEffect(() => {
@@ -158,6 +170,12 @@ export function OrderForm({ stock }: { stock: Stock }) {
   }, [state, router, toast]);
 
   if(state.step === 'variant') {
+     const localPrices = {
+        paperback: priceData?.paperback || 299,
+        hardcover: priceData?.hardcover || 499,
+        ebook: priceData ? Math.ceil(priceData.paperback * 0.5) : 149
+     }
+
     return (
         <form action={dispatch}>
              <Card className="border-none shadow-none">
@@ -174,7 +192,9 @@ export function OrderForm({ stock }: { stock: Stock }) {
                         {(Object.keys(variantDetails) as BookVariant[]).map(variant => {
                             const isAvailable = stock[variant] > 0;
                             const isSelected = selectedVariant === variant;
-                            const { name, price, icon: Icon, description } = variantDetails[variant];
+                            const { name, icon: Icon, description } = variantDetails[variant];
+                            const price = localPrices[variant];
+                            const formattedPrice = priceLoading || !priceData ? '...' : new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(price);
 
                             return (
                                 <div 
@@ -191,7 +211,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                     
                                     <Icon className="h-10 w-10 mb-2 text-primary"/>
                                     <p className="font-bold text-lg">{name}</p>
-                                    <p className="font-semibold text-xl font-headline text-primary">₹{price}</p>
+                                    <p className="font-semibold text-xl font-headline text-primary">{formattedPrice}</p>
                                     <p className="text-xs text-muted-foreground mt-1">{description}</p>
                                     {!isAvailable && <Badge variant="destructive" className="mt-2">Out of Stock</Badge>}
                                 </div>
@@ -206,9 +226,16 @@ export function OrderForm({ stock }: { stock: Stock }) {
     )
   }
 
-  if (state.step === 'address' && state.variantData) {
+  if (state.step === 'address' && state.variantData && priceData) {
      const variant: BookVariant = JSON.parse(state.variantData).variant;
-     const price = variantDetails[variant].price;
+     const localPrices = {
+        paperback: priceData.paperback,
+        hardcover: priceData.hardcover,
+        ebook: Math.ceil(priceData.paperback * 0.5)
+     }
+     const price = localPrices[variant];
+     const formattedPrice = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(price);
+
 
      return (
         <form action={dispatch} className="space-y-4">
@@ -216,7 +243,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
             <Alert>
                 <Package className="h-4 w-4" />
                 <AlertTitle>You're ordering: {variantDetails[variant].name}</AlertTitle>
-                <AlertDescription>Total Amount: ₹{price}</AlertDescription>
+                <AlertDescription>Total Amount: {formattedPrice}</AlertDescription>
             </Alert>
             
            {user && (
@@ -318,17 +345,23 @@ export function OrderForm({ stock }: { stock: Stock }) {
      )
   }
 
-  if (state.step === 'payment' && state.addressData) {
+  if (state.step === 'payment' && state.addressData && priceData) {
      const variant: BookVariant = JSON.parse(state.addressData).variant;
-     const price = variantDetails[variant].price;
+     const localPrices = {
+        paperback: priceData.paperback,
+        hardcover: priceData.hardcover,
+        ebook: Math.ceil(priceData.paperback * 0.5)
+     }
+     const price = localPrices[variant];
+     const formattedPrice = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(price);
      return (
         <form action={dispatch}>
             <input type="hidden" name="addressData" value={state.addressData} />
-             {user && <input type="hidden" name="userId" value={user.uid} />}
+            {user && <input type="hidden" name="userId" value={user.uid} />}
             <Card className="border-none shadow-none">
                 <CardHeader>
                     <CardTitle>Payment Method</CardTitle>
-                    <CardDescription>Total amount to be paid: ₹{price}</CardDescription>
+                    <CardDescription>Total amount to be paid: {formattedPrice}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <RadioGroup name="paymentMethod" defaultValue="cod" className="space-y-4">
@@ -381,5 +414,3 @@ function SubmitButton({text, disabled = false}: {text: string, disabled?: boolea
     </Button>
   );
 }
-
-    

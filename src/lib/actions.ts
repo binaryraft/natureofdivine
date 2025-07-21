@@ -6,11 +6,15 @@ import { z } from 'zod';
 import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus } from './order-store';
 import type { BookVariant, OrderStatus } from './definitions';
 import { decreaseStock, getStock } from './stock-store';
+import { fetchLocationAndPrice } from './fetch-location-price';
 
-const variantDetails: Record<BookVariant, { name: string; price: number; }> = {
-    paperback: { name: 'Paperback', price: 299 },
-    hardcover: { name: 'Hardcover', price: 499 },
-    ebook: { name: 'E-book', price: 149 },
+const getVariantPrices = async () => {
+    const priceData = await fetchLocationAndPrice();
+    return {
+        paperback: priceData.paperback,
+        hardcover: priceData.hardcover,
+        ebook: Math.ceil(priceData.paperback * 0.5)
+    };
 };
 
 const variantSchema = z.object({
@@ -101,9 +105,14 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
     const variantData = JSON.stringify(validatedVariant.data);
 
     if (validatedVariant.data.variant === 'ebook') {
+        const ebookData = {
+            ...validatedVariant.data,
+            name: formData.get('name') || 'E-book User', // Placeholder
+            email: formData.get('email') || '' // Placeholder
+        };
         return {
             step: 'payment',
-            addressData: variantData, 
+            addressData: JSON.stringify(ebookData), 
         }
     }
 
@@ -143,17 +152,36 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
      const addressData = JSON.parse(addressDataString);
 
      try {
+        const prices = await getVariantPrices();
+
         // Handle E-book order separately
          if(addressData.variant === 'ebook') {
-            const validatedPayment = z.object({ paymentMethod: z.enum(['cod', 'prepaid']) }).safeParse(Object.fromEntries(formData.entries()));
+            const validatedPayment = z.object({ 
+                paymentMethod: z.enum(['cod', 'prepaid']),
+                name: z.string().min(1),
+                email: z.string().email(),
+                userId: z.string().optional()
+            }).safeParse({
+                ...Object.fromEntries(formData.entries()),
+                ...addressData
+            });
+
+            if(!validatedPayment.success){
+                // This case should ideally not be hit if form is designed well
+                // but as a fallback:
+                 return {
+                    step: 'variant',
+                    message: "User details are missing for e-book order."
+                 }
+            }
             
             const newOrder = await addOrder({
-                name: formData.get('name') as string, 
-                email: formData.get('email') as string,
-                userId: formData.get('userId') as string || null,
+                name: validatedPayment.data.name,
+                email: validatedPayment.data.email,
+                userId: validatedPayment.data.userId || null,
                 variant: 'ebook',
-                price: variantDetails.ebook.price,
-                paymentMethod: validatedPayment.success ? validatedPayment.data.paymentMethod : 'prepaid',
+                price: prices.ebook,
+                paymentMethod: validatedPayment.data.paymentMethod,
                 phone: '', address: '', street: '', city: '', country: '', state: '', pinCode: '',
             });
 
@@ -182,7 +210,7 @@ export async function placeOrder(prevState: State, formData: FormData): Promise<
      
         const newOrder = await addOrder({
             ...fullAddressData,
-            price: variantDetails[variant].price,
+            price: prices[variant as keyof typeof prices],
             paymentMethod: validatedPayment.data.paymentMethod,
             userId: userId || null,
         });

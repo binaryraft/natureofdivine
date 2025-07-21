@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { fetchLocationAndPrice, PriceData } from '@/lib/fetch-location-price';
+import { fetchLocationAndPrice, type PriceData } from '@/lib/fetch-location-price';
 
 interface LocationContextType {
   priceData: PriceData | null;
@@ -28,6 +28,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
                 hardcover: 499,
                 symbol: '₹',
                 country: 'IN',
+                currencyCode: 'INR'
             });
         } finally {
             setLoading(false);
