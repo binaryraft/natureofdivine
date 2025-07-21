@@ -1,3 +1,4 @@
+
 import { BookHeart, Twitter, Facebook, Instagram } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -14,6 +15,7 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-muted-foreground">
              <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
+             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
              <Link href="/shipping" className="hover:text-primary">Shipping Policy</Link>
              <Link href="/returns" className="hover:text-primary">Return Policy</Link>
         </div>

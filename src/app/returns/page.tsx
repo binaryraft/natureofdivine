@@ -1,7 +1,8 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = {
-  title: 'Return Policy | Nature of the Divine',
+  title: 'Return & Refund Policy | Nature of the Divine',
 };
 
 export default function ReturnsPage() {
@@ -9,17 +10,37 @@ export default function ReturnsPage() {
     <div className="container mx-auto py-12 md:py-24 max-w-4xl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-headline">Return Policy</CardTitle>
+          <CardTitle className="text-3xl font-headline">Return and Refund Policy</CardTitle>
         </CardHeader>
         <CardContent className="prose dark:prose-invert max-w-none">
-          <h2>1. General Policy</h2>
-          <p>We accept returns on new, unopened items within 30 days of delivery for a full refund. We'll also pay the return shipping costs if the return is a result of our error (you received an incorrect or defective item, etc.).</p>
+          <p>
+              <strong>Nature of the Divine</strong><br />
+              Email: natureofthedivine@gmail.com<br />
+              Phone: 8606281125
+          </p>
+          <p>At Nature of the Divine, we strive to ensure that you are completely satisfied with your purchase. Please read our return and refund policy carefully to understand your rights and our obligations.</p>
           
-          <h2>2. How to Initiate a Return</h2>
-          <p>To initiate a return, please contact our support team with your order number and details about the product you would like to return. We will respond quickly with instructions for how to return items from your order.</p>
+          <h2>Returns</h2>
+          <p>If you are not satisfied with your purchase, you may request a return within 7 days of receiving the product.</p>
+          <p>To be eligible for a return, the item must be unused, in its original condition, and in the original packaging.</p>
+          <p>You must provide proof of purchase (such as order confirmation or invoice).</p>
+          <p>As we will not provide any replacement or exchange, if you received any damaged or defective products, you should inform us within 48 hours of receiving the product to raise a return request. Once we approve the return, you should send back the product to the address from which it came to process the refund.</p>
 
-          <h2>3. Refunds</h2>
-          <p>You should expect to receive your refund within four weeks of giving your package to the return shipper; however, in many cases, you will receive a refund more quickly. This time period includes the transit time for us to receive your return from the shipper (5 to 10 business days), the time it takes us to process your return once we receive it (3 to 5 business days), and the time it takes your bank to process our refund request (5 to 10 business days).</p>
+          <h2>Non-Returnable Items</h2>
+          <p>Certain products may not be eligible for return due to hygiene, custom-made nature, or perishable condition. These exclusions will be clearly mentioned on the product page.</p>
+
+          <h2>Refunds</h2>
+          <p>Once we receive and inspect the returned product, we will notify you about the approval or rejection of your refund.</p>
+          <p>If approved, your refund will be credited to your original method of payment within 7–10 business days.</p>
+          <p>Shipping charges are non-refundable unless the return is due to our error or a defective product.</p>
+
+          <h2>Cancellations</h2>
+          <p>Orders once placed can only be canceled within 12 hours or before dispatch, whichever is earlier.</p>
+
+          <h2>Contact Us</h2>
+          <p>For any queries related to returns or refunds, you may reach us at:<br/>
+          Email: natureofthedivine@gmail.com<br/>
+          Phone: 8606281125</p>
 
         </CardContent>
       </Card>
