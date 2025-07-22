@@ -19,6 +19,7 @@ import type { Stock, BookVariant } from '@/lib/definitions';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useLocation } from '@/hooks/useLocation';
+import { Badge } from '@/components/ui/badge';
 
 
 // Types for the API responses

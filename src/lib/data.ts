@@ -60,37 +60,9 @@ export const sampleChapters = [
   }
 ];
 
-export const bookReviews: string[] = [
-  // "An absolute masterpiece! I couldn't put it down. The blend of history and suspense is perfect.",
-  // "A thought-provoking journey that kept me on the edge of my seat. The ending was mind-blowing.",
-  // "Five stars! The level of detail is incredible. You can tell the author did their research. A must-read.",
-  // "A little slow to start, but the payoff is immense. It really makes you think about the bigger questions in life.",
-  // "I was captivated from the very first page. It's like 'The Da Vinci Code' but with more philosophical depth.",
-  // "A thrilling adventure from start to finish. I've already recommended it to all my friends. Can't wait for a sequel!",
-];
+export const bookReviews: string[] = [];
 
-export const quotes: { text: string; author: string }[] = [
-  // {
-  //   text: "A stunning debut that redefines the metaphysical thriller. Alfas B is a master of suspense.",
-  //   author: "The Literary Times",
-  // },
-  // {
-  //   text: "Intelligent, thrilling, and deeply profound. This book will stay with you long after you've turned the final page.",
-  //   author: "Eleanor Vance, Bestselling Author",
-  // },
-  // {
-  //   text: "A high-stakes adventure that is both a page-turner and a meditation on the nature of existence.",
-  //   author: "Global Book Review",
-  // },
-  //  {
-  //   text: "The character development is superb, and the plot is intricately woven. A must-read!",
-  //   author: "Jane Doe, Reader",
-  // },
-  // {
-  //   text: "I was completely hooked. The pacing is relentless, and the story is both entertaining and enlightening.",
-  //   author: "John Smith, Book Blogger",
-  // },
-];
+export const quotes: { text: string; author: string }[] = [];
 
 export const buyLinks = [
     {

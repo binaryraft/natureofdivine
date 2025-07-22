@@ -20,12 +20,13 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Sparkles } from "lucide-react";
+import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote } from "lucide-react";
 import Link from "next/link";
-import { synopsis, authorBio, quotes, sampleChapters, buyLinks } from "@/lib/data";
+import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+
 
 const bookGlimpseImages = [
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book", locked: false },
@@ -41,9 +42,9 @@ const bookGlimpseImages = [
 const isOutOfStock = true;
 
 export default function Home() {
-  const summary = "Readers praise the book for its thrilling plot, deep philosophical questions, and meticulous historical detail, calling it a captivating, thought-provoking masterpiece that stays with you long after the final page.";
+
   const showAuthorPhoto = false;
-  const hasReviews = quotes && quotes.length > 0;
+  const hasReviews = bookReviews && bookReviews.length > 0;
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -230,25 +231,6 @@ export default function Home() {
         </section>
         
         {hasReviews && (
-          <>
-            {/* Review Summary Section */}
-            <section id="reviews" className="w-full py-16 md:py-24 lg:py-32">
-              <div className="container px-4 md:px-6">
-                <Card className="max-w-4xl mx-auto border-2 border-accent/50 shadow-xl shadow-accent/10 bg-secondary/30 overflow-hidden">
-                    <div className="p-8 md:p-12 text-center">
-                        <div className="inline-flex items-center gap-3 rounded-full bg-accent/10 px-4 py-2 text-accent-foreground mb-6">
-                            <Sparkles className="w-5 h-5 text-accent" />
-                            <span className="font-medium text-accent">AI-Powered Review Summary</span>
-                        </div>
-                        <blockquote className="text-xl/relaxed md:text-2xl/relaxed font-medium text-foreground/80 italic">
-                            &ldquo;{summary}&rdquo;
-                        </blockquote>
-                    </div>
-                </Card>
-              </div>
-            </section>
-            
-            {/* Quotes Carousel Section */}
             <section id="quotes" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
               <div className="container px-4 md:px-6">
                 <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
@@ -281,7 +263,6 @@ export default function Home() {
                 </Carousel>
               </div>
             </section>
-          </>
         )}
 
         {/* Buy Now Section */}
