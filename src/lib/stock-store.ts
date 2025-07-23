@@ -11,12 +11,16 @@ export const getStock = async (): Promise<Stock> => {
     const docSnap = await getDoc(stockDocRef);
     if (docSnap.exists()) {
         const data = docSnap.data();
-        // Ensure all variants exist, useful for migrations
-        return {
-            paperback: data.paperback || 0,
-            hardcover: data.hardcover || 0,
-            ebook: data.ebook || 99999, // Default to a high number for "infinite"
-        } as Stock;
+        const stockData = {
+            paperback: data.paperback || 100,
+            hardcover: data.hardcover || 100,
+            ebook: data.ebook || 99999,
+        };
+        // If the values were missing, let's update the document to prevent future issues.
+        if (!data.paperback || !data.hardcover) {
+            await setDoc(stockDocRef, stockData, { merge: true });
+        }
+        return stockData as Stock;
     } else {
         // If stock document doesn't exist, create it with initial stock
         const initialStock: Stock = { paperback: 100, hardcover: 100, ebook: 99999 };
