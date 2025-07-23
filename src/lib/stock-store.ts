@@ -19,7 +19,7 @@ export const getStock = async (): Promise<Stock> => {
         } as Stock;
     } else {
         // If stock document doesn't exist, create it with initial stock
-        const initialStock: Stock = { paperback: 0, hardcover: 0, ebook: 99999 };
+        const initialStock: Stock = { paperback: 100, hardcover: 100, ebook: 99999 };
         await setDoc(stockDocRef, initialStock);
         return initialStock;
     }
