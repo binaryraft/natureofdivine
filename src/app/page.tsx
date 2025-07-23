@@ -45,6 +45,7 @@ export default function Home() {
 
   const showAuthorPhoto = false;
   const hasReviews = bookReviews && bookReviews.length > 0;
+  const visibleBuyLinks = buyLinks.filter(link => link.visible);
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -274,14 +275,14 @@ export default function Home() {
                 Available at your favorite online retailers. Or place a direct order for a signed copy.
               </p>
               <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
-                {buyLinks.filter(link => link.visible).map((link) => (
+                {visibleBuyLinks.map((link) => (
                   <Button key={link.name} asChild variant="secondary" size="lg" className="shadow-md hover:shadow-lg transition-shadow">
                     <a href={link.url} target="_blank" rel="noopener noreferrer">
                       {link.name}
                     </a>
                   </Button>
                 ))}
-                 <div className="text-sm font-medium mx-2">OR</div>
+                {visibleBuyLinks.length > 0 && <div className="text-sm font-medium mx-2">OR</div>}
                  {isOutOfStock ? (
                     <Button size="lg" className="bg-background text-foreground hover:bg-background/90" disabled>Out of Stock</Button>
                  ) : (
