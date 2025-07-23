@@ -67,14 +67,17 @@ export const quotes: { text: string; author: string }[] = [];
 export const buyLinks = [
     {
         name: "Amazon",
-        url: "#"
+        url: "#",
+        visible: true,
     },
     {
         name: "Flipkart",
-        url: "#"
+        url: "#",
+        visible: true,
     },
     {
         name: "E-book",
-        url: "/checkout"
+        url: "/checkout",
+        visible: true,
     }
-]
+];

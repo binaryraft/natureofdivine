@@ -30,9 +30,6 @@ export default function ReturnsPage() {
           <p>You must provide proof of purchase (such as order confirmation or invoice).</p>
           <p>As we will not provide any replacement or exchange, if you received any damaged or defective products, you should inform us within 48 hours of receiving the product to raise a return request. Once we approve the return, you should send back the product to the address from which it came to process the refund.</p>
 
-          <h2>Non-Returnable Items</h2>
-          <p>Certain products may not be eligible for return due to hygiene, custom-made nature, or perishable condition. These exclusions will be clearly mentioned on the product page.</p>
-
           <h2>Refunds</h2>
           <p>Once we receive and inspect the returned product, we will notify you about the approval or rejection of your refund.</p>
           <p>If approved, your refund will be credited to your original method of payment within 7–10 business days.</p>

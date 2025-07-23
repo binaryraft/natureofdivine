@@ -183,6 +183,7 @@ function StockManager() {
                         />
                     </div>
                 </div>
+                 <p className="text-sm text-muted-foreground">E-book stock is considered unlimited.</p>
             </CardContent>
             <CardFooter>
                 <Button onClick={handleSave} disabled={isSaving}>

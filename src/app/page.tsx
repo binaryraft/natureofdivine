@@ -39,7 +39,7 @@ const bookGlimpseImages = [
   { src: "https://placehold.co/600x800.png", alt: "Locked page 8", locked: true, "data-ai-hint": "book page" },
 ];
 
-const isOutOfStock = true;
+const isOutOfStock = false; 
 
 export default function Home() {
 
@@ -274,7 +274,7 @@ export default function Home() {
                 Available at your favorite online retailers. Or place a direct order for a signed copy.
               </p>
               <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
-                {buyLinks.map((link) => (
+                {buyLinks.filter(link => link.visible).map((link) => (
                   <Button key={link.name} asChild variant="secondary" size="lg" className="shadow-md hover:shadow-lg transition-shadow">
                     <a href={link.url} target="_blank" rel="noopener noreferrer">
                       {link.name}

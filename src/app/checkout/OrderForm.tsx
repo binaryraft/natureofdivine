@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Package, Download, CheckCircle, Circle } from 'lucide-react';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Package, Download, CheckCircle, Circle, User, Mail, Home } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,6 +32,8 @@ interface StateData {
     name: string;
     iso2: string;
 }
+
+const isPrepaidEnabled = false;
 
 const variantDetails: Record<BookVariant, { name: string; icon: React.ElementType, description: string }> = {
     paperback: { name: 'Paperback', icon: Book, description: "The classic physical copy." },
@@ -68,7 +70,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const [selectedVariant, setSelectedVariant] = useState<BookVariant | null>(null);
 
   const getLocaleFromCountry = (countryCode: string | undefined) => {
-    if (!countryCode) return 'en-US';
+    if (!countryCode) return 'en-US'; // Default locale
     return countryCode;
   }
 
@@ -176,7 +178,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         <form action={dispatch}>
              <Card className="border-none shadow-none">
                 <CardHeader>
-                    <CardTitle>Select Book Type</CardTitle>
+                    <CardTitle>1. Select Book Type</CardTitle>
                     <CardDescription>Choose the version of the book you'd like to order.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -222,127 +224,114 @@ export function OrderForm({ stock }: { stock: Stock }) {
     )
   }
 
-  if (state.step === 'address' && state.variantData && priceData) {
-     const variant: BookVariant = JSON.parse(state.variantData).variant;
-     const localPrices = {
-        paperback: priceData.paperback,
-        hardcover: priceData.hardcover,
-        ebook: Math.ceil(priceData.paperback * 0.5)
-     }
-     const price = localPrices[variant];
-     const formattedPrice = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(price);
-
+  if (state.step === 'details' && state.variantData && priceData) {
+     const { variant } = JSON.parse(state.variantData);
 
      return (
-        <form action={dispatch} className="space-y-4">
+        <form action={dispatch} className="space-y-6">
             <input type="hidden" name="variantData" value={state.variantData} />
-            <Alert>
-                <Package className="h-4 w-4" />
-                <AlertTitle>You're ordering: {variantDetails[variant].name}</AlertTitle>
-                <AlertDescription>Total Amount: {formattedPrice}</AlertDescription>
-            </Alert>
+            {user && <input type="hidden" name="userId" value={user.uid} />}
+
+            <CardHeader className="p-0">
+                <CardTitle>2. Your Details</CardTitle>
+                <CardDescription>
+                    {variant === 'ebook' ? "Enter your details to receive the e-book." : "Enter your shipping information."}
+                </CardDescription>
+            </CardHeader>
             
-           {user && (
-             <div className="space-y-4 rounded-md border p-4 bg-secondary/50">
-                <h3 className="font-semibold">Shipping Address</h3>
-                {savedAddresses.length > 0 && (
-                    <div className="flex items-center space-x-2">
-                        <Checkbox id="use-saved-address" checked={useSavedAddress} onCheckedChange={(checked) => setUseSavedAddress(!!checked)} />
-                        <Label htmlFor="use-saved-address">Use a saved address</Label>
-                    </div>
-                )}
-             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" name="name" placeholder="John Doe" required defaultValue={user?.displayName || ''} />
+                    {state.errors?.name && <p className="text-sm text-destructive">{state.errors.name[0]}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input id="email" name="email" type="email" placeholder="m@example.com" required defaultValue={user?.email || ''} />
+                    {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
+                </div>
+            </div>
+
+           {variant !== 'ebook' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" name="phone" type="tel" placeholder="+1 (555) 555-5555" required />
+                {state.errors?.phone && <p className="text-sm text-destructive">{state.errors.phone[0]}</p>}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Select name="country" onValueChange={setSelectedCountry} required value={selectedCountry}>
+                        <SelectTrigger disabled={isLoading.countries}>
+                            <SelectValue placeholder={isLoading.countries ? "Loading countries..." : "Select a country"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {countries.map(country => (
+                                <SelectItem key={country.iso2} value={country.iso2}>{country.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
+                </div>
+                <div className="space-y-2">
+                <Label htmlFor="pinCode">PIN Code / ZIP Code</Label>
+                <div className='relative'>
+                    <Input id="pinCode" name="pinCode" placeholder="10001" required value={pinCode} onChange={(e) => setPinCode(e.target.value)} disabled={!selectedCountry}/>
+                    {isLoading.pin && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin"/>}
+                </div>
+                {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input id="city" name="city" placeholder="e.g. New York" required value={city} onChange={e => setCity(e.target.value)} />
+                    {state.errors?.city && <p className="text-sm text-destructive">{state.errors.city[0]}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Select name="state" required disabled={isLoading.states || !selectedCountry || states.length === 0} value={autoFilledState}>
+                        <SelectTrigger>
+                            <SelectValue placeholder={isLoading.states ? 'Loading states...' : (states.length > 0 ? 'Select a state' : 'No states found')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {states.map(s => (
+                                <SelectItem key={s.iso2} value={s.name}>{s.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
+                </div>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input id="address" name="address" placeholder="123 Main Street" required />
+                {state.errors?.address && <p className="text-sm text-destructive">{state.errors.address[0]}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="street">Apartment, suite, etc. (optional)</Label>
+                <Input id="street" name="street" placeholder="Apt #4B" />
+            </div>
+
+            {user && (
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="save-address" checked={saveAddress} onCheckedChange={(checked) => setSaveAddress(!!checked)} />
+                    <Label htmlFor="save-address">Save this address for future orders</Label>
+                    <input type="hidden" name="saveAddress" value={String(saveAddress)} />
+                </div>
+            )}
+            </>
            )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" name="name" placeholder="John Doe" required defaultValue={user?.displayName || ''} />
-              {state.errors?.name && <p className="text-sm text-destructive">{state.errors.name[0]}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input id="email" name="email" type="email" placeholder="m@example.com" required defaultValue={user?.email || ''} />
-               {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" name="phone" type="tel" placeholder="+1 (555) 555-5555" required />
-            {state.errors?.phone && <p className="text-sm text-destructive">{state.errors.phone[0]}</p>}
-          </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Select name="country" onValueChange={setSelectedCountry} required value={selectedCountry}>
-                    <SelectTrigger disabled={isLoading.countries}>
-                        <SelectValue placeholder={isLoading.countries ? "Loading countries..." : "Select a country"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {countries.map(country => (
-                            <SelectItem key={country.iso2} value={country.iso2}>{country.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pinCode">PIN Code / ZIP Code</Label>
-              <div className='relative'>
-                 <Input id="pinCode" name="pinCode" placeholder="10001" required value={pinCode} onChange={(e) => setPinCode(e.target.value)} disabled={!selectedCountry}/>
-                 {isLoading.pin && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin"/>}
-              </div>
-              {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
-            </div>
-          </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input id="city" name="city" placeholder="e.g. New York" required value={city} onChange={e => setCity(e.target.value)} />
-                {state.errors?.city && <p className="text-sm text-destructive">{state.errors.city[0]}</p>}
-            </div>
-            <div className="space-y-2">
-                 <Label htmlFor="state">State</Label>
-                 <Select name="state" required disabled={isLoading.states || !selectedCountry || states.length === 0} value={autoFilledState}>
-                    <SelectTrigger>
-                        <SelectValue placeholder={isLoading.states ? 'Loading states...' : (states.length > 0 ? 'Select a state' : 'No states found')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                         {states.map(s => (
-                            <SelectItem key={s.iso2} value={s.name}>{s.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input id="address" name="address" placeholder="123 Main Street" required />
-            {state.errors?.address && <p className="text-sm text-destructive">{state.errors.address[0]}</p>}
-          </div>
-           <div className="space-y-2">
-            <Label htmlFor="street">Apartment, suite, etc. (optional)</Label>
-            <Input id="street" name="street" placeholder="Apt #4B" />
-          </div>
-
-          {user && (
-             <div className="flex items-center space-x-2">
-                <Checkbox id="save-address" checked={saveAddress} onCheckedChange={(checked) => setSaveAddress(!!checked)} />
-                <Label htmlFor="save-address">Save this address for future orders</Label>
-                <input type="hidden" name="saveAddress" value={String(saveAddress)} />
-             </div>
-          )}
           <SubmitButton text="Proceed to Payment" />
         </form>
      )
   }
 
-  if (state.step === 'payment' && state.addressData && priceData) {
-     const variant: BookVariant = JSON.parse(state.addressData).variant;
+  if (state.step === 'payment' && state.detailsData && priceData) {
+     const details = JSON.parse(state.detailsData);
+     const variant: BookVariant = details.variant;
      const localPrices = {
         paperback: priceData.paperback,
         hardcover: priceData.hardcover,
@@ -352,14 +341,14 @@ export function OrderForm({ stock }: { stock: Stock }) {
      const formattedPrice = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(price);
      return (
         <form action={dispatch}>
-            <input type="hidden" name="addressData" value={state.addressData} />
+            <input type="hidden" name="detailsData" value={state.detailsData} />
             {user && <input type="hidden" name="userId" value={user.uid} />}
             <Card className="border-none shadow-none">
-                <CardHeader>
-                    <CardTitle>Payment Method</CardTitle>
+                <CardHeader className="p-0 mb-6">
+                    <CardTitle>3. Payment Method</CardTitle>
                     <CardDescription>Total amount to be paid: {formattedPrice}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-0">
                     <RadioGroup name="paymentMethod" defaultValue="cod" className="space-y-4">
                         <Label className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all">
                              <RadioGroupItem value="cod" id="cod" />
@@ -368,11 +357,11 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 <p className="text-sm text-muted-foreground">Pay with cash upon delivery.</p>
                              </div>
                         </Label>
-                        <Label className="flex items-center gap-4 rounded-md border p-4 cursor-not-allowed opacity-50">
-                             <RadioGroupItem value="prepaid" id="prepaid" disabled />
+                        <Label className={cn("flex items-center gap-4 rounded-md border p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all" : "cursor-not-allowed opacity-50")}>
+                             <RadioGroupItem value="prepaid" id="prepaid" disabled={!isPrepaidEnabled} />
                               <div className="flex-grow">
                                 <span className="font-semibold flex items-center gap-2"><CreditCard /> Prepaid</span>
-                                <p className="text-sm text-muted-foreground">Pay with card, UPI, etc. (Currently unavailable)</p>
+                                <p className="text-sm text-muted-foreground">Pay with card, UPI, etc. {isPrepaidEnabled ? "" : "(Currently unavailable)"}</p>
                              </div>
                         </Label>
                     </RadioGroup>
