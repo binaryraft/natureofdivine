@@ -22,14 +22,8 @@ function PriceSkeleton() {
 }
 
 const getLocaleFromCountry = (countryCode: string) => {
-    // This is a simplification. A robust solution might map country codes to primary locales.
-    // e.g., DE -> de-DE, FR -> fr-FR. For now, we'll use a generic approach.
-    try {
-        // @ts-ignore
-        return new Intl.Locale(navigator.language).language + '-' + countryCode;
-    } catch (e) {
-        return 'en-' + countryCode;
-    }
+    if (!countryCode) return 'en-US';
+    return countryCode;
 }
 
 

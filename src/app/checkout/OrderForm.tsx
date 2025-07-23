@@ -69,12 +69,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
   const getLocaleFromCountry = (countryCode: string | undefined) => {
     if (!countryCode) return 'en-US';
-    try {
-        // @ts-ignore
-        return new Intl.Locale(navigator.language).language + '-' + countryCode;
-    } catch (e) {
-        return 'en-' + countryCode;
-    }
+    return countryCode;
   }
 
   // Fetch countries on component mount
