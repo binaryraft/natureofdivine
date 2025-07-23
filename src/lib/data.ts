@@ -68,16 +68,16 @@ export const buyLinks = [
     {
         name: "Amazon",
         url: "#",
-        visible: true,
+        visible: false,
     },
     {
         name: "Flipkart",
         url: "#",
-        visible: true,
+        visible: false,
     },
     {
         name: "E-book",
         url: "/checkout",
-        visible: true,
+        visible: false,
     }
 ];
