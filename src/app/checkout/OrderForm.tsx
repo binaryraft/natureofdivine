@@ -69,11 +69,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
   
   const [selectedVariant, setSelectedVariant] = useState<BookVariant | null>(null);
 
-  const getLocaleFromCountry = (countryCode: string | undefined) => {
-    if (!countryCode) return 'en-US'; // Default locale
-    return countryCode;
-  }
-
   // Fetch countries on component mount
   useEffect(() => {
     const fetchCountries = async () => {
@@ -192,7 +187,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                             const isSelected = selectedVariant === variant;
                             const { name, icon: Icon, description } = variantDetails[variant];
                             const price = localPrices[variant];
-                            const formattedPrice = priceLoading || !priceData ? '...' : new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(price);
+                            const formattedPrice = priceLoading || !priceData ? '...' : new Intl.NumberFormat('en-US', { style: 'currency', currency: priceData.currencyCode }).format(price);
 
                             return (
                                 <div 
@@ -338,7 +333,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         ebook: Math.ceil(priceData.paperback * 0.5)
      }
      const price = localPrices[variant];
-     const formattedPrice = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(price);
+     const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: priceData.currencyCode }).format(price);
      return (
         <form action={dispatch}>
             <input type="hidden" name="detailsData" value={state.detailsData} />

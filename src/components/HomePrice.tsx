@@ -21,12 +21,6 @@ function PriceSkeleton() {
     );
 }
 
-const getLocaleFromCountry = (countryCode: string) => {
-    if (!countryCode) return 'en-US';
-    return countryCode;
-}
-
-
 export function HomePrice() {
     const { priceData, loading } = useLocation();
     const [selectedVariant, setSelectedVariant] = useState<Variant>('paperback');
@@ -37,19 +31,19 @@ export function HomePrice() {
     
     const displayPrice = selectedVariant === 'paperback' ? priceData.paperback : priceData.hardcover;
 
-    const formattedPrice = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), {
+    const formattedPrice = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: priceData.currencyCode,
         minimumFractionDigits: 2,
     }).format(displayPrice);
     
-    const formattedPaperback = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), {
+    const formattedPaperback = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: priceData.currencyCode,
         minimumFractionDigits: 2,
     }).format(priceData.paperback);
 
-     const formattedHardcover = new Intl.NumberFormat(getLocaleFromCountry(priceData.country), {
+     const formattedHardcover = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: priceData.currencyCode,
         minimumFractionDigits: 2,
