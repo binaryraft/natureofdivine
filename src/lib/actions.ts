@@ -4,13 +4,13 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus } from './order-store';
-import type { OrderStatus } from './definitions';
+import type { OrderStatus, BookVariant } from './definitions';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import { processPayment } from '@/ai/flows/payment-flow';
 
 const OrderSchema = z.object({
-  variant: z.enum(['paperback', 'hardcover', 'ebook']),
+  variant: z.enum(['paperback', 'hardcover']),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email address.'),
   phone: z.string().optional(),
@@ -43,11 +43,9 @@ export async function placeOrder(
 
   try {
     const prices = await fetchLocationAndPrice();
-    const price = prices[variant];
+    const price = prices[variant as Exclude<BookVariant, 'ebook'>];
 
-    if (variant !== 'ebook') {
-      await decreaseStock(variant, 1);
-    }
+    await decreaseStock(variant, 1);
 
     const newOrder = await addOrder({
       ...orderDetails,
@@ -129,9 +127,7 @@ export async function changeOrderStatus(id: string, status: OrderStatus) {
         revalidatePath('/admin');
         revalidatePath('/orders');
         return { success: true, message: `Order ${id} status updated to ${status}` };
-    } catch (error) {
-        return { success: false, message: 'Failed to update order status.' };
+    } catch (error: any) {
+        return { success: false, message: error.message || 'Failed to update order status.' };
     }
 }
-
-    
