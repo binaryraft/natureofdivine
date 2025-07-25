@@ -26,6 +26,7 @@ import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } fr
 import { HomePrice } from "@/components/HomePrice";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 
 const bookGlimpseImages = [
@@ -45,6 +46,12 @@ export default function Home() {
   const hasReviews = bookReviews && bookReviews.length > 0;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
   
+  const buttonStyles: Record<string, string> = {
+    Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold',
+    Flipkart: 'bg-[#2874F0] hover:bg-[#2874F0]/90 text-white',
+    'E-book': 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/80',
+  };
+
   return (
     <div className="flex flex-col min-h-[100dvh]">
       <main className="flex-1">
@@ -262,7 +269,7 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
                 {visibleBuyLinks.map((link) => (
-                  <Button key={link.name} asChild variant="secondary" size="lg" className="shadow-md hover:shadow-lg transition-shadow">
+                  <Button key={link.name} asChild size="lg" className={cn("shadow-md hover:shadow-lg transition-shadow", buttonStyles[link.name])}>
                     <a href={link.url} target="_blank" rel="noopener noreferrer">
                       {link.name}
                     </a>
