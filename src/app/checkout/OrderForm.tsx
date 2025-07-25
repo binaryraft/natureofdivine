@@ -402,9 +402,9 @@ export function OrderForm({ stock }: { stock: Stock }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                              <Label htmlFor="pinCode">PIN Code</Label>
-                            <div className="relative">
+                            <div className="relative flex items-center">
                                 <Input id="pinCode" name="pinCode" required value={state.details?.pinCode} onChange={(e) => handlePincodeChange(e.target.value)} />
-                                {isPincodeLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin" />}
+                                {isPincodeLoading && <Loader2 className="absolute right-2.5 h-4 w-4 animate-spin" />}
                             </div>
                             {pincodeError && <p className="text-sm text-destructive">{pincodeError}</p>}
                             {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
@@ -436,9 +436,9 @@ export function OrderForm({ stock }: { stock: Stock }) {
                     )}
                     </>
                 )}
-                <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
+                <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
                     <Button type="submit" className="w-full">Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/></Button>
+                    <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
                 </div>
                 </form>
             );
@@ -480,11 +480,11 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                     </div>
                                 </Label>
                             </RadioGroup>
-                             <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                                <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
+                             <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
                                 <Button onClick={handlePaymentSubmit} disabled={!state.paymentMethod || isSubmitting} className="w-full">
                                     {isSubmitting ? <Loader2 className="animate-spin" /> : (state.paymentMethod === 'cod' ? 'Place Order' : 'Pay Now')}
                                 </Button>
+                                <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
                             </div>
                         </CardContent>
                     </Card>

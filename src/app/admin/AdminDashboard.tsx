@@ -187,7 +187,7 @@ function StockManager() {
             </CardContent>
             <CardFooter>
                 <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                     Save Stock
                 </Button>
             </CardFooter>

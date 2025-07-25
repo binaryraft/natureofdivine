@@ -202,6 +202,7 @@ export default function Home() {
                             style={{objectFit: 'cover'}}
                             alt={image.alt}
                             className="transition-transform duration-300 hover:scale-105"
+                            data-ai-hint={image['data-ai-hint']}
                           />
                           {image.locked && (
                             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 text-foreground">
@@ -219,14 +220,14 @@ export default function Home() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="ml-[-1rem] md:ml-[-2.5rem]" />
-              <CarouselNext className="mr-[-1rem] md:mr-[-2.5rem]" />
+              <CarouselPrevious />
+              <CarouselNext />
             </Carousel>
           </div>
         </section>
         
         {hasReviews && (
-            <section id="quotes" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
+            <section id="quotes" className="w-full py-16 md:py-24 lg:py-32">
               <div className="container px-4 md:px-6">
                 <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
                     <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
@@ -271,7 +272,7 @@ export default function Home() {
               <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
                 {visibleBuyLinks.map((link) => (
                   <Button key={link.name} asChild size="lg" className={cn("shadow-md hover:shadow-lg transition-shadow", buttonStyles[link.name])}>
-                    <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    <a href={link.url} target={link.name.includes('book') ? '_self' : '_blank'} rel="noopener noreferrer">
                       {link.name}
                     </a>
                   </Button>
