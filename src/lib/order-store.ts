@@ -47,9 +47,22 @@ export const getOrder = async (id: string): Promise<Order | null> => {
     }
 };
 
-export const addOrder = async (orderData: Omit<Order, 'id' | 'status' | 'createdAt'>): Promise<Order> => {
+type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt'>;
+
+export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
     const newOrderData = {
         ...orderData,
+        // Ensure optional fields are present for Firestore
+        name: orderData.name || '',
+        email: orderData.email || '',
+        phone: orderData.phone || null,
+        address: orderData.address || null,
+        street: orderData.street || null,
+        city: orderData.city || null,
+        country: orderData.country || null,
+        state: orderData.state || null,
+        pinCode: orderData.pinCode || null,
+        userId: orderData.userId || null,
         status: 'new' as OrderStatus,
         createdAt: Timestamp.now(),
     };
