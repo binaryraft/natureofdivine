@@ -24,7 +24,7 @@ const exchangeRates: Record<string, number> = {
 
 // This function runs on the server and can safely use APIs.
 export async function fetchLocationAndPrice(): Promise<PriceData> {
-  const headersList = headers();
+  const headersList = await headers();
   // Use a different header for more reliable geo-IP lookup in Vercel
   const countryHeader = headersList.get('x-vercel-ip-country') || headersList.get('x-country');
   
