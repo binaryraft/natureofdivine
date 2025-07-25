@@ -71,3 +71,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/checkout?error=callback_failed', request.url));
   }
 }
+
+    
