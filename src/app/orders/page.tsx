@@ -41,7 +41,7 @@ function OrderItem({ order }: { order: Order }) {
       <CardContent className="grid sm:grid-cols-2 gap-4">
          <div className="text-sm">
             <p className="font-medium">Shipping to: {order.name}</p>
-            <p className="text-muted-foreground">{order.address}, {order.city}, {order.state} {order.pinCode}</p>
+            {order.address && <p className="text-muted-foreground">{order.address}, {order.city}, {order.state} {order.pinCode}</p>}
          </div>
          <div className="text-sm sm:text-right">
              <p className="font-medium">Item</p>
@@ -63,10 +63,9 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login?redirect=/orders');
+      return; // Stop execution if not logged in
     }
-  }, [user, authLoading, router]);
 
-  useEffect(() => {
     if (user) {
       startTransition(async () => {
         try {
@@ -81,7 +80,7 @@ export default function OrdersPage() {
         }
       });
     }
-  }, [user, toast]);
+  }, [user, authLoading, router, toast]);
 
   // Show success toast on successful order
   useEffect(() => {
@@ -145,5 +144,7 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+    
 
     

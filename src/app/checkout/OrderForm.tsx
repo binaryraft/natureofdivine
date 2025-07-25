@@ -3,8 +3,7 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder } from '@/lib/actions';
-import { processPayment } from '@/ai/flows/payment-flow';
+import { placeOrder, processPrepaidOrder } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,9 +25,12 @@ import { Textarea } from '@/components/ui/textarea';
 
 const isPrepaidEnabled = true;
 
+const physicalVariants: BookVariant[] = ['paperback', 'hardcover'];
+const allVariants: BookVariant[] = ['paperback', 'hardcover'];
+
 // Schemas for validation
 const VariantSchema = z.object({
-  variant: z.enum(['paperback', 'hardcover', 'ebook'], { required_error: 'Please select a book type.' }),
+  variant: z.enum(allVariants, { required_error: 'Please select a book type.' }),
 });
 
 const DetailsSchema = z.object({
@@ -139,7 +141,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   // Pre-select variant from URL
   useEffect(() => {
     const variantParam = searchParams.get('variant') as BookVariant;
-    if (variantParam && ['paperback', 'hardcover', 'ebook'].includes(variantParam)) {
+    if (variantParam && allVariants.includes(variantParam)) {
        if (stock[variantParam] > 0) {
             dispatch({ type: 'SET_VARIANT', payload: variantParam });
             dispatch({ type: 'NEXT_STEP' });
@@ -167,7 +169,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email || '' }})
         }
       }
-  }, [user]);
+  }, [user, state.details.name, state.details.email]);
 
   // Handle payment status from URL
   useEffect(() => {
@@ -290,14 +292,13 @@ export function OrderForm({ stock }: { stock: Stock }) {
                 throw new Error(result.message);
             }
         } else if (state.paymentMethod === 'prepaid') {
-            // Set cookie for callback
-            document.cookie = `orderDetails=${JSON.stringify(orderPayload)}; path=/; max-age=600; SameSite=Lax`;
-
-            const paymentResult = await processPayment(orderPayload);
-            if (paymentResult.redirectUrl) {
+             const paymentResult = await processPrepaidOrder(orderPayload);
+            if (paymentResult.success && paymentResult.redirectUrl) {
+                // Set cookie for callback
+                document.cookie = `orderDetails=${JSON.stringify(paymentResult.orderDetails)}; path=/; max-age=600; SameSite=Lax`;
                 window.location.href = paymentResult.redirectUrl;
             } else {
-                throw new Error('Could not get payment URL.');
+                throw new Error(paymentResult.message || 'Could not get payment URL.');
             }
         }
     } catch(e: any) {
@@ -306,6 +307,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
     } finally {
        // We don't set isSubmitting to false here because the page will redirect
        // in the success case. The error case handles the state reset.
+       // Only set to false if an error occurred in COD.
+        if (state.paymentMethod === 'cod') {
+            setIsSubmitting(false);
+        }
     }
   };
   
@@ -331,14 +336,13 @@ export function OrderForm({ stock }: { stock: Stock }) {
                     <CardContent className="space-y-6 pt-6 p-0">
                         {state.errors?.variant && <Alert variant="destructive"><AlertDescription>{state.errors.variant[0]}</AlertDescription></Alert>}
                          {priceLoading || !priceData ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <Skeleton className="h-40 w-full" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Skeleton className="h-40 w-full" />
                                 <Skeleton className="h-40 w-full" />
                             </div>
                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {(Object.keys(variantDetails) as BookVariant[]).map(variant => {
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {physicalVariants.map(variant => {
                                 const isAvailable = stock[variant] > 0;
                                 const price = priceData[variant];
                                 const locale = getLocaleFromCountry(priceData.country);
@@ -357,7 +361,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 >
                                     <Icon className="h-10 w-10 mb-2 text-primary" />
                                     <p className="font-bold text-lg">{name}</p>
-                                    <p className="font-semibold text-xl font-headline text-primary">{variant === 'ebook' ? 'Digital' : formattedPrice}</p>
+                                    <p className="font-semibold text-xl font-headline text-primary">{formattedPrice}</p>
                                     {!isAvailable && <p className="text-destructive font-medium mt-2">Out of Stock</p>}
                                 </div>
                                 );
@@ -374,7 +378,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                     <CardHeader className="p-0">
                         <CardTitle>2. Your Details</CardTitle>
                         <CardDescription>
-                            {state.variant === 'ebook' ? "Enter your details to receive the e-book." : "Enter your shipping information."}
+                            Enter your shipping information.
                         </CardDescription>
                     </CardHeader>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -389,8 +393,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                             {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
                         </div>
                     </div>
-                    {state.variant !== 'ebook' && (
-                    <>
+                    
                     <div className="space-y-2">
                         <Label htmlFor="phone">Phone Number</Label>
                         <Input id="phone" name="phone" type="tel" required value={state.details?.phone} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'phone', value: e.target.value}})} />
@@ -441,8 +444,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                             <Label htmlFor="save-address" className="font-normal text-muted-foreground">Save this address for future orders</Label>
                         </div>
                     )}
-                    </>
-                )}
+                    
                 <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
                     <Button type="submit" className="w-full">Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/></Button>
                     <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
@@ -462,7 +464,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                         <CardHeader className="p-0 mb-6">
                             <CardTitle>3. Payment Method</CardTitle>
                             <CardDescription>
-                                Total amount: {state.variant === 'ebook' ? 'Digital' : formattedPrice}
+                                Total amount: {formattedPrice}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 p-0">
@@ -472,11 +474,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
                                 value={state.paymentMethod || ''}
                             >
-                                <Label className={cn("flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all", state.variant === 'ebook' && 'opacity-50 cursor-not-allowed')}>
-                                    <RadioGroupItem value="cod" id="cod" disabled={state.variant === 'ebook'} />
+                                <Label className={cn("flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all")}>
+                                    <RadioGroupItem value="cod" id="cod" />
                                     <div className="flex-grow">
                                         <span className="font-semibold flex items-center gap-2"><Truck/> Cash on Delivery</span>
-                                        {state.variant === 'ebook' && <p className="text-xs text-muted-foreground">Not available for e-books</p>}
                                     </div>
                                 </Label>
                                 <Label className={cn("flex items-center gap-4 rounded-md border p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all" : "cursor-not-allowed opacity-50")}>
@@ -509,3 +510,5 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
+
+    

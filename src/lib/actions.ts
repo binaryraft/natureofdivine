@@ -7,6 +7,7 @@ import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus } from './ord
 import type { OrderStatus } from './definitions';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
+import { processPayment } from '@/ai/flows/payment-flow';
 
 const OrderSchema = z.object({
   variant: z.enum(['paperback', 'hardcover', 'ebook']),
@@ -20,13 +21,16 @@ const OrderSchema = z.object({
   state: z.string().optional(),
   pinCode: z.string().optional(),
   userId: z.string().optional(),
-  paymentMethod: z.enum(['cod', 'prepaid']),
+});
+
+const CodOrderSchema = OrderSchema.extend({
+    paymentMethod: z.literal('cod'),
 });
 
 export async function placeOrder(
-  data: z.infer<typeof OrderSchema>
+  data: z.infer<typeof CodOrderSchema>
 ): Promise<{ success: boolean; message: string; orderId?: string }> {
-  const validatedFields = OrderSchema.safeParse(data);
+  const validatedFields = CodOrderSchema.safeParse(data);
 
   if (!validatedFields.success) {
     return {
@@ -71,6 +75,45 @@ export async function placeOrder(
   }
 }
 
+
+export async function processPrepaidOrder(
+  data: z.infer<typeof OrderSchema>
+): Promise<{ success: boolean; message: string; redirectUrl?: string; orderDetails?: any }> {
+    const validatedFields = OrderSchema.safeParse(data);
+
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            message: 'Invalid data provided. Please check the form.',
+        };
+    }
+
+    try {
+        const paymentResult = await processPayment(validatedFields.data);
+
+        // This object is what we'll store in the cookie.
+        // It's the original validated data, not the PhonePe response.
+        const orderDetailsToStore = {
+            ...validatedFields.data,
+            paymentMethod: 'prepaid', // We set the payment method here.
+        };
+
+        return {
+            success: true,
+            message: 'Redirecting to payment gateway.',
+            redirectUrl: paymentResult.redirectUrl,
+            orderDetails: orderDetailsToStore,
+        };
+    } catch (e: any) {
+        console.error('Prepaid order processing error:', e);
+        return {
+            success: false,
+            message: e.message || 'An unexpected error occurred during payment processing.',
+        };
+    }
+}
+
+
 export async function fetchOrders() {
     return await getOrders();
 }
@@ -90,3 +133,5 @@ export async function changeOrderStatus(id: string, status: OrderStatus) {
         return { success: false, message: 'Failed to update order status.' };
     }
 }
+
+    

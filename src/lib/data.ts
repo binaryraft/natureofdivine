@@ -77,7 +77,9 @@ export const buyLinks = [
     },
     {
         name: "E-book",
-        url: "/checkout?variant=ebook",
+        url: "https://www.amazon.in/kindle-dbs/storefront",
         visible: true,
     }
 ];
+
+    
