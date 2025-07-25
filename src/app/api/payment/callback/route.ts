@@ -1,12 +1,9 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import crypto from 'crypto-js';
-import { addOrder } from '@/lib/order-store';
+import { addOrder, getPendingOrder, deletePendingOrder } from '@/lib/order-store';
 import { decreaseStock } from '@/lib/stock-store';
-import { fetchLocationAndPrice } from '@/lib/fetch-location-price';
 import type { BookVariant } from '@/lib/definitions';
-import { cookies } from 'next/headers';
-
 
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || '';
 const SALT_KEY = process.env.PHONEPE_SALT_KEY || '';
@@ -35,50 +32,38 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    // Always clear the cookie after attempting payment verification
-    cookies().delete('orderDetails');
-
     if (data.success && data.code === 'PAYMENT_SUCCESS') {
-        const orderDetailsCookie = request.cookies.get('orderDetails');
-
-        if (!orderDetailsCookie) {
-             return NextResponse.redirect(new URL('/checkout?error=order_details_missing', request.url));
+        const pendingOrder = await getPendingOrder(transactionId);
+        
+        if (!pendingOrder) {
+            console.error(`CRITICAL: No pending order found for successful transaction ID: ${transactionId}`);
+            return NextResponse.redirect(new URL('/checkout?error=order_details_missing', request.url));
         }
 
-        let orderData;
-        try {
-            // It's safer to parse the cookie inside a try-catch block
-            orderData = JSON.parse(orderDetailsCookie.value);
-        } catch(e) {
-            console.error("Failed to parse orderDetails cookie", e);
-            return NextResponse.redirect(new URL('/checkout?error=invalid_order_data', request.url));
+        // Clean up the pending order doc
+        await deletePendingOrder(transactionId);
+
+        if (pendingOrder.variant !== 'ebook') {
+            await decreaseStock(pendingOrder.variant, 1);
         }
 
-        const prices = await fetchLocationAndPrice();
-        const price = prices[orderData.variant as Exclude<BookVariant, 'ebook'>];
-
-        if (orderData.variant !== 'ebook') {
-            await decreaseStock(orderData.variant, 1);
-        }
-
-        const newOrder = await addOrder({
-            ...orderData,
-            price: price,
-            paymentMethod: 'prepaid',
-        });
+        const newOrder = await addOrder(pendingOrder);
         
         // Successful order, redirect to the success page.
         return NextResponse.redirect(new URL(`/orders?success=true&orderId=${newOrder.id}`, request.url));
 
     } else {
-        // Payment failed or has a different status, redirect to checkout with an error.
+        // Payment failed or has a different status, clean up the pending order and redirect
+        await deletePendingOrder(transactionId);
         return NextResponse.redirect(new URL(`/checkout?error=${data.code || 'payment_failed'}`, request.url));
     }
 
   } catch (error) {
     console.error('Payment callback error:', error);
-    // Clear cookie on failure too
-    cookies().delete('orderDetails');
+    // Attempt to clean up pending order on failure too
+    if(transactionId) {
+        await deletePendingOrder(transactionId);
+    }
     return NextResponse.redirect(new URL('/checkout?error=callback_failed', request.url));
   }
 }

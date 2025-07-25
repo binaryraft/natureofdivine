@@ -120,11 +120,10 @@ function formReducer(state: FormState, action: FormAction): FormState {
   }
 }
 
-const variantDetails: Record<BookVariant, { name: string; icon: React.ElementType, description: string }> = {
+const variantDetails: Record<Exclude<BookVariant, 'ebook'>, { name: string; icon: React.ElementType, description: string }> = {
     paperback: { name: 'Paperback', icon: Book, description: "The classic physical copy." },
     hardcover: { name: 'Hardcover', icon: Book, description: "A durable, premium edition." },
-    ebook: { name: 'E-book', icon: Download, description: "Read instantly on any device." },
-}
+};
 
 export function OrderForm({ stock }: { stock: Stock }) {
   const router = useRouter();
@@ -294,8 +293,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
         } else if (state.paymentMethod === 'prepaid') {
              const paymentResult = await processPrepaidOrder(orderPayload);
             if (paymentResult.success && paymentResult.redirectUrl) {
-                // Set cookie for callback
-                document.cookie = `orderDetails=${JSON.stringify(paymentResult.orderDetails)}; path=/; max-age=600; SameSite=Lax`;
                 window.location.href = paymentResult.redirectUrl;
             } else {
                 throw new Error(paymentResult.message || 'Could not get payment URL.');
@@ -343,6 +340,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                          ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {physicalVariants.map(variant => {
+                                if (variant === 'ebook') return null; // E-book is not sold here
                                 const isAvailable = stock[variant] > 0;
                                 const price = priceData[variant];
                                 const locale = getLocaleFromCountry(priceData.country);
@@ -510,5 +508,3 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
-
-    

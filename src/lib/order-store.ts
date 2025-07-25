@@ -1,9 +1,10 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 
 const ordersCollection = collection(db, 'orders');
+const pendingOrdersCollection = collection(db, 'pending-orders');
 
 // Helper function to safely convert a Firestore document to a validated Order object
 const docToOrder = (doc: any): Order => {
@@ -140,5 +141,51 @@ export const updateOrderStatus = async (id: string, status: OrderStatus): Promis
     } catch (error) {
         console.error(`Error updating status for order ${id}:`, error);
         throw new Error("Could not update the order status.");
+    }
+};
+
+/**
+ * Adds a pending order to the `pending-orders` collection.
+ * This is used to temporarily store order details before payment is confirmed.
+ */
+export const addPendingOrder = async (transactionId: string, orderData: NewOrderData): Promise<void> => {
+    try {
+        const pendingOrderRef = doc(pendingOrdersCollection, transactionId);
+        await setDoc(pendingOrderRef, orderData);
+    } catch (error) {
+        console.error(`Error creating pending order ${transactionId}:`, error);
+        throw new Error("Could not create a pending order.");
+    }
+};
+
+/**
+ * Retrieves a pending order from the `pending-orders` collection.
+ */
+export const getPendingOrder = async (transactionId: string): Promise<NewOrderData | null> => {
+    try {
+        const pendingOrderRef = doc(pendingOrdersCollection, transactionId);
+        const docSnap = await getDoc(pendingOrderRef);
+        if (docSnap.exists()) {
+            return docSnap.data() as NewOrderData;
+        }
+        return null;
+    } catch (error) {
+        console.error(`Error fetching pending order ${transactionId}:`, error);
+        throw new Error("Could not fetch the pending order.");
+    }
+};
+
+/**
+ * Deletes a pending order from the `pending-orders` collection.
+ * This is called after the order is successfully processed or if the payment fails.
+ */
+export const deletePendingOrder = async (transactionId: string): Promise<void> => {
+     if (!transactionId) return;
+    try {
+        const pendingOrderRef = doc(pendingOrdersCollection, transactionId);
+        await deleteDoc(pendingOrderRef);
+    } catch (error) {
+        console.error(`Error deleting pending order ${transactionId}:`, error);
+        // We don't throw here as this is a cleanup operation.
     }
 };
