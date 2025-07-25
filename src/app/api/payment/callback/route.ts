@@ -42,7 +42,13 @@ export async function GET(request: NextRequest) {
              return NextResponse.redirect(new URL('/checkout?error=order_details_missing', request.url));
         }
 
-        const orderData = JSON.parse(orderDetailsCookie.value);
+        let orderData;
+        try {
+            orderData = JSON.parse(orderDetailsCookie.value);
+        } catch(e) {
+            return NextResponse.redirect(new URL('/checkout?error=invalid_order_data', request.url));
+        }
+
 
         const prices = await fetchLocationAndPrice();
         const price = prices[orderData.variant as BookVariant];
@@ -63,6 +69,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL(`/orders?success=true&orderId=${newOrder.id}`, request.url));
 
     } else {
+        // Clear the cookie even on failure
+        cookies().delete('orderDetails');
         return NextResponse.redirect(new URL(`/checkout?error=${data.code || 'payment_failed'}`, request.url));
     }
 
@@ -71,5 +79,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/checkout?error=callback_failed', request.url));
   }
 }
-
-    

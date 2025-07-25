@@ -105,6 +105,7 @@ function StockManager() {
 
     useEffect(() => {
         async function loadStock() {
+            setIsLoadingStock(true);
             try {
                 const fetchedStock = await getStock();
                 setStock(fetchedStock);
@@ -334,5 +335,3 @@ export function AdminDashboard() {
     </div>
   );
 }
-
-    

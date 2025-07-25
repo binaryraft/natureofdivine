@@ -108,11 +108,10 @@ function formReducer(state: FormState, action: FormAction): FormState {
         return { ...state, step: 'processing' };
     case 'RESET_TO_VARIANT':
         return {
-            ...state, // Keep details
+            ...initialState,
+            details: state.details, // Keep user-entered details
             step: action.payload ? 'details' : 'variant',
             variant: action.payload || null,
-            paymentMethod: null,
-            errors: null,
         }
     default:
       return state;
@@ -158,7 +157,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     }
   }, [priceData?.country, state.details.country]);
 
-  // Set initial user details
+  // Set initial user details, only if the fields are empty
   useEffect(() => {
       if(user) {
         if (!state.details.name) {
@@ -168,7 +167,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email || '' }})
         }
       }
-  }, [user, state.details.name, state.details.email]);
+  }, [user]);
 
   // Handle payment status from URL
   useEffect(() => {
@@ -177,12 +176,14 @@ export function OrderForm({ stock }: { stock: Stock }) {
       toast({
         variant: 'destructive',
         title: 'Payment Failed',
-        description: `Your payment could not be completed. Reason: ${error}`,
+        description: `Your payment could not be completed. Reason: ${error.replace(/_/g, ' ')}`,
       });
+      // Clean up failed payment cookie
+      document.cookie = 'orderDetails=; path=/; max-age=-1;';
       // Reset form state after an error
       const variantParam = searchParams.get('variant') as BookVariant;
       dispatch({type: 'RESET_TO_VARIANT', payload: state.variant || variantParam });
-      router.replace('/checkout' + (state.variant ? `?variant=${state.variant}`: '')); // Clear URL params
+      router.replace('/checkout' + (state.variant ? `?variant=${state.variant}`: ''), { scroll: false }); // Clear URL params
     }
   }, [searchParams, toast, router, state.variant]);
 
@@ -303,7 +304,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
         toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
     } finally {
-       setIsSubmitting(false);
+       // We don't set isSubmitting to false here because the page will redirect
+       // in the success case. The error case handles the state reset.
     }
   };
   
@@ -326,7 +328,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                         <CardTitle>1. Select Book Type</CardTitle>
                         <CardDescription>Choose the version of the book you&apos;d like to order.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
+                    <CardContent className="space-y-6 pt-6 p-0">
                         {state.errors?.variant && <Alert variant="destructive"><AlertDescription>{state.errors.variant[0]}</AlertDescription></Alert>}
                          {priceLoading || !priceData ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -507,5 +509,3 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
-
-    
