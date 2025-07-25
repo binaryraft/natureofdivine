@@ -16,7 +16,7 @@ export const getStock = async (): Promise<Stock> => {
             hardcover: data.hardcover || 100,
             ebook: data.ebook || 99999,
         };
-        // If the values were missing, let's update the document to prevent future issues.
+        // If the values were missing or zero, let's update the document to prevent future issues.
         if (!data.paperback || !data.hardcover) {
             await setDoc(stockDocRef, stockData, { merge: true });
         }
@@ -61,5 +61,3 @@ export const decreaseStock = async (variant: BookVariant, quantity: number): Pro
         throw e; // re-throw the error to be caught by the calling action
     }
 };
-
-    

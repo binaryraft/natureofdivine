@@ -1,20 +1,18 @@
 
+'use client';
+
 import { OrderForm } from './OrderForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { getStock } from '@/lib/stock-store';
 import { Loader2 } from 'lucide-react';
-
-export const metadata = {
-  title: 'Checkout | Nature of the Divine',
-  description: 'Place an order for a copy of the book "Nature of the Divine".',
-};
+import type { Stock } from '@/lib/definitions';
 
 function CheckoutPageContent() {
-    const [stock, setStock] = React.useState(null);
-    const [loading, setLoading] = React.useState(true);
+    const [stock, setStock] = useState<Stock | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         async function loadStock() {
             try {
                 const fetchedStock = await getStock();

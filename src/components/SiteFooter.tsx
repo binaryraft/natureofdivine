@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 
 export function SiteFooter() {
   return (
-    <footer className="w-full bg-primary/10">
+    <footer className="w-full bg-secondary/50 border-t">
       <div className="container py-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2">
             <BookHeart className="h-6 w-6 text-primary" />
@@ -14,12 +14,12 @@ export function SiteFooter() {
             </p>
         </div>
         <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-muted-foreground">
-             <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
-             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
-             <Link href="/shipping" className="hover:text-primary">Shipping Policy</Link>
-             <Link href="/returns" className="hover:text-primary">Return Policy</Link>
+             <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
+             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
+             <Link href="/shipping" className="hover:text-primary transition-colors">Shipping</Link>
+             <Link href="/returns" className="hover:text-primary transition-colors">Returns</Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" asChild>
                 <Link href="#"><Twitter className="h-4 w-4" /></Link>
             </Button>

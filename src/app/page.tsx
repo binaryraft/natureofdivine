@@ -197,8 +197,9 @@ export default function Home() {
                         <CardContent className="p-0 relative aspect-[3/4]">
                           <Image
                             src={image.src}
-                            layout="fill"
-                            objectFit="cover"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            style={{objectFit: 'cover'}}
                             alt={image.alt}
                             className="transition-transform duration-300 hover:scale-105"
                           />
