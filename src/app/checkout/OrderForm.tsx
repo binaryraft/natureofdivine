@@ -89,7 +89,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'SET_DETAILS':
       return { ...state, details: action.payload, errors: null };
     case 'SET_FORM_VALUE':
-      return { ...state, details: { ...state.details!, [action.payload.field]: action.payload.value } };
+      return { ...state, details: { ...state.details!, [action.payload.field]: action.payload.value }, errors: null };
     case 'SET_PAYMENT_METHOD':
       return { ...state, paymentMethod: action.payload, errors: null };
     case 'SET_ERRORS':
@@ -108,10 +108,11 @@ function formReducer(state: FormState, action: FormAction): FormState {
         return { ...state, step: 'processing' };
     case 'RESET_TO_VARIANT':
         return {
-            ...initialState,
-            variant: action.payload || null,
+            ...state, // Keep details
             step: action.payload ? 'details' : 'variant',
-            details: state.details, // Keep user details filled in
+            variant: action.payload || null,
+            paymentMethod: null,
+            errors: null,
         }
     default:
       return state;
@@ -152,18 +153,22 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
   // Set initial country from location data
   useEffect(() => {
-    if (priceData?.country) {
+    if (priceData?.country && !state.details.country) {
       dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: priceData.country }})
     }
-  }, [priceData?.country]);
+  }, [priceData?.country, state.details.country]);
 
   // Set initial user details
   useEffect(() => {
       if(user) {
-        dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'name', value: user.displayName || '' }})
-        dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email || '' }})
+        if (!state.details.name) {
+            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'name', value: user.displayName || '' }})
+        }
+        if (!state.details.email) {
+            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email || '' }})
+        }
       }
-  }, [user]);
+  }, [user, state.details.name, state.details.email]);
 
   // Handle payment status from URL
   useEffect(() => {
@@ -176,10 +181,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
       });
       // Reset form state after an error
       const variantParam = searchParams.get('variant') as BookVariant;
-      dispatch({type: 'RESET_TO_VARIANT', payload: variantParam});
-      router.replace('/checkout' + (variantParam ? `?variant=${variantParam}`: '')); // Clear URL params
+      dispatch({type: 'RESET_TO_VARIANT', payload: state.variant || variantParam });
+      router.replace('/checkout' + (state.variant ? `?variant=${state.variant}`: '')); // Clear URL params
     }
-  }, [searchParams, toast, router]);
+  }, [searchParams, toast, router, state.variant]);
 
 
   // Handle Pincode Auto-fill

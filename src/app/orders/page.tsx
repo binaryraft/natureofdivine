@@ -10,9 +10,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, PackageSearch, XCircle, CheckCircle, Truck, ShoppingCart, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 const statusInfo: Record<OrderStatus, { label: string; Icon: React.ElementType; color: string }> = {
   new: { label: 'Order Placed', Icon: ShoppingCart, color: 'bg-blue-500' },
@@ -54,6 +55,8 @@ function OrderItem({ order }: { order: Order }) {
 export default function OrdersPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -66,11 +69,31 @@ export default function OrdersPage() {
   useEffect(() => {
     if (user) {
       startTransition(async () => {
-        const userOrders = await fetchUserOrders(user.uid);
-        setOrders(userOrders);
+        try {
+            const userOrders = await fetchUserOrders(user.uid);
+            setOrders(userOrders);
+        } catch(e) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to fetch your orders.'
+            })
+        }
       });
     }
-  }, [user]);
+  }, [user, toast]);
+
+  // Show success toast on successful order
+  useEffect(() => {
+    if (searchParams.get('success') === 'true' && searchParams.get('orderId')) {
+        toast({
+            title: 'Order Placed Successfully!',
+            description: `Your order ID is ${searchParams.get('orderId')}.`
+        })
+        // Clean the URL
+        router.replace('/orders', { scroll: false });
+    }
+  }, [searchParams, toast, router]);
 
   if (authLoading || isPending) {
     return (
@@ -79,6 +102,17 @@ export default function OrdersPage() {
         <p className="mt-4 text-muted-foreground">Loading your orders...</p>
       </div>
     );
+  }
+
+  // Final check to ensure user is logged in before rendering content
+  if (!user) {
+      // This will be brief as the useEffect above will redirect.
+      // It prevents a flash of the "No Orders" message for logged-out users.
+      return (
+         <div className="container mx-auto py-12 md:py-24 max-w-4xl text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+         </div>
+      );
   }
 
   return (
@@ -94,7 +128,7 @@ export default function OrdersPage() {
             <PackageSearch className="h-4 w-4" />
             <AlertTitle>No Orders Found</AlertTitle>
             <AlertDescription>
-                You haven't placed any orders yet.
+                You haven&apos;t placed any orders yet.
                 <Button asChild variant="link" className="px-1">
                     <Link href="/checkout">Place your first order!</Link>
                 </Button>
