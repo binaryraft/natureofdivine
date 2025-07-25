@@ -9,8 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Download, User, Mail, Home } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Download } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,7 +47,7 @@ const DetailsSchema = z.object({
 type FormState = {
   step: 'variant' | 'details' | 'payment' | 'processing';
   variant: BookVariant | null;
-  details: z.infer<typeof DetailsSchema> | null;
+  details: z.infer<typeof DetailsSchema>;
   paymentMethod: 'cod' | 'prepaid' | null;
   errors: Record<string, string[]> | null;
 };
@@ -61,6 +60,7 @@ type FormAction =
   | { type: 'NEXT_STEP' }
   | { type: 'PREVIOUS_STEP' }
   | { type: 'SET_PROCESSING' }
+  | { type: 'RESET_TO_VARIANT'; payload?: BookVariant | null }
   | { type: 'SET_FORM_VALUE'; payload: { field: keyof z.infer<typeof DetailsSchema>, value: string | boolean | undefined }};
 
 const initialState: FormState = {
@@ -91,7 +91,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'SET_FORM_VALUE':
       return { ...state, details: { ...state.details!, [action.payload.field]: action.payload.value } };
     case 'SET_PAYMENT_METHOD':
-      return { ...state, paymentMethod: action.payload };
+      return { ...state, paymentMethod: action.payload, errors: null };
     case 'SET_ERRORS':
       return { ...state, errors: action.payload };
     case 'NEXT_STEP': {
@@ -100,12 +100,19 @@ function formReducer(state: FormState, action: FormAction): FormState {
       return state;
     }
     case 'PREVIOUS_STEP': {
-        if (state.step === 'payment') return { ...state, step: 'details' };
-        if (state.step === 'details') return { ...state, step: 'variant' };
+        if (state.step === 'payment') return { ...state, step: 'details', paymentMethod: null, errors: null };
+        if (state.step === 'details') return { ...state, step: 'variant', errors: null };
         return state;
     }
     case 'SET_PROCESSING':
         return { ...state, step: 'processing' };
+    case 'RESET_TO_VARIANT':
+        return {
+            ...initialState,
+            variant: action.payload || null,
+            step: action.payload ? 'details' : 'variant',
+            details: state.details, // Keep user details filled in
+        }
     default:
       return state;
   }
@@ -128,6 +135,20 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState<string | null>(null);
+  
+  // Pre-select variant from URL
+  useEffect(() => {
+    const variantParam = searchParams.get('variant') as BookVariant;
+    if (variantParam && ['paperback', 'hardcover', 'ebook'].includes(variantParam)) {
+       if (stock[variantParam] > 0) {
+            dispatch({ type: 'SET_VARIANT', payload: variantParam });
+            dispatch({ type: 'NEXT_STEP' });
+        } else {
+            toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.'});
+        }
+    }
+  }, [searchParams, stock, toast]);
+
 
   // Set initial country from location data
   useEffect(() => {
@@ -147,22 +168,16 @@ export function OrderForm({ stock }: { stock: Stock }) {
   // Handle payment status from URL
   useEffect(() => {
     const error = searchParams.get('error');
-    const success = searchParams.get('success');
     if (error) {
       toast({
         variant: 'destructive',
         title: 'Payment Failed',
         description: `Your payment could not be completed. Reason: ${error}`,
       });
-      router.replace('/checkout'); // Clear URL params
-    }
-     if (success) {
-      const orderId = searchParams.get('orderId');
-      toast({
-        title: 'Order Placed!',
-        description: `Your order ID is ${orderId}.`,
-      });
-      // Redirect handled by the server action or callback
+      // Reset form state after an error
+      const variantParam = searchParams.get('variant') as BookVariant;
+      dispatch({type: 'RESET_TO_VARIANT', payload: variantParam});
+      router.replace('/checkout' + (variantParam ? `?variant=${variantParam}`: '')); // Clear URL params
     }
   }, [searchParams, toast, router]);
 
@@ -172,6 +187,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
     dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: pinCode } });
     if (pinCode.length !== 6 || priceData?.country !== 'IN') {
         setPincodeError(null);
+        if(state.details.city || state.details.state) {
+            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: '' } });
+            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: '' } });
+        }
         return;
     };
 
@@ -219,12 +238,12 @@ export function OrderForm({ stock }: { stock: Stock }) {
     
     let validationSchema;
     if (needsAddress) {
-        validationSchema = DetailsSchema.refine(data => data.phone, { message: 'Phone is required for physical orders' })
-                         .refine(data => data.address, { message: 'Address is required for physical orders' })
-                         .refine(data => data.city, { message: 'City is required for physical orders' })
-                         .refine(data => data.country, { message: 'Country is required for physical orders' })
-                         .refine(data => data.state, { message: 'State is required for physical orders' })
-                         .refine(data => data.pinCode, { message: 'PIN code is required for physical orders' });
+        validationSchema = DetailsSchema.refine(data => !!data.phone, { message: 'Phone is required for physical orders.', path: ['phone'] })
+                         .refine(data => !!data.address, { message: 'Address is required for physical orders.', path: ['address'] })
+                         .refine(data => !!data.city, { message: 'City is required for physical orders.', path: ['city'] })
+                         .refine(data => !!data.country, { message: 'Country is required for physical orders.', path: ['country'] })
+                         .refine(data => !!data.state, { message: 'State is required for physical orders.', path: ['state'] })
+                         .refine(data => !!data.pinCode, { message: 'PIN code is required for physical orders.', path: ['pinCode'] });
     } else {
         validationSchema = DetailsSchema.pick({ name: true, email: true });
     }
@@ -251,39 +270,44 @@ export function OrderForm({ stock }: { stock: Stock }) {
         userId: user?.uid,
     };
 
-    if (state.paymentMethod === 'cod') {
-        const result = await placeOrder({
-            ...orderPayload,
-            paymentMethod: 'cod',
-        });
+    try {
+        if (state.paymentMethod === 'cod') {
+            const result = await placeOrder({
+                ...orderPayload,
+                paymentMethod: 'cod',
+            });
 
-        if (result.success && result.orderId) {
-            toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
-            router.push(`/orders?success=true&orderId=${result.orderId}`);
-        } else {
-            toast({ variant: 'destructive', title: 'Error', description: result.message });
-            dispatch({ type: 'PREVIOUS_STEP' }); // Go back to payment step
-        }
-    } else if (state.paymentMethod === 'prepaid') {
-        try {
+            if (result.success && result.orderId) {
+                toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
+                router.push(`/orders?success=true&orderId=${result.orderId}`);
+            } else {
+                throw new Error(result.message);
+            }
+        } else if (state.paymentMethod === 'prepaid') {
             // Set cookie for callback
             document.cookie = `orderDetails=${JSON.stringify(orderPayload)}; path=/; max-age=600; SameSite=Lax`;
 
             const paymentResult = await processPayment(orderPayload);
-            window.location.href = paymentResult.redirectUrl;
-        } catch(e: any) {
-            toast({ variant: 'destructive', title: 'Payment Error', description: e.message || 'Failed to initiate payment.' });
-            dispatch({ type: 'PREVIOUS_STEP' });
+            if (paymentResult.redirectUrl) {
+                window.location.href = paymentResult.redirectUrl;
+            } else {
+                throw new Error('Could not get payment URL.');
+            }
         }
+    } catch(e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
+        dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
+    } finally {
+       setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
   
   if (state.step === 'processing' || isSubmitting) {
     return (
-        <div className="flex flex-col items-center justify-center gap-4 my-8">
+        <div className="flex flex-col items-center justify-center gap-4 my-8 min-h-[300px]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-lg text-muted-foreground">Processing your request...</p>
+            <p className="text-sm text-muted-foreground">Please do not refresh or go back.</p>
         </div>
     )
   }
@@ -293,11 +317,11 @@ export function OrderForm({ stock }: { stock: Stock }) {
         case 'variant':
             return (
                  <Card className="border-none shadow-none">
-                    <CardHeader>
+                    <CardHeader className="p-0">
                         <CardTitle>1. Select Book Type</CardTitle>
                         <CardDescription>Choose the version of the book you&apos;d like to order.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 pt-6">
                         {state.errors?.variant && <Alert variant="destructive"><AlertDescription>{state.errors.variant[0]}</AlertDescription></Alert>}
                          {priceLoading || !priceData ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -326,7 +350,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 >
                                     <Icon className="h-10 w-10 mb-2 text-primary" />
                                     <p className="font-bold text-lg">{name}</p>
-                                    <p className="font-semibold text-xl font-headline text-primary">{formattedPrice}</p>
+                                    <p className="font-semibold text-xl font-headline text-primary">{variant === 'ebook' ? 'Digital' : formattedPrice}</p>
                                     {!isAvailable && <p className="text-destructive font-medium mt-2">Out of Stock</p>}
                                 </div>
                                 );
@@ -400,7 +424,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="country">Country</Label>
-                            <Input id="country" name="country" required value={state.details?.country} readOnly />
+                            <Input id="country" name="country" required value={state.details?.country || ''} readOnly />
                             {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
                         </div>
                     </div>
@@ -420,14 +444,18 @@ export function OrderForm({ stock }: { stock: Stock }) {
             );
 
         case 'payment':
-            if (priceLoading || !priceData || !state.variant) return <div className="text-center"><Loader2 className="animate-spin"/></div>
+            if (priceLoading || !priceData || !state.variant) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin"/></div>
+            const price = priceData[state.variant];
+            const locale = getLocaleFromCountry(priceData.country);
+            const formattedPrice = new Intl.NumberFormat(locale, { style: 'currency', currency: priceData.currencyCode }).format(price);
+
             return (
                 <div>
                     <Card className="border-none shadow-none">
                         <CardHeader className="p-0 mb-6">
                             <CardTitle>3. Payment Method</CardTitle>
                             <CardDescription>
-                                Total amount: {new Intl.NumberFormat(getLocaleFromCountry(priceData.country), { style: 'currency', currency: priceData.currencyCode }).format(priceData[state.variant])}
+                                Total amount: {state.variant === 'ebook' ? 'Digital' : formattedPrice}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 p-0">
@@ -435,12 +463,13 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 name="paymentMethod" 
                                 className="space-y-4"
                                 onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
-                                defaultValue={state.paymentMethod || undefined}
+                                value={state.paymentMethod || ''}
                             >
-                                <Label className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all">
-                                    <RadioGroupItem value="cod" id="cod" />
+                                <Label className={cn("flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all", state.variant === 'ebook' && 'opacity-50 cursor-not-allowed')}>
+                                    <RadioGroupItem value="cod" id="cod" disabled={state.variant === 'ebook'} />
                                     <div className="flex-grow">
                                         <span className="font-semibold flex items-center gap-2"><Truck/> Cash on Delivery</span>
+                                        {state.variant === 'ebook' && <p className="text-xs text-muted-foreground">Not available for e-books</p>}
                                     </div>
                                 </Label>
                                 <Label className={cn("flex items-center gap-4 rounded-md border p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all" : "cursor-not-allowed opacity-50")}>
@@ -473,5 +502,3 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
-
-    
