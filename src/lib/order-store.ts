@@ -47,19 +47,16 @@ export const getOrders = async (): Promise<Order[]> => {
     const ordersQuery = query(allOrdersCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(ordersQuery);
     return snapshot.docs.map(docToOrder);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching all orders:", error);
-    // This is a critical error. We will now try a fallback to the collection group query
-    // in case there's a temporary issue with the `all-orders` collection.
-    try {
-        console.warn("Falling back to collection group query for admin orders.");
-        const groupQuery = query(collectionGroup(db, 'orders'), orderBy('createdAt', 'desc'));
-        const groupSnapshot = await getDocs(groupQuery);
-        return groupSnapshot.docs.map(docToOrder);
-    } catch(groupError) {
-         console.error("Collection group fallback also failed:", groupError);
-         throw groupError; // Throw the original group error which might contain the index link
+    // If the denormalized collection fails, fallback to collection group query
+    // and provide a helpful error for the developer if an index is missing.
+    if (error.code === 'failed-precondition') {
+      throw new Error(
+        `Firestore index required. The query requires an index. You can create it here: ${error.message.match(/https?:\/\/[^\s]+/)?.[0]}`
+      );
     }
+    throw error;
   }
 };
 
@@ -238,5 +235,7 @@ export const deletePendingOrder = async (transactionId: string): Promise<void> =
         await deleteDoc(pendingOrderRef);
     } catch (error) {
         console.error(`Error deleting pending order ${transactionId}:`, error);
+        // We don't throw an error here, as the main flow should continue.
+        // It's a cleanup task.
     }
 };

@@ -82,7 +82,7 @@ const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || '';
 const SALT_KEY = process.env.PHONEPE_SALT_KEY || '';
 const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
 const HOST_URL = process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:9002';
-
+const PHONEPE_API_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox"
 
 export async function processPrepaidOrder(
   data: z.infer<typeof OrderSchema>
@@ -110,8 +110,8 @@ export async function processPrepaidOrder(
             merchantTransactionId: merchantTransactionId,
             merchantUserId: userId,
             amount: amount,
-            redirectUrl: `${HOST_URL}/orders`, // Redirect to orders page
-            redirectMode: 'POST', // Important: Use POST for redirects
+            redirectUrl: `${HOST_URL}/orders`, // Redirect to orders page after payment
+            redirectMode: 'POST', 
             callbackUrl: `${HOST_URL}/api/payment/callback`,
             mobileNumber: orderDetails.phone,
             paymentInstrument: {
@@ -119,7 +119,6 @@ export async function processPrepaidOrder(
             },
         };
         
-        // Before redirecting, save the order details to the pending orders collection
         await addPendingOrder(merchantTransactionId, {
             ...orderDetails,
             variant,
@@ -130,9 +129,10 @@ export async function processPrepaidOrder(
 
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const checksum = crypto.SHA256(`${base64Payload}/pg/v1/pay${SALT_KEY}`).toString() + `###${SALT_INDEX}`;
+        const apiEndpoint = "/pg/v1/pay";
+        const checksum = crypto.SHA256(base64Payload + apiEndpoint + SALT_KEY).toString() + `###${SALT_INDEX}`;
 
-        const response = await fetch('https://api.phonepe.com/apis/hermes/pg/v1/pay', {
+        const response = await fetch(`${PHONEPE_API_URL}${apiEndpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -143,8 +143,9 @@ export async function processPrepaidOrder(
 
         const responseData = await response.json();
         
-        if (!responseData.success || !responseData.data.instrumentResponse.redirectInfo.url) {
+        if (!responseData.success || !responseData.data?.instrumentResponse?.redirectInfo?.url) {
             console.error("PhonePe API Error:", responseData);
+             await deletePendingOrder(merchantTransactionId); // Clean up pending order on failure
             throw new Error(responseData.message || 'Failed to initiate payment with PhonePe.');
         }
 
