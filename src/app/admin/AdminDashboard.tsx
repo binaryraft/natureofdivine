@@ -219,11 +219,30 @@ export function AdminDashboard() {
         try {
             const fetchedOrders = await fetchOrders();
             setOrders(fetchedOrders);
-        } catch(e) {
+        } catch(e: any) {
+            let description = "Failed to load orders. Check Firestore configuration.";
+            if (e.message && e.message.includes("indexes?create_composite")) {
+                 const urlMatch = e.message.match(/(https?:\/\/[^\s]+)/);
+                 if (urlMatch) {
+                    const firebaseUrl = urlMatch[0].replace(/\\"/g, ''); // Clean up the URL
+                    description = `A database index is required. Please click the link to create it in the Firebase Console:`;
+                    toast({
+                        variant: 'destructive',
+                        title: 'Firestore Index Required',
+                        description: (
+                            <div>
+                                {description} <a href={firebaseUrl} target="_blank" rel="noopener noreferrer" className="underline font-bold">Create Index</a>
+                            </div>
+                        ),
+                         duration: 20000,
+                    });
+                    return;
+                 }
+            }
              toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: "Failed to load orders. Check Firestore configuration.",
+                description: description,
              });
         }
     });
@@ -343,3 +362,5 @@ export function AdminDashboard() {
     </div>
   );
 }
+
+    
