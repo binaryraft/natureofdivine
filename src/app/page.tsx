@@ -88,7 +88,7 @@ function Testimonials() {
         <section id="quotes" className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">Testimonials</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
               </div>
             <Carousel
@@ -195,7 +195,7 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-6 text-center">
               <div className="space-y-4 max-w-4xl">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">About the Book</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">About the Book</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookText /> Nature of the Divine</h2>
                 <p className="text-muted-foreground text-lg/relaxed md:text-xl/relaxed">
                   {synopsis}
@@ -206,7 +206,7 @@ export default function Home() {
         </section>
 
         {/* Author Bio Section */}
-        <section id="author" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
+        <section id="author" className="w-full py-16 md:py-24 lg:py-32 bg-secondary">
           <div className={`container grid items-center justify-center gap-8 px-4 md:px-6 ${showAuthorPhoto ? 'lg:grid-cols-2 lg:gap-16' : 'lg:grid-cols-1'}`}>
             {showAuthorPhoto && (
                 <div className="flex justify-center lg:order-last">
@@ -222,7 +222,7 @@ export default function Home() {
             )}
             <div className={`space-y-6 ${showAuthorPhoto ? 'text-center lg:text-left' : 'text-center'}`}>
               <div className="space-y-4">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">The Author</div>
+                <div className="inline-block rounded-lg bg-background px-4 py-2 text-sm text-foreground font-medium tracking-wide">The Author</div>
                 <h2 className={`text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center gap-3 ${showAuthorPhoto ? 'justify-center lg:justify-start' : 'justify-center'}`}><User/> Alfas B</h2>
               </div>
               <p className={`max-w-[600px] text-muted-foreground text-lg/relaxed ${showAuthorPhoto ? 'mx-auto lg:mx-0' : 'mx-auto'}`}>
@@ -236,7 +236,7 @@ export default function Home() {
         <section id="sample-chapters" className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">Preview</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Preview</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookOpen/> Sample Chapters</h2>
               </div>
             <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto" defaultValue="item-1">
@@ -250,7 +250,7 @@ export default function Home() {
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 text-lg/relaxed text-muted-foreground">
                     {!chapter.locked ? chapter.content : (
-                      <div className="p-8 text-center bg-secondary/50 rounded-lg">
+                      <div className="p-8 text-center bg-secondary rounded-lg">
                             <Button asChild size="lg" className="cta-button">
                                 <Link href="/checkout">Buy Now</Link>
                             </Button>
@@ -264,10 +264,10 @@ export default function Home() {
         </section>
 
         {/* Gallery Section */}
-        <section id="gallery" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
+        <section id="gallery" className="w-full py-16 md:py-24 lg:py-32 bg-secondary">
           <div className="container px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">Gallery</div>
+                <div className="inline-block rounded-lg bg-background px-4 py-2 text-sm text-foreground font-medium tracking-wide">Gallery</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><GalleryHorizontal/> A Look Inside</h2>
               </div>
             <Carousel className="w-full max-w-6xl mx-auto">

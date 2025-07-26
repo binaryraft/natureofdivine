@@ -142,7 +142,7 @@ export function SiteHeader() {
            ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar>
                         <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
                         <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
