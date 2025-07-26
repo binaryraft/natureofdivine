@@ -12,8 +12,13 @@ const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const phonepePayload = body.response;
+    const body = await request.formData();
+    const phonepePayload = body.get('response');
+
+    if (typeof phonepePayload !== 'string') {
+        return NextResponse.json({ success: false, message: "Invalid payload" }, { status: 400 });
+    }
+
     const decodedPayload = JSON.parse(Buffer.from(phonepePayload, 'base64').toString());
 
     const receivedChecksum = request.headers.get('x-verify');
@@ -21,13 +26,12 @@ export async function POST(request: NextRequest) {
 
     if (receivedChecksum !== calculatedChecksum) {
       console.error("Checksum mismatch on payment callback.");
-      // Even on checksum mismatch, we should try to clean up a potentially fraudulent pending order
       if (decodedPayload.merchantTransactionId) {
         await deletePendingOrder(decodedPayload.merchantTransactionId);
       }
       return NextResponse.json({ success: false, message: "Checksum mismatch" }, { status: 400 });
     }
-
+    
     const { merchantTransactionId, success, code } = decodedPayload;
 
     if (success && code === 'PAYMENT_SUCCESS') {
@@ -35,7 +39,8 @@ export async function POST(request: NextRequest) {
         
         if (!pendingOrder || !pendingOrder.userId) {
             console.error(`CRITICAL: No pending order or userId found for successful transaction ID: ${merchantTransactionId}`);
-            return NextResponse.redirect(new URL('/checkout?error=order_details_missing', request.url));
+             // Don't delete, investigate this. But for now, we do nothing to avoid double processing if GET handles it.
+            return NextResponse.json({ success: false, message: "Order details missing" }, { status: 404 });
         }
 
         // Clean up the pending order doc
@@ -48,13 +53,16 @@ export async function POST(request: NextRequest) {
         
         const newOrder = await addOrder(pendingOrder.userId, pendingOrder);
         
-        // Respond to PhonePe server
-        return NextResponse.json({ success: true, message: "Payment successful and order created." });
+        // Redirect user to success page after server-to-server call is complete.
+        // PhonePe will follow this redirect on the client-side.
+        const successUrl = new URL(`/orders?success=true&orderId=${newOrder.id}`, request.url);
+        return NextResponse.redirect(successUrl);
 
     } else {
         // Payment failed or has a different status, clean up the pending order
         await deletePendingOrder(merchantTransactionId);
-        return NextResponse.json({ success: false, message: `Payment failed with code: ${code}` });
+        const failureUrl = new URL(`/checkout?error=${code || 'payment_failed'}`, request.url);
+        return NextResponse.redirect(failureUrl);
     }
 
   } catch (error) {
@@ -63,6 +71,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Fallback GET route for status check if POST fails, or for manual checks.
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const transactionId = searchParams.get('transactionId');
@@ -78,7 +87,6 @@ export async function GET(request: NextRequest) {
   };
   
   try {
-    // This API call is to check the final status with PhonePe and is what determines the user redirect
     const response = await fetch(`https://api.phonepe.com/apis/hermes/pg/v1/status/${MERCHANT_ID}/${transactionId}`, {
         method: 'GET',
         headers: checksumHeaders,
@@ -86,28 +94,23 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    // The server-to-server callback (POST) has already created the order.
-    // This GET request is just to confirm status and redirect the user.
     if (data.success && data.code === 'PAYMENT_SUCCESS') {
         const pendingOrder = await getPendingOrder(transactionId);
 
-        // The pending order should have been deleted by the POST callback.
-        // If it still exists, it means the POST callback might have failed or is delayed.
+        // If the pending order still exists, the POST callback might have failed or is delayed.
         // We handle the order creation here as a fallback.
         if (pendingOrder && pendingOrder.userId) {
              console.warn(`Pending order for transaction ${transactionId} still existed. Processing in GET fallback.`);
              await deletePendingOrder(transactionId);
              if (pendingOrder.variant !== 'ebook') {
-                await decreaseStock(pendingOrder.variant, 1);
+                await decreaseStock(pendingOrder.variant as Exclude<BookVariant, 'ebook'>, 1);
              }
              const newOrder = await addOrder(pendingOrder.userId, pendingOrder);
              return NextResponse.redirect(new URL(`/orders?success=true&orderId=${newOrder.id}`, request.url));
         }
 
-        // If pending order is gone, we need to find the created orderId to redirect the user
-        // This part is tricky as we don't have the final orderId. We'll just redirect to the generic orders page.
-        // A more robust solution might involve another lookup table or waiting for the POST.
-        // For now, a generic success redirect is sufficient.
+        // If pending order is gone, the POST callback likely succeeded.
+        // Redirect to a generic success page as we can't easily get the orderId here.
         return NextResponse.redirect(new URL(`/orders?success=true`, request.url));
 
     } else {

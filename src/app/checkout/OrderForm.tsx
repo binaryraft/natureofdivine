@@ -26,11 +26,11 @@ import { Textarea } from '@/components/ui/textarea';
 const isPrepaidEnabled = true;
 
 const physicalVariants: BookVariant[] = ['paperback', 'hardcover'];
-const allVariants: BookVariant[] = ['paperback', 'hardcover'];
+const allVariants: BookVariant[] = ['paperback', 'hardcover', 'ebook'];
 
 // Schemas for validation
 const VariantSchema = z.object({
-  variant: z.enum(allVariants, { required_error: 'Please select a book type.' }),
+  variant: z.enum(['paperback', 'hardcover'], { required_error: 'Please select a book type.' }),
 });
 
 const DetailsSchema = z.object({
@@ -48,21 +48,21 @@ const DetailsSchema = z.object({
 
 type FormState = {
   step: 'variant' | 'details' | 'payment' | 'processing';
-  variant: BookVariant | null;
+  variant: Exclude<BookVariant, 'ebook'> | null;
   details: z.infer<typeof DetailsSchema>;
   paymentMethod: 'cod' | 'prepaid' | null;
   errors: Record<string, string[]> | null;
 };
 
 type FormAction =
-  | { type: 'SET_VARIANT'; payload: BookVariant }
+  | { type: 'SET_VARIANT'; payload: Exclude<BookVariant, 'ebook'> }
   | { type: 'SET_DETAILS'; payload: z.infer<typeof DetailsSchema> }
   | { type: 'SET_PAYMENT_METHOD'; payload: 'cod' | 'prepaid' }
   | { type: 'SET_ERRORS'; payload: Record<string, string[]> | null }
   | { type: 'NEXT_STEP' }
   | { type: 'PREVIOUS_STEP' }
   | { type: 'SET_PROCESSING' }
-  | { type: 'RESET_TO_VARIANT'; payload?: BookVariant | null }
+  | { type: 'RESET_TO_VARIANT'; payload?: Exclude<BookVariant, 'ebook'> | null }
   | { type: 'SET_FORM_VALUE'; payload: { field: keyof z.infer<typeof DetailsSchema>, value: string | boolean | undefined }};
 
 const initialState: FormState = {
@@ -139,8 +139,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
   
   // Pre-select variant from URL
   useEffect(() => {
-    const variantParam = searchParams.get('variant') as BookVariant;
-    if (variantParam && allVariants.includes(variantParam)) {
+    const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
+    if (variantParam && physicalVariants.includes(variantParam)) {
        if (stock[variantParam] > 0) {
             dispatch({ type: 'SET_VARIANT', payload: variantParam });
             dispatch({ type: 'NEXT_STEP' });
@@ -180,7 +180,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         description: `Your payment could not be completed. Reason: ${error.replace(/_/g, ' ')}`,
       });
       // Reset form state after an error
-      const variantParam = searchParams.get('variant') as BookVariant;
+      const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
       dispatch({type: 'RESET_TO_VARIANT', payload: state.variant || variantParam });
       router.replace('/checkout' + (state.variant ? `?variant=${state.variant}`: ''), { scroll: false }); // Clear URL params
     }
@@ -223,7 +223,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   }
   
   // Handlers
-  const handleVariantSelect = (variant: BookVariant) => {
+  const handleVariantSelect = (variant: Exclude<BookVariant, 'ebook'>) => {
     const result = VariantSchema.safeParse({ variant });
     if (result.success) {
       if (stock[variant] > 0) {
@@ -305,6 +305,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         } else if (state.paymentMethod === 'prepaid') {
              const paymentResult = await processPrepaidOrder(orderPayload);
             if (paymentResult.success && paymentResult.redirectUrl) {
+                // Redirect to PhonePe
                 window.location.href = paymentResult.redirectUrl;
             } else {
                 throw new Error(paymentResult.message || 'Could not get payment URL.');

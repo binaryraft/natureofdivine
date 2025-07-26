@@ -103,16 +103,16 @@ export async function processPrepaidOrder(
         const price = prices[variant as Exclude<BookVariant, 'ebook'>];
         const amount = price * 100; // Amount in paise
 
-        const merchantTransactionId = `M${Date.now()}`;
+        const merchantTransactionId = `M${Date.now()}${uuidv4()}`.substring(0, 35);
         
         const payload = {
             merchantId: MERCHANT_ID,
             merchantTransactionId: merchantTransactionId,
             merchantUserId: userId,
             amount: amount,
-            redirectUrl: `${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`,
-            redirectMode: 'REDIRECT',
-            callbackUrl: `${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`,
+            redirectUrl: `${HOST_URL}/orders`, // Redirect to orders page
+            redirectMode: 'POST', // Important: Use POST for redirects
+            callbackUrl: `${HOST_URL}/api/payment/callback`,
             mobileNumber: orderDetails.phone,
             paymentInstrument: {
                 type: 'PAY_PAGE',
@@ -144,6 +144,7 @@ export async function processPrepaidOrder(
         const responseData = await response.json();
         
         if (!responseData.success || !responseData.data.instrumentResponse.redirectInfo.url) {
+            console.error("PhonePe API Error:", responseData);
             throw new Error(responseData.message || 'Failed to initiate payment with PhonePe.');
         }
 
@@ -193,7 +194,7 @@ const ReviewSchema = z.object({
 export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
-    const user = auth.currentUser;
+    const user = await auth.currentUser;
 
     const reviewData = {
       ...validatedData,
