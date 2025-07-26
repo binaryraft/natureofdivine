@@ -25,7 +25,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Nature of the Divine",
-  description: "Official website for the book Nature of the Divine.",
+  description: "A deep philosophical work explaining humanity's complex struggles alongside a singular, elegant solution, guiding readers to align their minds with the divine essence of existence.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
