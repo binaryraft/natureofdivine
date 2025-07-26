@@ -74,6 +74,6 @@
 
 @layer components {
     .cta-button {
-        @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105;
+        @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:shadow-[0_0_25px_rgba(234,179,8,0.5)] transition-all scale-100 hover:scale-105;
     }
 }
