@@ -220,23 +220,25 @@ export function AdminDashboard() {
             const fetchedOrders = await fetchOrders();
             setOrders(fetchedOrders);
         } catch(e: any) {
-            let description = "Failed to load orders. Check Firestore configuration.";
+            let description = "Failed to load orders. Please try again later.";
+            // This specific error message indicates a missing Firestore index
             if (e.message && e.message.includes("indexes?create_composite")) {
+                 // Extract the URL from the error message
                  const urlMatch = e.message.match(/(https?:\/\/[^\s]+)/);
                  if (urlMatch) {
                     const firebaseUrl = urlMatch[0].replace(/\\"/g, ''); // Clean up the URL
-                    description = `A database index is required. Please click the link to create it in the Firebase Console:`;
                     toast({
                         variant: 'destructive',
-                        title: 'Firestore Index Required',
+                        title: 'Database Index Required',
                         description: (
                             <div>
-                                {description} <a href={firebaseUrl} target="_blank" rel="noopener noreferrer" className="underline font-bold">Create Index</a>
+                                A database index is required to fetch all orders. Please click the link to create it in the Firebase Console, then refresh this page.
+                                <a href={firebaseUrl} target="_blank" rel="noopener noreferrer" className="underline font-bold ml-2">Create Index</a>
                             </div>
                         ),
-                         duration: 20000,
+                         duration: 30000,
                     });
-                    return;
+                    return; // Stop further execution
                  }
             }
              toast({
@@ -269,11 +271,7 @@ export function AdminDashboard() {
         title: 'Success',
         description: result.message,
       });
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
+      loadOrders(); // Refresh the list to show the updated status
     } else {
       toast({
         variant: 'destructive',
@@ -336,7 +334,7 @@ export function AdminDashboard() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
              ) : (
-                <Tabs defaultValue="new">
+                <Tabs defaultValue="new" className="w-full">
                     <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
                         <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
@@ -362,5 +360,3 @@ export function AdminDashboard() {
     </div>
   );
 }
-
-    

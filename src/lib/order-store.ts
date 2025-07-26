@@ -1,9 +1,10 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, collectionGroup } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, collectionGroup, writeBatch } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 
 const pendingOrdersCollection = collection(db, 'pending-orders');
+const allOrdersCollection = collection(db, 'all-orders');
 
 // Helper function to safely convert a Firestore document to a validated Order object
 const docToOrder = (doc: any): Order => {
@@ -36,19 +37,29 @@ const docToOrder = (doc: any): Order => {
 };
 
 /**
- * Fetches all orders from all users using a collection group query.
- * This is for the admin panel.
+ * Fetches all orders from the denormalized 'all-orders' collection.
+ * This is for the admin panel and avoids complex collection group queries.
  * @returns {Promise<Order[]>} A promise that resolves to an array of all orders.
  * @throws Will throw an error if fetching from Firestore fails.
  */
 export const getOrders = async (): Promise<Order[]> => {
   try {
-    const ordersQuery = query(collectionGroup(db, 'orders'), orderBy('createdAt', 'desc'));
+    const ordersQuery = query(allOrdersCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(ordersQuery);
     return snapshot.docs.map(docToOrder);
   } catch (error) {
-    console.error("Error fetching all orders with collection group query:", error);
-    throw new Error("Could not fetch orders from the database.");
+    console.error("Error fetching all orders:", error);
+    // This is a critical error. We will now try a fallback to the collection group query
+    // in case there's a temporary issue with the `all-orders` collection.
+    try {
+        console.warn("Falling back to collection group query for admin orders.");
+        const groupQuery = query(collectionGroup(db, 'orders'), orderBy('createdAt', 'desc'));
+        const groupSnapshot = await getDocs(groupQuery);
+        return groupSnapshot.docs.map(docToOrder);
+    } catch(groupError) {
+         console.error("Collection group fallback also failed:", groupError);
+         throw groupError; // Throw the original group error which might contain the index link
+    }
   }
 };
 
@@ -101,7 +112,8 @@ export const getOrder = async (userId: string, orderId: string): Promise<Order |
 type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
 
 /**
- * Adds a new order to the specified user's `orders` subcollection in Firestore.
+ * Adds a new order to the specified user's `orders` subcollection in Firestore
+ * and also adds a denormalized copy to the top-level `all-orders` collection for admin queries.
  * @param {string} userId - The ID of the user placing the order.
  * @param {NewOrderData} orderData - The data for the new order.
  * @returns {Promise<Order>} A promise that resolves to the newly created order object.
@@ -113,17 +125,30 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
     }
     try {
         const userOrdersCollection = collection(db, 'users', userId, 'orders');
+        const newOrderRef = doc(userOrdersCollection); // Create a reference with a new ID first
+
         const newOrderDocument = {
             ...orderData,
+            id: newOrderRef.id,
             status: 'new' as OrderStatus,
             createdAt: Timestamp.now(),
             hasReview: false,
         };
-        const docRef = await addDoc(userOrdersCollection, newOrderDocument);
+
+        const batch = writeBatch(db);
+
+        // 1. Write to the user's specific order subcollection
+        batch.set(newOrderRef, newOrderDocument);
+
+        // 2. Write a denormalized copy to the all-orders collection
+        const allOrdersRef = doc(allOrdersCollection, newOrderRef.id);
+        batch.set(allOrdersRef, newOrderDocument);
+
+        await batch.commit();
         
         return {
             ...orderData,
-            id: docRef.id,
+            id: newOrderRef.id,
             status: 'new',
             createdAt: newOrderDocument.createdAt.toMillis(),
             hasReview: false,
@@ -135,7 +160,7 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
 };
 
 /**
- * Updates an existing order in Firestore.
+ * Updates an existing order in Firestore in both the user's collection and the denormalized `all-orders` collection.
  * @param {string} userId - The ID of the user who owns the order.
  * @param {string} orderId - The document ID of the order to update.
  * @param {OrderStatus} status - The new status for the order.
@@ -147,12 +172,23 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
         throw new Error("User ID and Order ID are required to update status.");
     }
     try {
-        const orderDoc = doc(db, 'users', userId, 'orders', orderId);
+        const batch = writeBatch(db);
+
         const updateData: { status: OrderStatus; hasReview?: boolean } = { status };
         if (typeof hasReview === 'boolean') {
             updateData.hasReview = hasReview;
         }
-        await updateDoc(orderDoc, updateData);
+
+        // 1. Update the document in the user's subcollection
+        const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+        batch.update(userOrderRef, updateData);
+
+        // 2. Update the document in the `all-orders` collection
+        const allOrdersRef = doc(allOrdersCollection, orderId);
+        batch.update(allOrdersRef, updateData);
+
+        await batch.commit();
+
     } catch (error) {
         console.error(`Error updating status for order ${orderId}:`, error);
         throw new Error("Could not update the order status.");
