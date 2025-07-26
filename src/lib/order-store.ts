@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, collectionGroup, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 
 const pendingOrdersCollection = collection(db, 'pending-orders');
@@ -178,11 +178,11 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
 
         // 1. Update the document in the user's subcollection
         const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
-        batch.update(userOrderRef, updateData);
+        batch.update(userOrderRef, updateData as any);
 
         // 2. Update the document in the `all-orders` collection
         const allOrdersRef = doc(allOrdersCollection, orderId);
-        batch.update(allOrdersRef, updateData);
+        batch.update(allOrdersRef, updateData as any);
 
         await batch.commit();
 

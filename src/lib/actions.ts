@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus, addPendingOrder } from './order-store';
+import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus, addPendingOrder, deletePendingOrder } from './order-store';
 import type { OrderStatus, BookVariant } from './definitions';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
