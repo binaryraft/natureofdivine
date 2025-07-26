@@ -20,13 +20,15 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote } from "lucide-react";
+import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Star } from "lucide-react";
 import Link from "next/link";
 import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { fetchReviews } from "@/lib/actions";
+import { Review } from "@/lib/definitions";
 
 
 const bookGlimpseImages = [
@@ -40,10 +42,90 @@ const bookGlimpseImages = [
   { src: "https://placehold.co/600x800.png", alt: "Locked page 8", locked: true, "data-ai-hint": "book page" },
 ];
 
+function StarRating({ rating }: { rating: number }) {
+    return (
+        <div className="flex items-center gap-0.5">
+            {[...Array(5)].map((_, i) => (
+                <Star key={i} className={cn("h-5 w-5", i < rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/50")} />
+            ))}
+        </div>
+    );
+}
+
+function Testimonials() {
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        async function getReviews() {
+            try {
+                const fetchedReviews = await fetchReviews();
+                setReviews(fetchedReviews);
+            } catch (error) {
+                console.error("Failed to fetch reviews", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        getReviews();
+    }, []);
+
+    if (isLoading) {
+        return (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-48 w-full" />
+            </div>
+        )
+    }
+
+    if (reviews.length === 0) {
+        return null;
+    }
+
+    return (
+        <section id="quotes" className="w-full py-16 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">Testimonials</div>
+                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
+              </div>
+            <Carousel
+              opts={{
+                align: "start",
+              }}
+              className="w-full max-w-6xl mx-auto"
+            >
+              <CarouselContent>
+                {reviews.map((review) => (
+                  <CarouselItem key={review.id} className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-2 h-full">
+                      <Card className="h-full flex flex-col justify-between border-l-4 border-primary bg-secondary/50 p-6">
+                        <CardContent className="p-0 text-left space-y-4">
+                           <div className="flex items-center justify-between">
+                             <h3 className="text-xl font-bold font-headline">{review.userName || 'Anonymous'}</h3>
+                             <StarRating rating={review.rating} />
+                           </div>
+                          <p className="text-lg/relaxed text-muted-foreground">&ldquo;{review.reviewText}&rdquo;</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </div>
+        </section>
+    );
+}
+
+
 export default function Home() {
 
   const showAuthorPhoto = false;
-  const hasReviews = bookReviews && bookReviews.length > 0;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
   
   const buttonStyles: Record<string, string> = {
@@ -113,7 +195,7 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-6 text-center">
               <div className="space-y-4 max-w-4xl">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">About the Book</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">About the Book</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookText /> Nature of the Divine</h2>
                 <p className="text-muted-foreground text-lg/relaxed md:text-xl/relaxed">
                   {synopsis}
@@ -140,7 +222,7 @@ export default function Home() {
             )}
             <div className={`space-y-6 ${showAuthorPhoto ? 'text-center lg:text-left' : 'text-center'}`}>
               <div className="space-y-4">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">The Author</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">The Author</div>
                 <h2 className={`text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center gap-3 ${showAuthorPhoto ? 'justify-center lg:justify-start' : 'justify-center'}`}><User/> Alfas B</h2>
               </div>
               <p className={`max-w-[600px] text-muted-foreground text-lg/relaxed ${showAuthorPhoto ? 'mx-auto lg:mx-0' : 'mx-auto'}`}>
@@ -154,7 +236,7 @@ export default function Home() {
         <section id="sample-chapters" className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Preview</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">Preview</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookOpen/> Sample Chapters</h2>
               </div>
             <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto" defaultValue="item-1">
@@ -185,7 +267,7 @@ export default function Home() {
         <section id="gallery" className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
           <div className="container px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Gallery</div>
+                <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-foreground font-medium tracking-wide">Gallery</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><GalleryHorizontal/> A Look Inside</h2>
               </div>
             <Carousel className="w-full max-w-6xl mx-auto">
@@ -226,40 +308,7 @@ export default function Home() {
           </div>
         </section>
         
-        {hasReviews && (
-            <section id="quotes" className="w-full py-16 md:py-24 lg:py-32">
-              <div className="container px-4 md:px-6">
-                <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                    <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
-                    <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
-                  </div>
-                <Carousel
-                  opts={{
-                    align: "start",
-                    loop: true,
-                  }}
-                  className="w-full max-w-5xl mx-auto"
-                >
-                  <CarouselContent>
-                    {quotes.map((quote, index) => (
-                      <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                        <div className="p-2 h-full">
-                          <Card className="h-full flex flex-col justify-center border-l-4 border-accent">
-                            <CardContent className="p-8 text-left space-y-4">
-                               <h3 className="text-xl font-bold font-headline">{quote.author}</h3>
-                              <p className="text-lg/relaxed">&ldquo;{quote.text}&rdquo;</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious />
-                  <CarouselNext />
-                </Carousel>
-              </div>
-            </section>
-        )}
+        <Testimonials />
 
         {/* Buy Now Section */}
         <section id="buy" className="w-full py-20 md:py-28 lg:py-32 bg-primary text-primary-foreground">

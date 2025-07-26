@@ -30,6 +30,7 @@ const docToOrder = (doc: any): Order => {
     price: data.price || 0,
     status: data.status || 'new',
     createdAt: createdAtMillis,
+    hasReview: data.hasReview || false,
   };
   return order;
 };
@@ -97,7 +98,7 @@ export const getOrder = async (userId: string, orderId: string): Promise<Order |
 };
 
 // Define the type for the data needed to create a new order.
-type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt'>;
+type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
 
 /**
  * Adds a new order to the specified user's `orders` subcollection in Firestore.
@@ -116,6 +117,7 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
             ...orderData,
             status: 'new' as OrderStatus,
             createdAt: Timestamp.now(),
+            hasReview: false,
         };
         const docRef = await addDoc(userOrdersCollection, newOrderDocument);
         
@@ -124,6 +126,7 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
             id: docRef.id,
             status: 'new',
             createdAt: newOrderDocument.createdAt.toMillis(),
+            hasReview: false,
         };
     } catch(error) {
         console.error(`Error adding new order for user ${userId}:`, error);
@@ -132,25 +135,30 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
 };
 
 /**
- * Updates the status of an existing order in Firestore.
+ * Updates an existing order in Firestore.
  * @param {string} userId - The ID of the user who owns the order.
  * @param {string} orderId - The document ID of the order to update.
  * @param {OrderStatus} status - The new status for the order.
  * @returns {Promise<void>} A promise that resolves when the update is complete.
  * @throws Will throw an error if IDs are not provided or if the update fails.
  */
-export const updateOrderStatus = async (userId: string, orderId: string, status: OrderStatus): Promise<void> => {
+export const updateOrderStatus = async (userId: string, orderId: string, status: OrderStatus, hasReview?: boolean): Promise<void> => {
     if (!userId || !orderId) {
         throw new Error("User ID and Order ID are required to update status.");
     }
     try {
         const orderDoc = doc(db, 'users', userId, 'orders', orderId);
-        await updateDoc(orderDoc, { status });
+        const updateData: { status: OrderStatus; hasReview?: boolean } = { status };
+        if (typeof hasReview === 'boolean') {
+            updateData.hasReview = hasReview;
+        }
+        await updateDoc(orderDoc, updateData);
     } catch (error) {
         console.error(`Error updating status for order ${orderId}:`, error);
         throw new Error("Could not update the order status.");
     }
 };
+
 
 /**
  * Adds a pending order to the `pending-orders` collection.
@@ -174,7 +182,6 @@ export const getPendingOrder = async (transactionId: string): Promise<NewOrderDa
         const pendingOrderRef = doc(pendingOrdersCollection, transactionId);
         const docSnap = await getDoc(pendingOrderRef);
         if (docSnap.exists()) {
-            // This needs to include userId now
             return docSnap.data() as NewOrderData;
         }
         return null;
@@ -195,6 +202,5 @@ export const deletePendingOrder = async (transactionId: string): Promise<void> =
         await deleteDoc(pendingOrderRef);
     } catch (error) {
         console.error(`Error deleting pending order ${transactionId}:`, error);
-        // We don't throw here as this is a cleanup operation.
     }
 };

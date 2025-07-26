@@ -21,6 +21,7 @@ export type Order = {
   price: number;
   status: OrderStatus;
   createdAt: number; // Storing as timestamp for Firestore
+  hasReview?: boolean;
 };
 
 export type Stock = {
@@ -29,4 +30,13 @@ export type Stock = {
   ebook: number;
 };
 
+export type Review = {
+    id: string;
+    orderId: string;
+    userId: string;
+    userName: string;
+    rating: number;
+    reviewText?: string;
+    createdAt: number;
+};
     

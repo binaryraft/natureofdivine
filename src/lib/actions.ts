@@ -9,6 +9,8 @@ import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import crypto from 'crypto-js';
 import { v4 as uuidv4 } from 'uuid';
+import { addReview as addReviewToStore, getReviews } from './review-store';
+import { auth } from './firebase';
 
 
 const OrderSchema = z.object({
@@ -178,4 +180,41 @@ export async function changeOrderStatus(userId: string, orderId: string, status:
     } catch (error: any) {
         return { success: false, message: error.message || 'Failed to update order status.' };
     }
+}
+
+
+const ReviewSchema = z.object({
+  orderId: z.string(),
+  userId: z.string(),
+  rating: z.number().min(1).max(5),
+  reviewText: z.string().optional(),
+});
+
+export async function submitReview(data: z.infer<typeof ReviewSchema>) {
+  try {
+    const validatedData = ReviewSchema.parse(data);
+    const user = auth.currentUser;
+
+    const reviewData = {
+      ...validatedData,
+      userName: user?.displayName || 'Anonymous',
+    };
+
+    await addReviewToStore(reviewData);
+
+    // After adding review, update order to mark hasReview=true
+    await updateOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
+    
+    revalidatePath('/');
+    revalidatePath('/orders');
+
+    return { success: true, message: "Review submitted successfully." };
+  } catch (error: any) {
+    console.error("Error submitting review:", error);
+    return { success: false, message: error.message || "Failed to submit review." };
+  }
+}
+
+export async function fetchReviews() {
+    return await getReviews();
 }
