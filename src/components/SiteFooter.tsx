@@ -14,10 +14,10 @@ export function SiteFooter() {
             </p>
         </div>
         <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-muted-foreground">
-             <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
-             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
-             <Link href="/shipping" className="hover:text-primary transition-colors">Shipping</Link>
-             <Link href="/returns" className="hover:text-primary transition-colors">Returns</Link>
+             <Link href="/terms" className="hover:text-primary transition-colors whitespace-nowrap">Terms and Conditions</Link>
+             <Link href="/privacy" className="hover:text-primary transition-colors whitespace-nowrap">Privacy Policy</Link>
+             <Link href="/shipping" className="hover:text-primary transition-colors whitespace-nowrap">Shipping Policy</Link>
+             <Link href="/returns" className="hover:text-primary transition-colors whitespace-nowrap">Return Policy</Link>
         </div>
         <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" asChild>
