@@ -27,6 +27,20 @@ export const metadata: Metadata = {
   title: "Nature of the Divine",
   description: "A deep philosophical work explaining humanity's complex struggles alongside a singular, elegant solution, guiding readers to align their minds with the divine essence of existence.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
+  openGraph: {
+    title: 'Nature of the Divine',
+    description: 'A book exploring the divine essence of existence and its impact on life and spirituality.',
+    url: 'https://natureofthedivine.com',
+    type: 'website',
+    images: [
+      {
+        url: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
+        width: 450,
+        height: 675,
+        alt: 'Nature of the Divine Book Cover',
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
