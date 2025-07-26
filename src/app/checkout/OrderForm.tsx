@@ -129,7 +129,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { priceData, loading: priceLoading } = useLocation();
 
   const [state, dispatch] = useReducer(formReducer, initialState);
@@ -158,14 +158,14 @@ export function OrderForm({ stock }: { stock: Stock }) {
     }
   }, [priceData?.country, state.details.country]);
 
-  // Set initial user details, only if the fields are empty
+  // Set initial user details if available and form is empty
   useEffect(() => {
       if(user) {
-        if (!state.details.name) {
-            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'name', value: user.displayName || '' }})
+        if (!state.details.name && user.displayName) {
+            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'name', value: user.displayName }})
         }
-        if (!state.details.email) {
-            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email || '' }})
+        if (!state.details.email && user.email) {
+            dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email }})
         }
       }
   }, [user, state.details.name, state.details.email]);
@@ -179,8 +179,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
         title: 'Payment Failed',
         description: `Your payment could not be completed. Reason: ${error.replace(/_/g, ' ')}`,
       });
-      // Clean up failed payment cookie
-      document.cookie = 'orderDetails=; path=/; max-age=-1;';
       // Reset form state after an error
       const variantParam = searchParams.get('variant') as BookVariant;
       dispatch({type: 'RESET_TO_VARIANT', payload: state.variant || variantParam });
@@ -241,6 +239,20 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
   const handleDetailsSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (authLoading) {
+        toast({ variant: 'destructive', title: 'Please wait', description: 'Authentication is still loading.' });
+        return;
+    }
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Not Logged In',
+            description: 'You must be logged in to place an order.',
+            action: <Button onClick={() => router.push('/login?redirect=/checkout')}>Login</Button>
+        });
+        return;
+    }
+    
     const needsAddress = state.variant !== 'ebook';
     
     let validationSchema;
@@ -266,7 +278,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   };
 
   const handlePaymentSubmit = async () => {
-    if (!state.variant || !state.details || !state.paymentMethod) return;
+    if (!state.variant || !state.details || !state.paymentMethod || !user) return;
     
     setIsSubmitting(true);
     dispatch({ type: 'SET_PROCESSING' });
@@ -274,7 +286,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     const orderPayload = {
         variant: state.variant,
         ...state.details,
-        userId: user?.uid,
+        userId: user.uid, // Ensure user ID is from the authenticated user
     };
 
     try {
@@ -302,9 +314,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
     } finally {
-       // We don't set isSubmitting to false here because the page will redirect
-       // in the success case. The error case handles the state reset.
-       // Only set to false if an error occurred in COD.
+       // Only reset submitting state on error for COD, as prepaid redirects.
         if (state.paymentMethod === 'cod') {
             setIsSubmitting(false);
         }
@@ -376,9 +386,17 @@ export function OrderForm({ stock }: { stock: Stock }) {
                     <CardHeader className="p-0">
                         <CardTitle>2. Your Details</CardTitle>
                         <CardDescription>
-                            Enter your shipping information.
+                            Enter your shipping information. You must be logged in to proceed.
                         </CardDescription>
                     </CardHeader>
+                     {!user && !authLoading && (
+                        <Alert variant="destructive">
+                            <AlertDescription className="flex items-center justify-between">
+                                <span>Please login to continue.</span>
+                                <Button size="sm" onClick={() => router.push('/login?redirect=/checkout')}>Login</Button>
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">Full Name</Label>
@@ -387,7 +405,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
-                            <Input id="email" name="email" type="email" required value={state.details?.email} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'email', value: e.target.value}})} />
+                            <Input id="email" name="email" type="email" required value={state.details?.email} readOnly={!!user?.email} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'email', value: e.target.value}})} />
                             {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
                         </div>
                     </div>
@@ -444,7 +462,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                     )}
                     
                 <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
-                    <Button type="submit" className="w-full">Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/></Button>
+                    <Button type="submit" className="w-full" disabled={!user || authLoading}>Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/></Button>
                     <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
                 </div>
                 </form>

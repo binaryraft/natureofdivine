@@ -22,7 +22,7 @@ const OrderSchema = z.object({
   country: z.string().optional(),
   state: z.string().optional(),
   pinCode: z.string().optional(),
-  userId: z.string().optional(),
+  userId: z.string().min(1, "User ID is required."), // Make userId required
 });
 
 const CodOrderSchema = OrderSchema.extend({
@@ -41,7 +41,7 @@ export async function placeOrder(
     };
   }
 
-  const { variant, ...orderDetails } = validatedFields.data;
+  const { variant, userId, ...orderDetails } = validatedFields.data;
 
   try {
     const prices = await fetchLocationAndPrice();
@@ -49,15 +49,16 @@ export async function placeOrder(
 
     await decreaseStock(variant, 1);
 
-    const newOrder = await addOrder({
+    const newOrder = await addOrder(userId, {
       ...orderDetails,
       variant,
       price,
       paymentMethod: 'cod', // This action is only for COD
+      userId: userId,
     });
 
     revalidatePath('/admin');
-    revalidatePath('/orders');
+    revalidatePath(`/orders`); // Revalidate the specific user's order page if needed
 
     return {
       success: true,
@@ -93,16 +94,15 @@ export async function processPrepaidOrder(
         };
     }
     
-    const { variant, ...orderDetails } = validatedFields.data;
+    const { variant, userId, ...orderDetails } = validatedFields.data;
     
     try {
         const prices = await fetchLocationAndPrice();
-        const price = prices[variant as BookVariant];
+        const price = prices[variant as Exclude<BookVariant, 'ebook'>];
         const amount = price * 100; // Amount in paise
 
         const merchantTransactionId = `M${Date.now()}`;
-        const userId = orderDetails.userId || `U${uuidv4()}`;
-
+        
         const payload = {
             merchantId: MERCHANT_ID,
             merchantTransactionId: merchantTransactionId,
@@ -117,12 +117,13 @@ export async function processPrepaidOrder(
             },
         };
         
-        // Before redirecting, save the order details to Firestore
+        // Before redirecting, save the order details to the pending orders collection
         await addPendingOrder(merchantTransactionId, {
             ...orderDetails,
             variant,
             price,
             paymentMethod: 'prepaid',
+            userId: userId,
         });
 
 
@@ -168,12 +169,12 @@ export async function fetchUserOrders(userId: string) {
     return await getOrdersByUserId(userId);
 }
 
-export async function changeOrderStatus(id: string, status: OrderStatus) {
+export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus) {
     try {
-        await updateOrderStatus(id, status);
+        await updateOrderStatus(userId, orderId, status);
         revalidatePath('/admin');
         revalidatePath('/orders');
-        return { success: true, message: `Order ${id} status updated to ${status}` };
+        return { success: true, message: `Order ${orderId} status updated to ${status}` };
     } catch (error: any) {
         return { success: false, message: error.message || 'Failed to update order status.' };
     }

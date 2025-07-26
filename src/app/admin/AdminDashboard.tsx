@@ -25,7 +25,7 @@ const statusColors: Record<OrderStatus, string> = {
     cancelled: 'bg-red-500'
 }
 
-const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChange: (orderId: string, newStatus: OrderStatus) => void }) => {
+const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChange: (userId: string, orderId: string, newStatus: OrderStatus) => void }) => {
     if (orders.length === 0) {
         return <p className="text-center py-8 text-muted-foreground">No orders in this category.</p>;
     }
@@ -76,7 +76,7 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                             <TableCell className="text-right">
                                 <Select
                                     defaultValue={order.status}
-                                    onValueChange={(value) => onStatusChange(order.id, value as OrderStatus)}
+                                    onValueChange={(value) => onStatusChange(order.userId!, order.id, value as OrderStatus)}
                                 >
                                     <SelectTrigger className="w-[150px] ml-auto">
                                         <SelectValue placeholder="Change status" />
@@ -235,8 +235,16 @@ export function AdminDashboard() {
     }
   }, [isAuthenticated]);
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
-    const result = await changeOrderStatus(orderId, newStatus);
+  const handleStatusChange = async (userId: string, orderId: string, newStatus: OrderStatus) => {
+    if (!userId) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Cannot change status: User ID is missing for this order.'
+        });
+        return;
+    }
+    const result = await changeOrderStatus(userId, orderId, newStatus);
     if (result.success) {
       toast({
         title: 'Success',
