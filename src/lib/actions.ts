@@ -78,11 +78,14 @@ export async function placeOrder(
   }
 }
 
-const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || '';
-const SALT_KEY = process.env.PHONEPE_SALT_KEY || '';
-const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
+const isProd = process.env.NEXT_PUBLIC_PHONEPE_ENV === 'PRODUCTION';
+
+const MERCHANT_ID = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
+const SALT_KEY = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SANDBOX_SALT_KEY;
+const SALT_INDEX = parseInt(isProd ? process.env.PHONEPE_PROD_SALT_INDEX! : process.env.PHONEPE_SANDBOX_SALT_INDEX!, 10);
+const PHONEPE_API_URL = isProd ? "https://api.phonepe.com/apis/pg" : "https://api-preprod.phonepe.com/apis/pg-sandbox";
 const HOST_URL = process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000';
-const PHONEPE_API_URL = "https://api.phonepe.com/apis/pg"
+
 
 export async function processPrepaidOrder(
   data: z.infer<typeof OrderSchema>
@@ -96,6 +99,10 @@ export async function processPrepaidOrder(
         };
     }
     
+    if (!MERCHANT_ID || !SALT_KEY || !SALT_INDEX) {
+        return { success: false, message: 'PhonePe credentials are not configured in the environment.' };
+    }
+    
     const { variant, userId, ...orderDetails } = validatedFields.data;
     
     try {
@@ -103,7 +110,7 @@ export async function processPrepaidOrder(
         const price = prices[variant as Exclude<BookVariant, 'ebook'>];
         const amount = price * 100; // Amount in paise
 
-        const merchantTransactionId = `M${Date.now()}${uuidv4()}`.substring(0, 35);
+        const merchantTransactionId = `MUID${Date.now()}`;
         
         const payload = {
             merchantId: MERCHANT_ID,
@@ -126,7 +133,6 @@ export async function processPrepaidOrder(
             paymentMethod: 'prepaid',
             userId: userId,
         });
-
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
         const apiEndpoint = "/pg/v1/pay";

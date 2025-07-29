@@ -18,7 +18,7 @@ if (
   !firebaseConfig.authDomain ||
   !firebaseConfig.projectId
 ) {
-  console.error("Firebase config environment variables are not set. Please check your .env file.");
+  console.error("Firebase config environment variables are not set. Please check your .env file. The app may not function correctly.");
 }
 
 
@@ -27,7 +27,7 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 // Enable offline persistence
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
     try {
         enableIndexedDbPersistence(db)
           .catch((err) => {

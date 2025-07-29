@@ -5,11 +5,12 @@ import { addOrder, getPendingOrder, deletePendingOrder } from '@/lib/order-store
 import { decreaseStock } from '@/lib/stock-store';
 import type { BookVariant } from '@/lib/definitions';
 
-const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || '';
-const SALT_KEY = process.env.PHONEPE_SALT_KEY || '';
-const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
-const PHONEPE_API_URL = "https://api.phonepe.com/apis/pg"
+const isProd = process.env.NEXT_PUBLIC_PHONEPE_ENV === 'PRODUCTION';
 
+const MERCHANT_ID = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
+const SALT_KEY = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SANDBOX_SALT_KEY;
+const SALT_INDEX = parseInt(isProd ? process.env.PHONEPE_PROD_SALT_INDEX! : process.env.PHONEPE_SANDBOX_SALT_INDEX!, 10);
+const PHONEPE_API_URL = isProd ? "https://api.phonepe.com/apis/pg" : "https://api-preprod.phonepe.com/apis/pg-sandbox";
 
 // This POST route is the server-to-server callback from PhonePe.
 // Its only job is to verify the checksum and redirect the user to the GET handler for final status check.
@@ -56,6 +57,11 @@ export async function GET(request: NextRequest) {
 
   if (!transactionId) {
     return NextResponse.redirect(new URL('/checkout?error=invalid_transaction', request.url));
+  }
+  
+  if (!MERCHANT_ID || !SALT_KEY || !SALT_INDEX) {
+      console.error('PhonePe credentials are not configured in the environment.');
+      return NextResponse.redirect(new URL('/checkout?error=pg_config_error', request.url));
   }
   
   const apiEndpoint = `/pg/v1/status/${MERCHANT_ID}/${transactionId}`;
