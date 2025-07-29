@@ -82,7 +82,7 @@ const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || '';
 const SALT_KEY = process.env.PHONEPE_SALT_KEY || '';
 const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
 const HOST_URL = process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000';
-const PHONEPE_API_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox"
+const PHONEPE_API_URL = "https://api.phonepe.com/apis/pg"
 
 export async function processPrepaidOrder(
   data: z.infer<typeof OrderSchema>
@@ -110,7 +110,7 @@ export async function processPrepaidOrder(
             merchantTransactionId: merchantTransactionId,
             merchantUserId: userId,
             amount: amount,
-            redirectUrl: `${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`, 
+            redirectUrl: `${HOST_URL}/api/payment/callback`,
             redirectMode: 'POST', 
             callbackUrl: `${HOST_URL}/api/payment/callback`,
             mobileNumber: orderDetails.phone,

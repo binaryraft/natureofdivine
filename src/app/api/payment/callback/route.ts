@@ -8,7 +8,7 @@ import type { BookVariant } from '@/lib/definitions';
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || '';
 const SALT_KEY = process.env.PHONEPE_SALT_KEY || '';
 const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
-const PHONEPE_API_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox"
+const PHONEPE_API_URL = "https://api.phonepe.com/apis/pg"
 
 
 // This POST route is the server-to-server callback from PhonePe.
@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Checksum is valid. Now redirect to the GET handler to perform the final status check.
-    const statusCheckUrl = new URL(request.url);
+    const statusCheckUrl = new URL(request.url.replace('/api/payment/callback', '/orders'));
     statusCheckUrl.searchParams.set('transactionId', merchantTransactionId);
+    statusCheckUrl.searchParams.set('checking_status', 'true');
     return NextResponse.redirect(statusCheckUrl);
 
   } catch (error) {
