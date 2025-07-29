@@ -18,7 +18,7 @@ if (
   !firebaseConfig.authDomain ||
   !firebaseConfig.projectId
 ) {
-  console.error("Firebase config environment variables are not set. Please check your .env file. The app may not function correctly.");
+  throw new Error("Firebase config environment variables are not set. Please check your .env file. The app may not function correctly.");
 }
 
 
