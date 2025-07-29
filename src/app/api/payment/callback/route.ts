@@ -92,7 +92,11 @@ export async function GET(request: NextRequest) {
              return NextResponse.redirect(new URL(`/orders?success=true`, request.url));
         }
         
-        const newOrder = await addOrder(pendingOrder.userId, pendingOrder);
+        // Correctly structure the data for addOrder
+        const newOrder = await addOrder(pendingOrder.userId, {
+            ...pendingOrder,
+            paymentMethod: 'prepaid', // Ensure paymentMethod is correctly passed
+        });
         
         if (pendingOrder.variant !== 'ebook') {
             await decreaseStock(pendingOrder.variant as Exclude<BookVariant, 'ebook'>, 1);
