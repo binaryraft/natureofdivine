@@ -1,33 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://natureofthedivine.com/</loc>
-    <lastmod>2024-07-30</lastmod>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://natureofthedivine.com/checkout</loc>
-    <lastmod>2024-07-30</lastmod>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://natureofthedivine.com/terms</loc>
-    <lastmod>2024-07-30</lastmod>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://natureofthedivine.com/privacy</loc>
-    <lastmod>2024-07-30</lastmod>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://natureofthedivine.com/shipping</loc>
-    <lastmod>2024-07-30</lastmod>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://natureofthedivine.com/returns</loc>
-    <lastmod>2024-07-30</lastmod>
-    <priority>0.5</priority>
-  </url>
+<url>
+  <loc>https://natureofthedivine.com/</loc>
+  <priority>1.00</priority>
+</url>
+<url>
+  <loc>https://natureofthedivine.com/terms</loc>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://natureofthedivine.com/privacy</loc>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://natureofthedivine.com/shipping</loc>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://natureofthedivine.com/returns</loc>
+  <priority>0.80</priority>
+</url>
+
 </urlset>

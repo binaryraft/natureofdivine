@@ -1,7 +1,7 @@
 
 
 import type { Metadata } from "next";
-import { Lora, Inter } from "next/font/google";
+import { Alegreya, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -11,11 +11,10 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/hooks/useLocation";
 
-const lora = Lora({
+const alegreya = Alegreya({
   subsets: ["latin"],
-  variable: "--font-lora",
+  variable: "--font-headline",
   weight: ['400', '700'],
-  style: ['normal', 'italic']
 });
 
 const inter = Inter({
@@ -27,6 +26,7 @@ const inter = Inter({
 const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.com';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening",
     template: "%s | Nature of the Divine",
@@ -36,41 +36,46 @@ export const metadata: Metadata = {
   authors: [{ name: 'Alfas B', url: siteUrl }],
   creator: 'Alfas B',
   publisher: 'Firebase Studio',
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
-  metadataBase: new URL(siteUrl),
+  
   openGraph: {
     title: 'Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening',
     description: "Explore 'Nature of the Divine', a book about the divine essence of existence and its impact on life and spirituality.",
     url: siteUrl,
     siteName: 'Nature of the Divine',
-    type: 'website',
     images: [
       {
         url: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
         width: 450,
         height: 675,
-        alt: 'Nature of the Divine Book Cover',
+        alt: 'Cover of Nature of the Divine book by Alfas B, featuring divine light and philosophical themes',
       },
     ],
     locale: 'en_US',
+    type: 'website',
   },
+  
   twitter: {
     card: 'summary_large_image',
     title: 'Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening',
     description: 'A deep philosophical work explaining humanity\'s complex struggles, written by Alfas B.',
     images: ['https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png'],
   },
+
   robots: {
     index: true,
     follow: true,
     googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-    }
-  }
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -113,7 +118,7 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          lora.variable,
+          alegreya.variable,
           inter.variable
         )}
       >

@@ -225,7 +225,7 @@ export function HomeClient() {
                 <h2 className={`text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center gap-3 ${showAuthorPhoto ? 'justify-center lg:justify-start' : 'justify-center'}`}><User/> Alfas B</h2>
               </div>
               <div className={`max-w-[600px] text-muted-foreground text-lg/relaxed prose ${showAuthorPhoto ? 'mx-auto lg:mx-0' : 'mx-auto'}`}>
-                <p>{authorBio} Discover the author's work in the <a href="#synopsis" className="underline hover:text-primary">book synopsis</a>.</p>
+                <p>{authorBio} Discover the author\'s work in the <a href="#synopsis" className="underline hover:text-primary">book synopsis</a>.</p>
               </div>
             </div>
           </div>

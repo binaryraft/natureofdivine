@@ -1,12 +1,12 @@
-
 # See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-#
-# A robot should obey at least one of the following commands:
-# User-agent: *
-# Disallow: /
 
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /checkout
+Disallow: /login
+Disallow: /signup
+Disallow: /settings
+Disallow: /orders
 
 Sitemap: https://natureofthedivine.com/sitemap.xml
