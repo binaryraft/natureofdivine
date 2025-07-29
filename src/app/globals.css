@@ -6,65 +6,65 @@
 
 @layer base {
   :root {
-    --background: 255 50% 97%; /* Light Lavender */
-    --foreground: 270 100% 25%; /* Deep Indigo */
+    --background: 25 35% 96%; /* Warm Off-White */
+    --foreground: 25 50% 20%; /* Dark Brown */
     
-    --card: 255 50% 95%;
-    --card-foreground: 270 100% 25%;
+    --card: 25 35% 94%;
+    --card-foreground: 25 50% 20%;
     
-    --popover: 255 50% 95%;
-    --popover-foreground: 270 100% 25%;
+    --popover: 25 35% 94%;
+    --popover-foreground: 25 50% 20%;
     
-    --primary: 270 100% 25%; /* Deep Indigo */
-    --primary-foreground: 51 100% 95%; /* Gold Foreground */
+    --primary: 25 50% 30%; /* Deep Brown */
+    --primary-foreground: 35 80% 95%; /* Light Cream */
 
-    --secondary: 255 40% 96%;
-    --secondary-foreground: 270 100% 25%;
+    --secondary: 35 40% 92%; /* Light Beige */
+    --secondary-foreground: 25 50% 20%;
     
-    --muted: 255 30% 94%;
-    --muted-foreground: 270 40% 45%;
+    --muted: 35 30% 90%;
+    --muted-foreground: 25 40% 45%;
 
-    --accent: 51 100% 50%; /* Gold */
-    --accent-foreground: 270 100% 15%;
+    --accent: 25 90% 55%; /* Bright Orange */
+    --accent-foreground: 25 50% 10%; /* Darkest Brown for contrast */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     
-    --border: 270 20% 88%;
-    --input: 270 20% 92%;
-    --ring: 270 100% 40%;
+    --border: 25 20% 85%;
+    --input: 25 20% 90%;
+    --ring: 25 90% 60%;
     
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 270 30% 10%;
-    --foreground: 240 20% 95%;
+    --background: 25 15% 8%; /* Darkest Brown */
+    --foreground: 35 30% 92%; /* Off-white */
 
-    --card: 270 30% 12%;
-    --card-foreground: 240 20% 95%;
+    --card: 25 15% 12%;
+    --card-foreground: 35 30% 92%;
 
-    --popover: 270 30% 12%;
-    --popover-foreground: 240 20% 95%;
+    --popover: 25 15% 10%;
+    --popover-foreground: 35 30% 92%;
     
-    --primary: 240 40% 90%;
-    --primary-foreground: 270 100% 15%;
+    --primary: 35 80% 80%; /* Light Beige/Orange */
+    --primary-foreground: 25 50% 10%;
 
-    --secondary: 270 20% 20%;
-    --secondary-foreground: 240 30% 90%;
+    --secondary: 25 15% 15%;
+    --secondary-foreground: 35 30% 92%;
 
-    --muted: 270 20% 25%;
-    --muted-foreground: 240 20% 60%;
+    --muted: 25 15% 20%;
+    --muted-foreground: 35 20% 65%;
     
-    --accent: 51 93% 67%;
-    --accent-foreground: 270 100% 15%;
+    --accent: 25 90% 60%; /* Vibrant Orange */
+    --accent-foreground: 25 50% 10%;
     
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     
-    --border: 270 20% 25%;
-    --input: 270 20% 25%;
-    --ring: 51 93% 67%;
+    --border: 25 15% 25%;
+    --input: 25 15% 25%;
+    --ring: 25 90% 60%;
   }
 }
 
