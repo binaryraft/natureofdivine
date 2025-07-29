@@ -326,7 +326,7 @@ export function HomeClient() {
                   </Button>
                 ))}
                 {visibleBuyLinks.length > 0 && <div className="text-sm font-medium mx-2">OR</div>}
-                <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
+                <Button asChild size="lg" className="bg-background text-primary hover:bg-background/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
                   <Link href="/checkout">
                     Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
                   </Link>

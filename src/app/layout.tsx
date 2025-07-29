@@ -13,7 +13,7 @@ import { LocationProvider } from "@/hooks/useLocation";
 
 const alegreya = Alegreya({
   subsets: ["latin"],
-  variable: "--font-headline",
+  variable: "--font-alegreya",
   weight: ['400', '700'],
 });
 
