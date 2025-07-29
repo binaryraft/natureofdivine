@@ -1,6 +1,6 @@
 
 import type { Metadata } from "next";
-import { Alegreya, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -10,17 +10,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/hooks/useLocation";
 
-const alegreya = Alegreya({
-  subsets: ["latin"],
-  variable: "--font-alegreya",
-  weight: ['400', '700'],
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  weight: ['400', '500', '700'],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.com';
 
@@ -117,8 +107,7 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          alegreya.variable,
-          inter.variable
+          inter.className
         )}
       >
         <AuthProvider>
@@ -136,5 +125,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    

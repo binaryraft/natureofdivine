@@ -10,5 +10,3 @@ export const metadata: Metadata = {
 export default function ShippingPage() {
   return <ShippingClient />;
 }
-
-    
