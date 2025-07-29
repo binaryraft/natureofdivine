@@ -179,7 +179,7 @@ export function HomeClient() {
                   src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
                   width="450"
                   height="675"
-                  alt="Nature of the Divine Book Cover"
+                  alt="Cover of Nature of the Divine book by Alfas B, featuring divine light and philosophical themes"
                   className="mx-auto aspect-[2/3] object-contain sm:w-full lg:order-last rounded-lg"
                   data-ai-hint="book cover"
                   priority

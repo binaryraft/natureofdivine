@@ -28,18 +28,18 @@ const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.c
 
 export const metadata: Metadata = {
   title: {
-    default: "Nature of the Divine | A Philosophical Book by Alfas B",
+    default: "Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening",
     template: "%s | Nature of the Divine",
   },
-  description: "A deep philosophical work explaining humanity's complex struggles alongside a singular, elegant solution, guiding readers to align their minds with the divine essence of existence. Written by Alfas B.",
-  keywords: ["Nature of the Divine", "Alfas B", "philosophical book", "spirituality", "divine essence", "self-transformation", "God", "philosophy", "faith"],
-  authors: [{ name: 'Alfas B' }],
+  description: "A bold philosophical book by Alfas B exploring consciousness, divinity, and spiritual growth. Available worldwide.",
+  keywords: ["Nature of the Divine book", "spiritual books India", "books on consciousness and mind", "Alfas B author book", "ebooks about divinity", "new philosophical books 2025"],
+  authors: [{ name: 'Alfas B', url: siteUrl }],
   creator: 'Alfas B',
   publisher: 'Firebase Studio',
   icons: [{ rel: "icon", url: "/favicon.ico" }],
   metadataBase: new URL(siteUrl),
   openGraph: {
-    title: 'Nature of the Divine | A Philosophical Book by Alfas B',
+    title: 'Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening',
     description: "Explore 'Nature of the Divine', a book about the divine essence of existence and its impact on life and spirituality.",
     url: siteUrl,
     siteName: 'Nature of the Divine',
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nature of the Divine | A Philosophical Book by Alfas B',
+    title: 'Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening',
     description: 'A deep philosophical work explaining humanity\'s complex struggles, written by Alfas B.',
     images: ['https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png'],
   },
@@ -78,11 +78,28 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'Nature of the Divine',
-    url: siteUrl,
+  const bookSchema = {
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "name": "Nature of the Divine",
+    "author": {
+      "@type": "Person",
+      "name": "Alfas B",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "IN",
+        "addressRegion": "Kerala"
+      }
+    },
+    "publisher": {
+        "@type": "Organization",
+        "name": "Independent"
+    },
+    "inLanguage": "en",
+    "bookFormat": "http://schema.org/EBook",
+    "url": "https://natureofthedivine.com",
+    "description": "A philosophical and spiritual awakening book by Alfas B, exploring the mind and the divine.",
+    "datePublished": "2025-06-01"
   };
 
   return (
@@ -90,7 +107,7 @@ export default function RootLayout({
       <head>
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(bookSchema) }}
           />
       </head>
       <body
@@ -115,5 +132,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
