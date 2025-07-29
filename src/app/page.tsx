@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { HomeClient } from "./HomeClient";
 
 export const metadata: Metadata = {
-  title: "Nature of the Divine | Official Book Website",
-  description: "Official website for 'Nature of the Divine' by Alfas B. A profound philosophical book exploring consciousness, divinity, and the path to spiritual growth. Read samples, check reviews, and order your copy today.",
+  title: "Nature of the Divine | Official Website & Book by Alfas B",
+  description: "Official website for 'Nature of the Divine' by Alfas B. A profound philosophical book exploring consciousness, the essence of existence, and humanity's path to aligning with the divine. Read samples and order your copy.",
 };
 
 export default function Home() {

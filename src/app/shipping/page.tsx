@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { ShippingClient } from './ShippingClient';
 
 export const metadata: Metadata = {
-  title: 'Shipping Policy',
-  description: 'Review the shipping policy for the book "Nature of the Divine." This page contains detailed information about our shipping coverage, order processing times, delivery estimates, and tracking.',
+  title: 'Shipping Policy | Nature of the Divine',
+  description: 'Review the shipping policy for the book "Nature of the Divine." This page contains detailed information about our shipping coverage, order processing times, delivery estimates, tracking, and contact details.',
   alternates: {
     canonical: '/shipping',
   },
