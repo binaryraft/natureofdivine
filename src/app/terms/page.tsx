@@ -1,9 +1,12 @@
 
+
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: 'Terms and Conditions | Nature of the Divine',
+export const metadata: Metadata = {
+  title: 'Terms and Conditions',
+  description: 'Review the terms and conditions for using the Nature of the Divine website and purchasing our products.',
 };
 
 export default function TermsPage() {
@@ -69,3 +72,5 @@ export default function TermsPage() {
     </div>
   );
 }
+
+    

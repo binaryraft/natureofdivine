@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -12,6 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Create an Account',
+  description: 'Sign up for an account to purchase "Nature of the Divine" and track your orders.',
+  robots: { index: false, follow: true },
+};
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
@@ -136,3 +144,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    

@@ -1,9 +1,12 @@
 
+
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Return & Refund Policy | Nature of the Divine',
+export const metadata: Metadata = {
+  title: 'Return & Refund Policy',
+  description: 'Learn about the return and refund policy for "Nature of the Divine". Understand the conditions for returns, refunds, and cancellations.',
 };
 
 export default function ReturnsPage() {
@@ -48,3 +51,5 @@ export default function ReturnsPage() {
     </div>
   );
 }
+
+    

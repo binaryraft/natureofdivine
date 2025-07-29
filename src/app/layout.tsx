@@ -1,4 +1,5 @@
 
+
 import type { Metadata } from "next";
 import { Lora, Inter } from "next/font/google";
 import "./globals.css";
@@ -23,14 +24,25 @@ const inter = Inter({
   weight: ['400', '500', '700'],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.com';
+
 export const metadata: Metadata = {
-  title: "Nature of the Divine",
-  description: "A deep philosophical work explaining humanity's complex struggles alongside a singular, elegant solution, guiding readers to align their minds with the divine essence of existence.",
+  title: {
+    default: "Nature of the Divine | A Philosophical Book by Alfas B",
+    template: "%s | Nature of the Divine",
+  },
+  description: "A deep philosophical work explaining humanity's complex struggles alongside a singular, elegant solution, guiding readers to align their minds with the divine essence of existence. Written by Alfas B.",
+  keywords: ["Nature of the Divine", "Alfas B", "philosophical book", "spirituality", "divine essence", "self-transformation", "God", "philosophy", "faith"],
+  authors: [{ name: 'Alfas B' }],
+  creator: 'Alfas B',
+  publisher: 'Firebase Studio',
   icons: [{ rel: "icon", url: "/favicon.ico" }],
+  metadataBase: new URL(siteUrl),
   openGraph: {
-    title: 'Nature of the Divine',
-    description: 'A book exploring the divine essence of existence and its impact on life and spirituality.',
-    url: 'https://natureofthedivine.com',
+    title: 'Nature of the Divine | A Philosophical Book by Alfas B',
+    description: "Explore 'Nature of the Divine', a book about the divine essence of existence and its impact on life and spirituality.",
+    url: siteUrl,
+    siteName: 'Nature of the Divine',
     type: 'website',
     images: [
       {
@@ -40,7 +52,25 @@ export const metadata: Metadata = {
         alt: 'Nature of the Divine Book Cover',
       },
     ],
+    locale: 'en_US',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Nature of the Divine | A Philosophical Book by Alfas B',
+    description: 'A deep philosophical work explaining humanity\'s complex struggles, written by Alfas B.',
+    images: ['https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+    }
+  }
 };
 
 export default function RootLayout({
@@ -48,8 +78,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Nature of the Divine',
+    url: siteUrl,
+  };
+
   return (
     <html lang="en" className="scroll-smooth">
+      <head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+      </head>
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
@@ -72,3 +115,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

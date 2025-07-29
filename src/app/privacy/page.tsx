@@ -1,9 +1,12 @@
 
+
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: 'Privacy Policy | Nature of the Divine',
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'Read the privacy policy for Nature of the Divine, outlining how we collect, use, and protect your personal information.',
 };
 
 export default function PrivacyPage() {
@@ -81,3 +84,5 @@ export default function PrivacyPage() {
     </div>
   );
 }
+
+    

@@ -1,9 +1,12 @@
 
+
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Shipping Policy | Nature of the Divine',
+export const metadata: Metadata = {
+  title: 'Shipping Policy',
+  description: 'Find out about the shipping policy for "Nature of the Divine", including coverage, processing times, and tracking information.',
 };
 
 export default function ShippingPage() {
@@ -58,3 +61,5 @@ export default function ShippingPage() {
     </div>
   );
 }
+
+    

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { OrderForm } from './OrderForm';
@@ -7,6 +8,13 @@ import { Suspense, useEffect, useState } from 'react';
 import { getStock } from '@/lib/stock-store';
 import { Loader2 } from 'lucide-react';
 import type { Stock } from '@/lib/definitions';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Secure Checkout',
+  description: 'Complete your order for the book "Nature of the Divine" by Alfas B. Enter your details for shipping.',
+  robots: { index: false, follow: true }, // No-index checkout page
+};
 
 function CheckoutPageContent() {
     const [stock, setStock] = useState<Stock | null>(null);
@@ -67,3 +75,5 @@ export default function CheckoutPage() {
         </Suspense>
     )
 }
+
+    

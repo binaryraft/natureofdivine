@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -16,6 +17,13 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'My Orders',
+  description: 'View your order history and track the status of your purchases for "Nature of the Divine".',
+  robots: { index: false, follow: true },
+};
 
 const statusInfo: Record<OrderStatus, { label: string; Icon: React.ElementType; color: string }> = {
   new: { label: 'Order Placed', Icon: ShoppingCart, color: 'bg-blue-500' },
@@ -232,3 +240,5 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+    
