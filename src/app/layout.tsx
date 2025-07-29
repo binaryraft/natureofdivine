@@ -17,18 +17,22 @@ const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.c
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening",
+    default: "Nature of the Divine | A Book by Alfas B",
     template: "%s | Nature of the Divine",
   },
-  description: "A bold philosophical book by Alfas B exploring consciousness, divinity, and spiritual growth. Available worldwide.",
+  description: "Explore 'Nature of the Divine', a profound philosophical book by Alfas B about consciousness, the essence of existence, and humanity's path to aligning with the divine. Available worldwide in paperback and hardcover.",
   keywords: ["Nature of the Divine book", "spiritual books India", "books on consciousness and mind", "Alfas B author book", "ebooks about divinity", "new philosophical books 2025"],
   authors: [{ name: 'Alfas B', url: siteUrl }],
   creator: 'Alfas B',
   publisher: 'Firebase Studio',
   
+  alternates: {
+    canonical: '/',
+  },
+
   openGraph: {
-    title: 'Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening',
-    description: "Explore 'Nature of the Divine', a book about the divine essence of existence and its impact on life and spirituality.",
+    title: 'Nature of the Divine | A Book by Alfas B',
+    description: "Explore a profound philosophical book about the divine essence of existence and its impact on life and spirituality.",
     url: siteUrl,
     siteName: 'Nature of the Divine',
     images: [
@@ -45,8 +49,8 @@ export const metadata: Metadata = {
   
   twitter: {
     card: 'summary_large_image',
-    title: 'Nature of the Divine | Book by Alfas B – Mind, Spirit, Awakening',
-    description: 'A deep philosophical work explaining humanity\'s complex struggles, written by Alfas B.',
+    title: 'Nature of the Divine | A Book by Alfas B',
+    description: 'A deep philosophical work explaining humanity\'s complex struggles and the elegant path to aligning with the divine, written by Alfas B. Discover the true nature of existence.',
     images: ['https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png'],
   },
 
@@ -92,7 +96,7 @@ export default function RootLayout({
     "inLanguage": "en",
     "bookFormat": "http://schema.org/EBook",
     "url": "https://natureofthedivine.com",
-    "description": "A philosophical and spiritual awakening book by Alfas B, exploring the mind and the divine.",
+    "description": "A philosophical and spiritual awakening book by Alfas B, exploring the mind, the divine, and the path to aligning with the nature of existence. This work explains humanity's complex struggles and offers a singular, elegant solution.",
     "datePublished": "2025-06-01"
   };
 

@@ -4,7 +4,10 @@ import { ShippingClient } from './ShippingClient';
 
 export const metadata: Metadata = {
   title: 'Shipping Policy',
-  description: 'Find out about the shipping policy for "Nature of the Divine", including coverage, processing times, and tracking information.',
+  description: 'Review the shipping policy for the book "Nature of the Divine." This page contains detailed information about our shipping coverage, order processing times, delivery estimates, and tracking.',
+  alternates: {
+    canonical: '/shipping',
+  },
 };
 
 export default function ShippingPage() {

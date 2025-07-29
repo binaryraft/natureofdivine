@@ -4,7 +4,10 @@ import { ReturnsClient } from './ReturnsClient';
 
 export const metadata: Metadata = {
   title: 'Return & Refund Policy',
-  description: 'Learn about the return and refund policy for "Nature of the Divine". Understand the conditions for returns, refunds, and cancellations.',
+  description: 'Learn about the return, refund, and cancellation policy for the book "Nature of the Divine." Understand the conditions and procedures for returning a product and receiving a refund for your purchase.',
+  alternates: {
+    canonical: '/returns',
+  },
 };
 
 export default function ReturnsPage() {
