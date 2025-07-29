@@ -81,7 +81,7 @@ export async function placeOrder(
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || '';
 const SALT_KEY = process.env.PHONEPE_SALT_KEY || '';
 const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
-const HOST_URL = process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:9002';
+const HOST_URL = process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000';
 const PHONEPE_API_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox"
 
 export async function processPrepaidOrder(
@@ -110,7 +110,7 @@ export async function processPrepaidOrder(
             merchantTransactionId: merchantTransactionId,
             merchantUserId: userId,
             amount: amount,
-            redirectUrl: `${HOST_URL}/orders`, // Redirect to orders page after payment
+            redirectUrl: `${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`, 
             redirectMode: 'POST', 
             callbackUrl: `${HOST_URL}/api/payment/callback`,
             mobileNumber: orderDetails.phone,
@@ -195,7 +195,7 @@ const ReviewSchema = z.object({
 export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
-    const user = await auth.currentUser;
+    const user = auth.currentUser;
 
     const reviewData = {
       ...validatedData,
