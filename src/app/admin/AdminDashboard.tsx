@@ -314,7 +314,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-12 md:py-16 space-y-8">
         <StockManager />
         <Card>
           <CardHeader>
@@ -360,3 +360,5 @@ export function AdminDashboard() {
     </div>
   );
 }
+
+    

@@ -1,5 +1,4 @@
 
-
 import type { Metadata } from "next";
 import { Alegreya, Inter } from "next/font/google";
 import "./globals.css";
@@ -137,3 +136,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

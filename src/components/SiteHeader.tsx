@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Package2, Settings, LogOut, BookHeart } from 'lucide-react';
+import { Menu, Settings, LogOut, BookHeart } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -122,7 +122,7 @@ export function SiteHeader() {
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                    <Link href="/orders"><Package2 className="mr-2 h-4 w-4" /> My Orders</Link>
+                    <Link href="/orders"><BookHeart className="mr-2 h-4 w-4" /> My Orders</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                    <Link href="/settings"><Settings className="mr-2 h-4 w-4" /> Settings</Link>
@@ -149,3 +149,5 @@ export function SiteHeader() {
     </header>
   );
 }
+
+    
