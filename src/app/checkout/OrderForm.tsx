@@ -125,6 +125,13 @@ const variantDetails: Record<Exclude<BookVariant, 'ebook'>, { name: string; icon
     hardcover: { name: 'Hardcover', icon: Book, description: "A durable, premium edition." },
 };
 
+// Declare the phonepe object on the window
+declare global {
+    interface Window {
+        phonepe: any;
+    }
+}
+
 export function OrderForm({ stock }: { stock: Stock }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -304,19 +311,41 @@ export function OrderForm({ stock }: { stock: Stock }) {
             }
         } else if (state.paymentMethod === 'prepaid') {
              const paymentResult = await processPrepaidOrder(orderPayload);
-            if (paymentResult.success && paymentResult.redirectUrl) {
-                // Redirect to PhonePe
-                window.location.href = paymentResult.redirectUrl;
+            if (paymentResult.success && paymentResult.token) {
+                 if (window.phonepe) {
+                    window.phonepe.openCheckout().on('S2S_CALLBACK', (response: any) => {
+                         if (response.state === 'COMPLETED') {
+                            const transactionId = response.payload.merchantOrderId;
+                            router.push(`/api/payment/callback?transactionId=${transactionId}`);
+                        } else {
+                            toast({
+                                variant: 'destructive',
+                                title: 'Payment Failed',
+                                description: 'Your payment was not successful. Please try again.',
+                            });
+                            dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
+                        }
+                    }).on('FAILURE', (response: any) => {
+                        toast({
+                            variant: 'destructive',
+                            title: 'Payment Error',
+                            description: response.message || 'An error occurred with the payment gateway.',
+                        });
+                        dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
+                    }).open(paymentResult.token);
+                } else {
+                    throw new Error("PhonePe SDK not found. Please refresh the page.");
+                }
             } else {
-                throw new Error(paymentResult.message || 'Could not get payment URL.');
+                throw new Error(paymentResult.message || 'Could not get payment token.');
             }
         }
     } catch(e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
     } finally {
-       // Only reset submitting state on error for COD, as prepaid redirects.
-        if (state.paymentMethod === 'cod') {
+       // Only reset submitting state on error, as prepaid flow is handled by callbacks
+        if (state.paymentMethod !== 'prepaid') {
             setIsSubmitting(false);
         }
     }

@@ -200,7 +200,7 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
 export const addPendingOrder = async (transactionId: string, orderData: NewOrderData): Promise<void> => {
     try {
         const pendingOrderRef = doc(pendingOrdersCollection, transactionId);
-        await setDoc(pendingOrderRef, orderData);
+        await setDoc(pendingOrderRef, { ...orderData, createdAt: Timestamp.now() });
     } catch (error) {
         console.error(`Error creating pending order ${transactionId}:`, error);
         throw new Error("Could not create a pending order.");

@@ -7,10 +7,10 @@ import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus, addPendingOr
 import type { OrderStatus, BookVariant } from './definitions';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
-import crypto from 'crypto-js';
 import { v4 as uuidv4 } from 'uuid';
 import { addReview as addReviewToStore, getReviews } from './review-store';
 import { auth } from './firebase';
+import { StandardCheckoutClient, Env, CreateSdkOrderRequest } from 'phonepe-pg-sdk-node';
 
 
 const OrderSchema = z.object({
@@ -80,16 +80,16 @@ export async function placeOrder(
 
 const isProd = process.env.NEXT_PUBLIC_PHONEPE_ENV === 'PRODUCTION';
 
-const MERCHANT_ID = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
-const SALT_KEY = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SANDBOX_SALT_KEY;
-const SALT_INDEX = parseInt(isProd ? process.env.PHONEPE_PROD_SALT_INDEX! : process.env.PHONEPE_SANDBOX_SALT_INDEX!, 10);
-const PHONEPE_API_URL = isProd ? "https://api.phonepe.com/apis/pg" : "https://api-preprod.phonepe.com/apis/pg-sandbox";
+const clientId = process.env.PHONEPE_CLIENT_ID;
+const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
+const env = isProd ? Env.PRODUCTION : Env.SANDBOX;
+
 const HOST_URL = process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000';
 
 
 export async function processPrepaidOrder(
   data: z.infer<typeof OrderSchema>
-): Promise<{ success: boolean; message: string; redirectUrl?: string; }> {
+): Promise<{ success: boolean; message: string; token?: string; }> {
     const validatedFields = OrderSchema.safeParse(data);
 
     if (!validatedFields.success) {
@@ -99,32 +99,19 @@ export async function processPrepaidOrder(
         };
     }
     
-    if (!MERCHANT_ID || !SALT_KEY || !SALT_INDEX) {
-        return { success: false, message: 'PhonePe credentials are not configured in the environment.' };
+    if (!clientId || !clientSecret || clientSecret === 'YOUR_CLIENT_SECRET_HERE') {
+        return { success: false, message: 'PhonePe client credentials are not configured in the environment.' };
     }
     
     const { variant, userId, ...orderDetails } = validatedFields.data;
     
     try {
+        const client = StandardCheckoutClient.getInstance(clientId, clientSecret, 1, env);
         const prices = await fetchLocationAndPrice();
         const price = prices[variant as Exclude<BookVariant, 'ebook'>];
         const amount = price * 100; // Amount in paise
 
         const merchantTransactionId = `MUID${Date.now()}`;
-        
-        const payload = {
-            merchantId: MERCHANT_ID,
-            merchantTransactionId: merchantTransactionId,
-            merchantUserId: userId,
-            amount: amount,
-            redirectUrl: `${HOST_URL}/api/payment/callback`,
-            redirectMode: 'POST', 
-            callbackUrl: `${HOST_URL}/api/payment/callback`,
-            mobileNumber: orderDetails.phone,
-            paymentInstrument: {
-                type: 'PAY_PAGE',
-            },
-        };
         
         await addPendingOrder(merchantTransactionId, {
             ...orderDetails,
@@ -134,31 +121,26 @@ export async function processPrepaidOrder(
             userId: userId,
         });
 
-        const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-        const apiEndpoint = "/pg/v1/pay";
-        const checksum = crypto.SHA256(base64Payload + apiEndpoint + SALT_KEY).toString() + `###${SALT_INDEX}`;
+        const request = CreateSdkOrderRequest.StandardCheckoutBuilder()
+            .merchantOrderId(merchantTransactionId)
+            .amount(amount)
+            .merchantUserId(userId)
+            .redirectUrl(`${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`)
+            .callbackUrl(`${HOST_URL}/api/payment/callback`)
+            .build();
 
-        const response = await fetch(`${PHONEPE_API_URL}${apiEndpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-VERIFY': checksum,
-            },
-            body: JSON.stringify({ request: base64Payload }),
-        });
+        const response = await client.createSdkOrder(request);
 
-        const responseData = await response.json();
-        
-        if (!responseData.success || !responseData.data?.instrumentResponse?.redirectInfo?.url) {
-            console.error("PhonePe API Error:", responseData);
-             await deletePendingOrder(merchantTransactionId); // Clean up pending order on failure
-            throw new Error(responseData.message || 'Failed to initiate payment with PhonePe.');
+        if (!response.token) {
+            console.error("PhonePe SDK Error:", response);
+            await deletePendingOrder(merchantTransactionId); // Clean up pending order on failure
+            throw new Error('Failed to get payment token from PhonePe.');
         }
 
         return {
             success: true,
-            message: 'Redirecting to payment gateway.',
-            redirectUrl: responseData.data.instrumentResponse.redirectInfo.url,
+            message: 'Token generated successfully.',
+            token: response.token,
         };
     } catch (e: any) {
         console.error('Prepaid order processing error:', e);
@@ -226,5 +208,3 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
 export async function fetchReviews() {
     return await getReviews();
 }
-
-    
