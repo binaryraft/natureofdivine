@@ -3,12 +3,12 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, processPrepaidOrder } from '@/lib/actions';
+import { placeOrder, processPrepaidOrder, validateDiscountCode } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Download } from 'lucide-react';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Download, Tag } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +51,12 @@ type FormState = {
   variant: Exclude<BookVariant, 'ebook'> | null;
   details: z.infer<typeof DetailsSchema>;
   paymentMethod: 'cod' | 'prepaid' | null;
+  discount: {
+    code: string;
+    percent: number;
+    applied: boolean;
+    message: string;
+  }
   errors: Record<string, string[]> | null;
 };
 
@@ -63,6 +69,10 @@ type FormAction =
   | { type: 'PREVIOUS_STEP' }
   | { type: 'SET_PROCESSING' }
   | { type: 'RESET_TO_VARIANT'; payload?: Exclude<BookVariant, 'ebook'> | null }
+  | { type: 'SET_DISCOUNT_CODE'; payload: string }
+  | { type: 'APPLY_DISCOUNT'; payload: { percent: number; message: string } }
+  | { type: 'SET_DISCOUNT_MESSAGE'; payload: string }
+  | { type: 'RESET_DISCOUNT' }
   | { type: 'SET_FORM_VALUE'; payload: { field: keyof z.infer<typeof DetailsSchema>, value: string | boolean | undefined }};
 
 const initialState: FormState = {
@@ -81,6 +91,12 @@ const initialState: FormState = {
     saveAddress: false,
   },
   paymentMethod: null,
+  discount: {
+    code: '',
+    percent: 0,
+    applied: false,
+    message: ''
+  },
   errors: null,
 };
 
@@ -94,6 +110,14 @@ function formReducer(state: FormState, action: FormAction): FormState {
       return { ...state, details: { ...state.details!, [action.payload.field]: action.payload.value }, errors: null };
     case 'SET_PAYMENT_METHOD':
       return { ...state, paymentMethod: action.payload, errors: null };
+    case 'SET_DISCOUNT_CODE':
+        return { ...state, discount: { ...state.discount, code: action.payload } };
+    case 'APPLY_DISCOUNT':
+        return { ...state, discount: { ...state.discount, applied: true, percent: action.payload.percent, message: action.payload.message } };
+    case 'SET_DISCOUNT_MESSAGE':
+        return { ...state, discount: { ...state.discount, applied: false, message: action.payload } };
+    case 'RESET_DISCOUNT':
+        return { ...state, discount: initialState.discount };
     case 'SET_ERRORS':
       return { ...state, errors: action.payload };
     case 'NEXT_STEP': {
@@ -103,7 +127,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
     }
     case 'PREVIOUS_STEP': {
         if (state.step === 'payment') return { ...state, step: 'details', paymentMethod: null, errors: null };
-        if (state.step === 'details') return { ...state, step: 'variant', errors: null };
+        if (state.step === 'details') return { ...state, step: 'variant', errors: null, discount: initialState.discount };
         return state;
     }
     case 'SET_PROCESSING':
@@ -143,6 +167,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState<string | null>(null);
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
   
   // Pre-select variant from URL
   useEffect(() => {
@@ -284,6 +309,17 @@ export function OrderForm({ stock }: { stock: Stock }) {
     }
   };
 
+  const handleApplyDiscount = async () => {
+    setIsCheckingCode(true);
+    const result = await validateDiscountCode(state.discount.code);
+    if(result.success) {
+        dispatch({ type: 'APPLY_DISCOUNT', payload: { percent: result.percent!, message: result.message } });
+    } else {
+        dispatch({ type: 'SET_DISCOUNT_MESSAGE', payload: result.message });
+    }
+    setIsCheckingCode(false);
+  }
+
   const handlePaymentSubmit = async () => {
     if (!state.variant || !state.details || !state.paymentMethod || !user) return;
     
@@ -294,6 +330,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         variant: state.variant,
         ...state.details,
         userId: user.uid, // Ensure user ID is from the authenticated user
+        discountCode: state.discount.applied ? state.discount.code : undefined,
     };
 
     try {
@@ -500,20 +537,70 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
         case 'payment':
             if (priceLoading || !priceData || !state.variant) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin"/></div>
-            const price = priceData[state.variant];
+            
+            const originalPrice = priceData[state.variant];
+            const discountAmount = state.discount.applied ? Math.round(originalPrice * (state.discount.percent / 100)) : 0;
+            const finalPrice = originalPrice - discountAmount;
+            
             const locale = getLocaleFromCountry(priceData.country);
-            const formattedPrice = new Intl.NumberFormat(locale, { style: 'currency', currency: priceData.currencyCode }).format(price);
+            const currencyOptions = { style: 'currency', currency: priceData.currencyCode };
+            
+            const formattedOriginalPrice = new Intl.NumberFormat(locale, currencyOptions).format(originalPrice);
+            const formattedFinalPrice = new Intl.NumberFormat(locale, currencyOptions).format(finalPrice);
+            const formattedDiscount = new Intl.NumberFormat(locale, currencyOptions).format(discountAmount);
+
 
             return (
                 <div>
                     <Card className="border-none shadow-none">
                         <CardHeader className="p-0 mb-6">
                             <CardTitle>3. Payment Method</CardTitle>
-                            <CardDescription>
-                                Total amount: {formattedPrice}
+                             <CardDescription>
+                                Confirm your order total and select a payment method.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 p-0">
+                             <Card className="bg-muted/50">
+                                <CardContent className="p-4 space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <span>Original Price:</span>
+                                        <span className={cn(state.discount.applied && "line-through text-muted-foreground")}>{formattedOriginalPrice}</span>
+                                    </div>
+                                    {state.discount.applied && (
+                                        <div className="flex justify-between items-center text-green-600 font-medium">
+                                            <span>Discount ({state.discount.percent}%):</span>
+                                            <span>- {formattedDiscount}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-center font-bold text-lg border-t pt-2 mt-2">
+                                        <span>Total Amount:</span>
+                                        <span>{formattedFinalPrice}</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                             <div className="space-y-2">
+                                <Label htmlFor="discount-code">Discount Code</Label>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        id="discount-code" 
+                                        placeholder="Enter promo code" 
+                                        value={state.discount.code} 
+                                        onChange={e => dispatch({type: 'SET_DISCOUNT_CODE', payload: e.target.value.toUpperCase()})}
+                                        disabled={state.discount.applied}
+                                    />
+                                    {state.discount.applied ? (
+                                        <Button variant="outline" onClick={() => dispatch({type: 'RESET_DISCOUNT'})}>Remove</Button>
+                                    ) : (
+                                        <Button onClick={handleApplyDiscount} disabled={isCheckingCode || !state.discount.code}>
+                                            {isCheckingCode && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                            Apply
+                                        </Button>
+                                    )}
+                                </div>
+                                {state.discount.message && <p className={cn("text-sm", state.discount.applied ? "text-green-600" : "text-destructive")}>{state.discount.message}</p>}
+                            </div>
+
                             <RadioGroup 
                                 name="paymentMethod" 
                                 className="space-y-4"

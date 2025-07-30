@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { addReview as addReviewToStore, getReviews } from './review-store';
 import { auth } from './firebase';
 import { StandardCheckoutClient, Env, CreateSdkOrderRequest } from 'phonepe-pg-sdk-node';
+import { addDiscount, getDiscount, incrementDiscountUsage } from './discount-store';
 
 
 const OrderSchema = z.object({
@@ -25,6 +26,7 @@ const OrderSchema = z.object({
   state: z.string().optional(),
   pinCode: z.string().optional(),
   userId: z.string().min(1, "User ID is required."), // Make userId required
+  discountCode: z.string().optional(),
 });
 
 const CodOrderSchema = OrderSchema.extend({
@@ -43,21 +45,39 @@ export async function placeOrder(
     };
   }
 
-  const { variant, userId, ...orderDetails } = validatedFields.data;
+  const { variant, userId, discountCode, ...orderDetails } = validatedFields.data;
 
   try {
     const prices = await fetchLocationAndPrice();
-    const price = prices[variant as Exclude<BookVariant, 'ebook'>];
+    const originalPrice = prices[variant as Exclude<BookVariant, 'ebook'>];
+    
+    let finalPrice = originalPrice;
+    let discountAmount = 0;
+    
+    if (discountCode) {
+        const discount = await getDiscount(discountCode);
+        if (discount) {
+            discountAmount = Math.round(originalPrice * (discount.percent / 100));
+            finalPrice = originalPrice - discountAmount;
+        }
+    }
 
     await decreaseStock(variant, 1);
 
     const newOrder = await addOrder(userId, {
       ...orderDetails,
       variant,
-      price,
+      price: finalPrice,
+      originalPrice,
+      discountCode,
+      discountAmount,
       paymentMethod: 'cod', // This action is only for COD
       userId: userId,
     });
+    
+    if (discountCode) {
+        await incrementDiscountUsage(discountCode);
+    }
 
     revalidatePath('/admin');
     revalidatePath(`/orders`); // Revalidate the specific user's order page if needed
@@ -103,20 +123,35 @@ export async function processPrepaidOrder(
         return { success: false, message: 'PhonePe client credentials are not configured in the environment.' };
     }
     
-    const { variant, userId, ...orderDetails } = validatedFields.data;
+    const { variant, userId, discountCode, ...orderDetails } = validatedFields.data;
     
     try {
         const client = StandardCheckoutClient.getInstance(clientId, clientSecret, 1, env);
         const prices = await fetchLocationAndPrice();
-        const price = prices[variant as Exclude<BookVariant, 'ebook'>];
-        const amount = price * 100; // Amount in paise
+        const originalPrice = prices[variant as Exclude<BookVariant, 'ebook'>];
+        
+        let finalPrice = originalPrice;
+        let discountAmount = 0;
+        
+        if (discountCode) {
+            const discount = await getDiscount(discountCode);
+            if (discount) {
+                discountAmount = Math.round(originalPrice * (discount.percent / 100));
+                finalPrice = originalPrice - discountAmount;
+            }
+        }
+
+        const amount = finalPrice * 100; // Amount in paise
 
         const merchantTransactionId = `MUID${Date.now()}`;
         
         await addPendingOrder(merchantTransactionId, {
             ...orderDetails,
             variant,
-            price,
+            price: finalPrice,
+            originalPrice,
+            discountCode,
+            discountAmount,
             paymentMethod: 'prepaid',
             userId: userId,
         });
@@ -207,4 +242,23 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
 
 export async function fetchReviews() {
     return await getReviews();
+}
+
+export async function validateDiscountCode(code: string): Promise<{ success: boolean; percent?: number; message: string }> {
+    if (!code) {
+        return { success: false, message: "Please enter a code." };
+    }
+    const discount = await getDiscount(code);
+    if (discount) {
+        return { success: true, percent: discount.percent, message: `Code applied! You get ${discount.percent}% off.` };
+    }
+    return { success: false, message: "Invalid or expired discount code." };
+}
+
+export async function createDiscount(code: string, percent: number): Promise<{success: boolean, message: string}> {
+    const result = await addDiscount(code, percent);
+    if(result.success) {
+        revalidatePath('/admin');
+    }
+    return result;
 }

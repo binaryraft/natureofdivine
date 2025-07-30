@@ -1,4 +1,5 @@
 
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
@@ -29,6 +30,9 @@ const docToOrder = (doc: any): Order => {
     paymentMethod: data.paymentMethod || 'cod',
     variant: data.variant || 'paperback',
     price: data.price || 0,
+    originalPrice: data.originalPrice,
+    discountCode: data.discountCode,
+    discountAmount: data.discountAmount,
     status: data.status || 'new',
     createdAt: createdAtMillis,
     hasReview: data.hasReview || false,

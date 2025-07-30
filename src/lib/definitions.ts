@@ -19,6 +19,9 @@ export type Order = {
   paymentMethod: 'cod' | 'prepaid';
   variant: BookVariant;
   price: number;
+  originalPrice?: number;
+  discountCode?: string;
+  discountAmount?: number;
   status: OrderStatus;
   createdAt: number; // Storing as timestamp for Firestore
   hasReview?: boolean;
@@ -37,6 +40,13 @@ export type Review = {
     userName: string;
     rating: number;
     reviewText?: string;
+    createdAt: number;
+};
+
+export type Discount = {
+    id: string; // The code itself
+    percent: number;
+    usageCount: number;
     createdAt: number;
 };
     

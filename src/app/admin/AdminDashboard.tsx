@@ -2,8 +2,8 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { fetchOrders, changeOrderStatus } from '@/lib/actions';
-import { type Order, type OrderStatus, Stock, BookVariant } from '@/lib/definitions';
+import { fetchOrders, changeOrderStatus, createDiscount } from '@/lib/actions';
+import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,10 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
+import { getAllDiscounts } from '@/lib/discount-store';
 import { Label } from '@/components/ui/label';
 
 
@@ -38,7 +39,7 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                         <TableHead>Order ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Address</TableHead>
-                        <TableHead>Variant</TableHead>
+                        <TableHead>Variant & Price</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead className="text-center">Status</TableHead>
@@ -64,7 +65,12 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                                 >
                                     {order.variant}
                                 </Badge>
-                                <div>₹{order.price}</div>
+                                <div className="font-medium">₹{order.price}</div>
+                                {order.discountCode && (
+                                     <div className="text-xs text-green-600">
+                                        Applied: {order.discountCode} (-₹{order.discountAmount})
+                                    </div>
+                                )}
                             </TableCell>
                             <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
@@ -196,6 +202,107 @@ function StockManager() {
     );
 }
 
+function DiscountManager() {
+    const { toast } = useToast();
+    const [discounts, setDiscounts] = useState<Discount[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newCode, setNewCode] = useState('');
+    const [newPercent, setNewPercent] = useState('');
+
+    const loadDiscounts = async () => {
+        setIsLoading(true);
+        try {
+            const fetchedDiscounts = await getAllDiscounts();
+            setDiscounts(fetchedDiscounts);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load discounts.' });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    
+    useEffect(() => {
+        loadDiscounts();
+    }, [toast]);
+
+    const handleCreateDiscount = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsCreating(true);
+        const percent = parseInt(newPercent, 10);
+        const result = await createDiscount(newCode, percent);
+
+        if(result.success) {
+            toast({ title: 'Success!', description: result.message });
+            setNewCode('');
+            setNewPercent('');
+            await loadDiscounts();
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.message });
+        }
+        setIsCreating(false);
+    }
+
+    return (
+        <Card>
+             <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Tag/> Discount Management</CardTitle>
+                <CardDescription>Create and manage discount codes for influencer marketing.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <form onSubmit={handleCreateDiscount} className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                        <Label htmlFor="code">Discount Code</Label>
+                        <Input id="code" placeholder="e.g., INFLUENCER10" value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} required/>
+                    </div>
+                     <div className="flex-1 space-y-2">
+                        <Label htmlFor="percent">Discount Percent</Label>
+                         <div className="relative">
+                            <Input id="percent" type="number" placeholder="e.g., 10" value={newPercent} onChange={e => setNewPercent(e.target.value)} required min="1" max="100"/>
+                            <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        </div>
+                    </div>
+                    <div className="flex items-end">
+                        <Button type="submit" disabled={isCreating}>
+                            {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Create
+                        </Button>
+                    </div>
+                </form>
+                
+                <div className="space-y-2">
+                    <h3 className="font-medium">Existing Discounts</h3>
+                    {isLoading ? (
+                         <div className="flex justify-center items-center p-4">
+                            <Loader2 className="animate-spin" />
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Code</TableHead>
+                                    <TableHead>Percent</TableHead>
+                                    <TableHead className="text-right">Usage Count</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {discounts.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No discounts created yet.</TableCell></TableRow>}
+                                {discounts.map(d => (
+                                    <TableRow key={d.id}>
+                                        <TableCell className="font-mono">{d.id}</TableCell>
+                                        <TableCell>{d.percent}%</TableCell>
+                                        <TableCell className="text-right">{d.usageCount}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 export function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState('');
@@ -315,50 +422,62 @@ export function AdminDashboard() {
 
   return (
     <div className="container mx-auto py-12 md:py-16 space-y-8">
-        <StockManager />
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-                <div>
-                    <CardTitle className="text-3xl font-headline flex items-center gap-2"><ShieldCheck /> Order Management</CardTitle>
-                    <CardDescription>View and manage all incoming orders.</CardDescription>
-                </div>
-                <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
-                    <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
-                </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-             {isPending ? (
-                <div className="flex justify-center items-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-             ) : (
-                <Tabs defaultValue="new" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
-                        <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
-                        <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
-                        <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="new" className="mt-4">
-                        <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} />
-                    </TabsContent>
-                    <TabsContent value="dispatched" className="mt-4">
-                        <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} />
-                    </TabsContent>
-                    <TabsContent value="delivered" className="mt-4">
-                        <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} />
-                    </TabsContent>
-                     <TabsContent value="cancelled" className="mt-4">
-                        <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} />
-                    </TabsContent>
-                </Tabs>
-             )}
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="orders" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="stock">Stock</TabsTrigger>
+                <TabsTrigger value="discounts">Discounts</TabsTrigger>
+            </TabsList>
+            <TabsContent value="orders" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-3xl font-headline flex items-center gap-2"><ShieldCheck /> Order Management</CardTitle>
+                            <CardDescription>View and manage all incoming orders.</CardDescription>
+                        </div>
+                        <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
+                            <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
+                        </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                     {isPending ? (
+                        <div className="flex justify-center items-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                     ) : (
+                        <Tabs defaultValue="new" className="w-full">
+                            <TabsList className="grid w-full grid-cols-4">
+                                <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
+                                <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
+                                <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
+                                <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="new" className="mt-4">
+                                <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} />
+                            </TabsContent>
+                            <TabsContent value="dispatched" className="mt-4">
+                                <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} />
+                            </TabsContent>
+                            <TabsContent value="delivered" className="mt-4">
+                                <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} />
+                            </TabsContent>
+                             <TabsContent value="cancelled" className="mt-4">
+                                <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} />
+                            </TabsContent>
+                        </Tabs>
+                     )}
+                  </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="stock" className="mt-6">
+                <StockManager />
+            </TabsContent>
+             <TabsContent value="discounts" className="mt-6">
+                <DiscountManager />
+            </TabsContent>
+        </Tabs>
     </div>
   );
 }
-
-    
