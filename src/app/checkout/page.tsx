@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 const isProd = process.env.NEXT_PUBLIC_PHONEPE_ENV === 'PRODUCTION';
 const phonePeSdkUrl = isProd 
-    ? 'https://phonetpe.mycloudrepo.io/public/repositories/phonepe-web-sdk/latest/bundle.js'
-    : 'https://phonetpe.mycloudrepo.io/public/repositories/phonepe-web-sdk-uat/latest/bundle.js';
+    ? 'https://phonepe.mycloudrepo.io/public/repositories/phonepe-web-sdk/latest/bundle.js'
+    : 'https://phonepe.mycloudrepo.io/public/repositories/phonepe-web-sdk-uat/latest/bundle.js';
 
 
 export default function CheckoutPage() {

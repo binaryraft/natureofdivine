@@ -155,13 +155,16 @@ export async function processPrepaidOrder(
             paymentMethod: 'prepaid',
             userId: userId,
         });
+        
+        const callbackUrl = `${HOST_URL}/api/payment/callback`;
+        const redirectUrl = `${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`;
 
         const request = CreateSdkOrderRequest.StandardCheckoutBuilder()
             .merchantOrderId(merchantTransactionId)
             .amount(amount)
             .merchantUserId(userId)
-            .redirectUrl(`${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`)
-            .callbackUrl(`${HOST_URL}/api/payment/callback`)
+            .callbackUrl(callbackUrl)
+            .redirectUrl(redirectUrl)
             .build();
 
         const response = await client.createSdkOrder(request);
