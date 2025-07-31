@@ -126,33 +126,24 @@ export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
 
     try {
         const userOrdersCol = collection(db, 'users', userId, 'orders');
-        const newOrderRef = doc(userOrdersCol); // This generates the ID upfront
         
-        const newOrderDocument = {
+        const newOrderDocumentData = {
             ...orderData,
-            id: newOrderRef.id,
             status: 'new' as OrderStatus,
             createdAt: Timestamp.now(),
             hasReview: false,
         };
 
-        const batch = writeBatch(db);
-
-        // 1. Write to the user's specific order subcollection with the generated ref
-        batch.set(newOrderRef, newOrderDocument);
-
-        // 2. Write a denormalized copy to the all-orders collection, using the SAME ID
-        const allOrdersRef = doc(allOrdersCollection, newOrderRef.id);
-        batch.set(allOrdersRef, newOrderDocument);
-
-        await batch.commit();
+        const newDocRef = await addDoc(userOrdersCol, newOrderDocumentData);
         
-        // Construct the final Order object to return
+        const allOrdersDocRef = doc(allOrdersCollection, newDocRef.id);
+        await setDoc(allOrdersDocRef, { ...newOrderDocumentData, id: newDocRef.id });
+
         const finalOrder: Order = {
             ...orderData,
-            id: newOrderRef.id,
+            id: newDocRef.id,
             status: 'new',
-            createdAt: newOrderDocument.createdAt.toMillis(),
+            createdAt: newOrderDocumentData.createdAt.toMillis(),
             hasReview: false,
         };
         

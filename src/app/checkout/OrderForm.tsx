@@ -290,7 +290,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     const orderPayload = {
         variant: state.variant,
         ...state.details,
-        userId: user.uid,
+        userId: user.uid, // Ensure userId is always included
         discountCode: state.discount.applied ? state.discount.code : undefined,
         paymentMethod: state.paymentMethod,
     };
