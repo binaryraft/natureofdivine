@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus, addPendingOrder, deletePendingOrder } from './order-store';
+import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus, addPendingOrder, deletePendingOrder, getPendingOrder } from './order-store';
 import type { OrderStatus, BookVariant } from './definitions';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { addReview as addReviewToStore, getReviews } from './review-store';
 import { auth } from './firebase';
 import { StandardCheckoutClient, Env, CreateSdkOrderRequest } from 'phonepe-pg-sdk-node';
-import { addDiscount, getDiscount, incrementDiscountUsage, updateDoc } from './discount-store';
+import { addDiscount, getDiscount, incrementDiscountUsage } from './discount-store';
 
 
 const OrderSchema = z.object({
@@ -121,7 +121,8 @@ export async function processPrepaidOrder(
     }
     
     if (!clientId || !clientSecret || clientSecret === 'YOUR_CLIENT_SECRET_HERE') {
-        return { success: false, message: 'PhonePe client credentials are not configured in the environment.' };
+        console.error('PhonePe client credentials are not configured in the environment.');
+        return { success: false, message: 'Payment gateway is not configured.' };
     }
     
     const { variant, userId, discountCode, ...orderDetails } = validatedFields.data;
@@ -185,7 +186,7 @@ export async function processPrepaidOrder(
         console.error('Prepaid order processing error:', e);
         return {
             success: false,
-            message: e.message || 'An unexpected error occurred during payment processing.',
+            message: e.message || 'Could not create a pending order.',
         };
     }
 }
@@ -200,9 +201,9 @@ export async function fetchUserOrders(userId: string) {
     return await getOrdersByUserId(userId);
 }
 
-export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus) {
+export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus, hasReview?: boolean) {
     try {
-        await updateOrderStatus(userId, orderId, status);
+        await updateOrderStatus(userId, orderId, status, hasReview);
         revalidatePath('/admin');
         revalidatePath('/orders');
         return { success: true, message: `Order ${orderId} status updated to ${status}` };
@@ -222,11 +223,12 @@ const ReviewSchema = z.object({
 export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
-    const user = auth.currentUser;
-
+    
+    // We can't use auth.currentUser on the server. We trust the userId passed from the client context.
+    // For enhanced security, one might implement server-side session checks.
     const reviewData = {
       ...validatedData,
-      userName: user?.displayName || 'Anonymous',
+      userName: 'Anonymous', // User display name is not available directly on server actions without session management
     };
 
     await addReviewToStore(reviewData);

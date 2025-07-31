@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { addOrder, getPendingOrder, deletePendingOrder, updateOrderStatus } from '@/lib/order-store';
+import { addOrder, getPendingOrder, deletePendingOrder } from '@/lib/order-store';
 import { decreaseStock } from '@/lib/stock-store';
 import type { BookVariant } from '@/lib/definitions';
 import { StandardCheckoutClient, Env } from 'phonepe-pg-sdk-node';
@@ -74,22 +74,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform the authoritative status check
-    const result = await checkTransactionStatus(merchantTransactionId);
+    await checkTransactionStatus(merchantTransactionId);
 
-    // Redirect user to the success page
-    const successUrl = new URL(`/orders`, request.url);
-    successUrl.searchParams.set('success', 'true');
-    if (result.orderId) {
-        successUrl.searchParams.set('orderId', result.orderId);
-    }
-    return NextResponse.redirect(successUrl);
+    // Respond to PhonePe that we have received the callback.
+    // The actual redirection happens on the client-side in the OrderForm.
+    return NextResponse.json({ success: true, message: 'Callback received and processed.' });
 
   } catch (error: any) {
     console.error('Payment callback POST error:', error);
-    const errorMsg = error.message || 'callback_failed';
-    const failureUrl = new URL(`/checkout`, request.url);
-    failureUrl.searchParams.set('error', errorMsg);
-    return NextResponse.redirect(failureUrl);
+    // Don't redirect here, just return an error response
+    return NextResponse.json({ success: false, message: error.message || 'callback_failed' }, { status: 500 });
   }
 }
 
@@ -114,6 +108,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Payment status check GET error:', error);
     if(transactionId) {
+        // It's important to clean up the pending order on failure to prevent orphaned records.
         await deletePendingOrder(transactionId);
     }
     const failureUrl = new URL('/checkout', request.url);

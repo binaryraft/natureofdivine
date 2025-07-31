@@ -107,7 +107,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'SET_DETAILS':
       return { ...state, details: action.payload, errors: null };
     case 'SET_FORM_VALUE':
-      return { ...state, details: { ...state.details!, [action.payload.field]: action.payload.value }, errors: null };
+      return { ...state, details: { ...state.details!, [action.payload.field]: action.payload.value }, errors: { ...state.errors, [action.payload.field]: undefined } };
     case 'SET_PAYMENT_METHOD':
       return { ...state, paymentMethod: action.payload, errors: null };
     case 'SET_DISCOUNT_CODE':
