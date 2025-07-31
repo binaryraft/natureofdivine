@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, setDoc, getDoc, getDocs, Timestamp, orderBy, query, increment, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, Timestamp, orderBy, query, increment, writeBatch, updateDoc } from 'firebase/firestore';
 import type { Discount } from './definitions';
 
 const discountsCollection = collection(db, 'discounts');

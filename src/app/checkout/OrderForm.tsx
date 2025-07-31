@@ -36,13 +36,13 @@ const VariantSchema = z.object({
 const DetailsSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email address.'),
-  phone: z.string().min(10, 'Please enter a valid phone number.').optional().or(z.literal('')),
-  address: z.string().min(5, 'Address must be at least 5 characters.').optional().or(z.literal('')),
+  phone: z.string().min(10, 'Please enter a valid phone number.'),
+  address: z.string().min(5, 'Address must be at least 5 characters.'),
   street: z.string().optional(),
-  city: z.string().min(2, 'Please enter a valid city.').optional().or(z.literal('')),
-  country: z.string().min(2, 'Please select a country.').optional().or(z.literal('')),
-  state: z.string().min(2, 'Please select a state.').optional().or(z.literal('')),
-  pinCode: z.string().min(3, 'Please enter a valid PIN code.').optional().or(z.literal('')),
+  city: z.string().min(2, 'Please enter a valid city.'),
+  country: z.string().min(2, 'Please select a country.'),
+  state: z.string().min(2, 'Please select a state.'),
+  pinCode: z.string().min(3, 'Please enter a valid PIN code.'),
   saveAddress: z.boolean().optional(),
 });
 
@@ -285,19 +285,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
         return;
     }
     
-    const needsAddress = state.variant !== 'ebook';
-    
-    let validationSchema;
-    if (needsAddress) {
-        validationSchema = DetailsSchema.refine(data => !!data.phone, { message: 'Phone is required for physical orders.', path: ['phone'] })
-                         .refine(data => !!data.address, { message: 'Address is required for physical orders.', path: ['address'] })
-                         .refine(data => !!data.city, { message: 'City is required for physical orders.', path: ['city'] })
-                         .refine(data => !!data.country, { message: 'Country is required for physical orders.', path: ['country'] })
-                         .refine(data => !!data.state, { message: 'State is required for physical orders.', path: ['state'] })
-                         .refine(data => !!data.pinCode, { message: 'PIN code is required for physical orders.', path: ['pinCode'] });
-    } else {
-        validationSchema = DetailsSchema.pick({ name: true, email: true });
-    }
+    // For all physical variants, all address fields are required.
+    const validationSchema = DetailsSchema;
 
     const result = validationSchema.safeParse(state.details);
     

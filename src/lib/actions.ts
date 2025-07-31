@@ -11,20 +11,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { addReview as addReviewToStore, getReviews } from './review-store';
 import { auth } from './firebase';
 import { StandardCheckoutClient, Env, CreateSdkOrderRequest } from 'phonepe-pg-sdk-node';
-import { addDiscount, getDiscount, incrementDiscountUsage } from './discount-store';
+import { addDiscount, getDiscount, incrementDiscountUsage, updateDoc } from './discount-store';
 
 
 const OrderSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email address.'),
-  phone: z.string().optional(),
-  address: z.string().optional(),
+  phone: z.string().min(10, 'Please enter a valid phone number.'),
+  address: z.string().min(5, 'Address must be at least 5 characters.'),
   street: z.string().optional(),
-  city: z.string().optional(),
-  country: z.string().optional(),
-  state: z.string().optional(),
-  pinCode: z.string().optional(),
+  city: z.string().min(2, 'Please enter a valid city.'),
+  country: z.string().min(2, 'Please select a country.'),
+  state: z.string().min(2, 'Please select a state.'),
+  pinCode: z.string().min(3, 'Please enter a valid PIN code.'),
   userId: z.string().min(1, "User ID is required."), // Make userId required
   discountCode: z.string().optional(),
 });
@@ -113,6 +113,7 @@ export async function processPrepaidOrder(
     const validatedFields = OrderSchema.safeParse(data);
 
     if (!validatedFields.success) {
+        console.error("Prepaid order validation failed:", validatedFields.error.flatten());
         return {
             success: false,
             message: 'Invalid data provided. Please check the form.',
