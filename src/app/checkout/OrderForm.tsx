@@ -27,7 +27,6 @@ const isPrepaidEnabled = true;
 
 const physicalVariants: BookVariant[] = ['paperback', 'hardcover'];
 
-// Schemas for validation
 const VariantSchema = z.object({
   variant: z.enum(['paperback', 'hardcover'], { required_error: 'Please select a book type.' }),
 });
@@ -134,7 +133,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'RESET_TO_VARIANT':
         return {
             ...initialState,
-            details: state.details, // Keep user-entered details
+            details: state.details, 
             step: action.payload ? 'details' : 'variant',
             variant: action.payload || null,
         }
@@ -161,7 +160,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const [pincodeError, setPincodeError] = useState<string | null>(null);
   const [isCheckingCode, setIsCheckingCode] = useState(false);
   
-  // Pre-select variant from URL
   useEffect(() => {
     const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
     if (variantParam && physicalVariants.includes(variantParam)) {
@@ -175,14 +173,12 @@ export function OrderForm({ stock }: { stock: Stock }) {
   }, [searchParams, stock, toast]);
 
 
-  // Set initial country from location data
   useEffect(() => {
     if (priceData?.country && !state.details.country) {
       dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: priceData.country }})
     }
   }, [priceData?.country, state.details.country]);
 
-  // Set initial user details if available and form is empty
   useEffect(() => {
       if(user) {
         if (!state.details.name && user.displayName) {
@@ -194,7 +190,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
       }
   }, [user, state.details.name, state.details.email]);
 
-  // Handle Pincode Auto-fill
   const handlePincodeChange = async (pinCode: string) => {
     dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: pinCode } });
     if (pinCode.length !== 6 || priceData?.country !== 'IN') {
@@ -229,7 +224,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
     }
   }
   
-  // Handlers
   const handleVariantSelect = (variant: Exclude<BookVariant, 'ebook'>) => {
     const result = VariantSchema.safeParse({ variant });
     if (result.success) {
@@ -290,7 +284,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     const orderPayload = {
         variant: state.variant,
         ...state.details,
-        userId: user.uid, // Ensure userId is always included
+        userId: user.uid,
         discountCode: state.discount.applied ? state.discount.code : undefined,
         paymentMethod: state.paymentMethod,
     };
@@ -319,14 +313,11 @@ export function OrderForm({ stock }: { stock: Stock }) {
         await handleFinalOrderPlacement();
     } else if (state.paymentMethod === 'prepaid') {
         setIsSubmitting(true);
-        // Step 1: Call the demo server action that always returns true
         const paymentAuthResult = await processPrepaidOrder();
         
         if (paymentAuthResult.success) {
-            // Step 2: If payment is "successful", proceed to create the order
             await handleFinalOrderPlacement();
         } else {
-            // This part will not be reached with the demo function but is good practice
             toast({ variant: 'destructive', title: 'Payment Failed', description: 'Your payment could not be processed.' });
             setIsSubmitting(false);
         }
@@ -362,7 +353,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                          ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {physicalVariants.map(variant => {
-                                if (variant === 'ebook') return null; // E-book is not sold here
+                                if (variant === 'ebook') return null;
                                 const isAvailable = stock[variant] > 0;
                                 const price = priceData[variant];
                                 const locale = getLocaleFromCountry(priceData.country);

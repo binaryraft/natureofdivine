@@ -101,7 +101,6 @@ export async function placeOrder(
  */
 export async function processPrepaidOrder(): Promise<{ success: boolean }> {
     // This is a demo function. It always returns true.
-    // In a real application, you would put your PhonePe or other payment gateway logic here.
     return { success: true };
 }
 
@@ -138,16 +137,12 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
     
-    // We can't use auth.currentUser on the server. We trust the userId passed from the client context.
-    // For enhanced security, one might implement server-side session checks.
     const reviewData = {
       ...validatedData,
-      userName: 'Anonymous', // User display name is not available directly on server actions without session management
+      userName: 'Anonymous', 
     };
 
     await addReviewToStore(reviewData);
-
-    // After adding review, update order to mark hasReview=true
     await updateOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
     
     revalidatePath('/');
