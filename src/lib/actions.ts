@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { addOrder } from './order-store';
+import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus } from './order-store';
 import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
@@ -10,7 +10,6 @@ import { fetchLocationAndPrice } from './fetch-location-price';
 import { BookVariant, OrderStatus, Review } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
-import { getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus } from './order-store';
 
 
 const OrderFormSchema = z.object({
@@ -64,8 +63,6 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
 
     await decreaseStock(variant, 1);
     
-    // Meticulously build the clean data object to pass to the database store.
-    // This prevents any "unsupported field value" errors.
     const newOrderData = {
       userId: validatedFields.data.userId,
       name: validatedFields.data.name,
@@ -81,7 +78,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
       variant: validatedFields.data.variant,
       price: finalPrice,
       originalPrice,
-      discountCode: validatedFields.data.discountCode,
+      discountCode: validatedFields.data.discountCode || '',
       discountAmount,
     };
     
@@ -123,25 +120,16 @@ export async function processPrepaidOrder(): Promise<{ success: boolean }> {
     return { success: true };
 }
 
-export async function fetchOrders() {
+export async function fetchOrdersAction() {
     return await getOrders();
 }
 
-export async function fetchUserOrders(userId: string) {
+export async function fetchUserOrdersAction(userId: string) {
     return await getOrdersByUserId(userId);
 }
 
-export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus) {
-    try {
-        await updateDbOrderStatus(userId, orderId, status);
-        await addLog('info', `Order status changed for ${orderId} to ${status}`);
-        revalidatePath('/admin');
-        revalidatePath('/orders');
-        return { success: true, message: 'Order status updated successfully.' };
-    } catch(e: any) {
-        await addLog('error', 'changeOrderStatus failed.', { error: e, userId, orderId, status});
-        return { success: false, message: e.message || 'Failed to update order status.'};
-    }
+export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
+    return await updateDbOrderStatus(userId, orderId, status);
 }
 
 const ReviewSchema = z.object({

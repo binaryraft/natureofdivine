@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { fetchOrders, changeOrderStatus, createDiscount } from '@/lib/actions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount } from '@/lib/actions';
 import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -324,7 +324,7 @@ export function AdminDashboard() {
   const loadOrders = () => {
     startTransition(async () => {
         try {
-            const fetchedOrders = await fetchOrders();
+            const fetchedOrders = await fetchOrdersAction();
             setOrders(fetchedOrders);
         } catch(e: any) {
             let description = "Failed to load orders. Please try again later.";
@@ -372,18 +372,18 @@ export function AdminDashboard() {
         });
         return;
     }
-    const result = await changeOrderStatus(userId, orderId, newStatus);
-    if (result.success) {
+    try {
+      await changeOrderStatusAction(userId, orderId, newStatus);
       toast({
         title: 'Success',
-        description: result.message,
+        description: 'Order status updated successfully.',
       });
       loadOrders(); // Refresh the list to show the updated status
-    } else {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.message,
+        description: error.message || 'Failed to update order status.',
       });
     }
   };

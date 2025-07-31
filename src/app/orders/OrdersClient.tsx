@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchUserOrders, submitReview } from '@/lib/actions';
+import { fetchUserOrdersAction, submitReview } from '@/lib/actions';
 import { Order, OrderStatus } from '@/lib/definitions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -162,7 +162,7 @@ export function OrdersClient() {
     if (user) {
       startTransition(async () => {
         try {
-            const userOrders = await fetchUserOrders(user.uid);
+            const userOrders = await fetchUserOrdersAction(user.uid);
             setOrders(userOrders);
         } catch(e) {
             toast({
