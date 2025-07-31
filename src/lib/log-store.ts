@@ -21,8 +21,20 @@ export const addLog = async (level: LogLevel, message: string, data?: any): Prom
     timestamp: new Date().toISOString(),
     level,
     message,
-    data: data ? JSON.parse(JSON.stringify(data)) : undefined, // Deep clone to avoid circular references
+    // Deep clone to avoid circular references and ensure serializability
+    data: data ? JSON.parse(JSON.stringify(data, (key, value) => 
+      typeof value === 'object' && value !== null && 'message' in value && 'stack' in value ? 
+      { message: value.message, stack: value.stack, name: value.name, code: (value as any).code } : value
+    )) : undefined, 
   };
+
+  // Also log to the actual server console for persistent debugging in production
+  if (level === 'error') {
+    console.error(`[SERVER LOG] ${message}`, entry.data || '');
+  } else {
+    console.log(`[SERVER LOG] ${message}`, entry.data || '');
+  }
+
   logs.unshift(entry); // Add to the top
   // Keep the log size manageable
   if (logs.length > 100) {

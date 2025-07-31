@@ -31,7 +31,7 @@ const OrderSchema = z.object({
 export async function placeOrder(
   data: z.infer<typeof OrderSchema>
 ): Promise<{ success: boolean; message: string; orderId?: string }> {
-  addLog('info', 'placeOrder action started', { variant: data.variant, paymentMethod: data.paymentMethod });
+  await addLog('info', 'placeOrder action started', { variant: data.variant, paymentMethod: data.paymentMethod });
   const validatedFields = OrderSchema.safeParse(data);
 
   if (!validatedFields.success) {
@@ -90,25 +90,25 @@ export async function placeOrder(
       orderId: newOrder.id,
     };
   } catch (error: any) {
-    await addLog('error', 'placeOrder action failed', {
-        message: error.message,
+    const errorMessage = error.message || 'An unknown error occurred during order placement.';
+    await addLog('error', 'placeOrder action failed catastrophically.', {
+        message: errorMessage,
         stack: error.stack,
         name: error.name,
         code: error.code,
-        data: data
+        data: { variant: data.variant, userId: data.userId, paymentMethod: data.paymentMethod }
     });
-    console.error('Place order error:', error);
+    console.error('CRITICAL placeOrder Error:', error);
     return {
       success: false,
-      message:
-        error.message ||
-        'An error occurred while placing your order. Please try again.',
+      message: `Database write failed: ${errorMessage}`,
     };
   }
 }
 
 
 export async function processPrepaidOrder(): Promise<{ success: boolean }> {
+    // This is a simulation. In a real app, you'd integrate with a payment provider.
     await addLog('info', 'processPrepaidOrder simulated successfully');
     return { success: true };
 }
@@ -188,3 +188,4 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
+

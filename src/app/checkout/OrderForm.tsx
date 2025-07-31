@@ -298,7 +298,12 @@ export function OrderForm({ stock }: { stock: Stock }) {
             throw new Error(result.message);
         }
     } catch(e: any) {
-        toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
+        toast({ 
+            variant: 'destructive', 
+            title: 'Error Placing Order', 
+            description: e.message || 'An unexpected error occurred.',
+            duration: 10000,
+        });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
     } finally {
       setIsSubmitting(false);
@@ -309,10 +314,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const handlePaymentSubmit = async () => {
     if (!state.paymentMethod) return;
     
+    setIsSubmitting(true);
     if (state.paymentMethod === 'cod') {
         await handleFinalOrderPlacement();
     } else if (state.paymentMethod === 'prepaid') {
-        setIsSubmitting(true);
         const paymentAuthResult = await processPrepaidOrder();
         
         if (paymentAuthResult.success) {

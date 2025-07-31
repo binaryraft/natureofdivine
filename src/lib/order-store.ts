@@ -1,4 +1,6 @@
 
+'use server';
+
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
@@ -93,35 +95,35 @@ type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
 export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
     const { userId } = orderData;
     if (!userId) {
-        await addLog('error', 'addOrder failed: Missing userId');
-        throw new Error("User ID is required to add an order.");
+        const err = new Error("User ID is required to add an order.");
+        await addLog('error', 'addOrder failed: Missing userId', { error: err });
+        throw err;
     }
 
     try {
-        // 1. Create a reference in the main collection to generate a unique ID
+        // 1. Generate a new unique ID for the order first.
         const newOrderRef = doc(allOrdersCollection);
         const newOrderId = newOrderRef.id;
 
-        // 2. Create the full order document data, now including the generated ID
         const newOrderDocumentData = {
             ...orderData,
-            id: newOrderId,
+            id: newOrderId, // Explicitly include the ID in the data
             status: 'new' as OrderStatus,
             createdAt: Timestamp.now(),
             hasReview: false,
         };
         
-        // 3. Use a batch to write to both locations atomically
+        // 2. Use a batch to write to both locations atomically
         const batch = writeBatch(db);
         
-        // Write to the main collection
-        batch.set(newOrderRef, newOrderDocumentData);
+        // Write to the main all-orders collection
+        batch.set(doc(db, 'all-orders', newOrderId), newOrderDocumentData);
         
-        // Write to the user-specific collection using the same ID
+        // Write to the user-specific collection
         const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
         batch.set(userOrderRef, newOrderDocumentData);
         
-        // 4. Commit the batch
+        // 3. Commit the batch
         await batch.commit();
 
         const finalOrder: Order = {
@@ -144,9 +146,11 @@ export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
             userId: userId
         });
         console.error(`Error adding new order for user ${userId}:`, error);
-        throw new Error("Could not create a new order in the database.");
+        // Re-throw the original error so the action can catch it
+        throw new Error(`Could not create a new order in the database. Reason: ${error.message}`);
     }
 };
+
 
 export const updateOrderStatus = async (userId: string, orderId: string, status: OrderStatus, hasReview?: boolean): Promise<void> => {
     if (!userId || !orderId) {
@@ -174,3 +178,4 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
         throw new Error("Could not update the order status.");
     }
 };
+
