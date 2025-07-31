@@ -9,6 +9,7 @@ import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import { addReview as addReviewToStore, getReviews } from './review-store';
 import { addDiscount, getDiscount, incrementDiscountUsage } from './discount-store';
+import { addLog } from './log-store';
 
 
 const OrderSchema = z.object({
@@ -30,10 +31,12 @@ const OrderSchema = z.object({
 export async function placeOrder(
   data: z.infer<typeof OrderSchema>
 ): Promise<{ success: boolean; message: string; orderId?: string }> {
+  addLog('info', 'placeOrder action started', data);
   const validatedFields = OrderSchema.safeParse(data);
 
   if (!validatedFields.success) {
-    console.error("Order validation failed:", validatedFields.error.flatten());
+    const errorDetails = validatedFields.error.flatten();
+    addLog('error', 'Order validation failed', errorDetails);
     return {
       success: false,
       message: 'Invalid data provided. Please check the form.',
@@ -70,7 +73,9 @@ export async function placeOrder(
       userId: userId,
     };
     
+    addLog('info', 'Attempting to add order to database', newOrderData);
     const newOrder = await addOrder(newOrderData);
+    addLog('info', 'Order successfully added to database', newOrder);
     
     if (discountCode) {
         await incrementDiscountUsage(discountCode);
@@ -85,6 +90,12 @@ export async function placeOrder(
       orderId: newOrder.id,
     };
   } catch (error: any) {
+    addLog('error', 'placeOrder action failed', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code
+    });
     console.error('Place order error:', error);
     return {
       success: false,
@@ -97,10 +108,11 @@ export async function placeOrder(
 
 /**
  * Simulates a successful prepaid payment authorization.
- * In a real app, this would involve integrating with a payment gateway.
  */
 export async function processPrepaidOrder(): Promise<{ success: boolean }> {
     // This is a demo function. It always returns true.
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    addLog('info', 'processPrepaidOrder simulated successfully');
     return { success: true };
 }
 
@@ -121,6 +133,7 @@ export async function changeOrderStatus(userId: string, orderId: string, status:
         revalidatePath('/orders');
         return { success: true, message: `Order ${orderId} status updated to ${status}` };
     } catch (error: any) {
+        addLog('error', 'changeOrderStatus failed', { orderId, status, error });
         return { success: false, message: error.message || 'Failed to update order status.' };
     }
 }
@@ -150,6 +163,7 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
 
     return { success: true, message: "Review submitted successfully." };
   } catch (error: any) {
+    addLog('error', 'submitReview failed', { data, error });
     console.error("Error submitting review:", error);
     return { success: false, message: error.message || "Failed to submit review." };
   }
