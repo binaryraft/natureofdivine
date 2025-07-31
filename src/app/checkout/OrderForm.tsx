@@ -285,10 +285,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         return;
     }
     
-    // For all physical variants, all address fields are required.
-    const validationSchema = DetailsSchema;
-
-    const result = validationSchema.safeParse(state.details);
+    const result = DetailsSchema.safeParse(state.details);
     
     if (result.success) {
         dispatch({ type: 'SET_DETAILS', payload: result.data });
