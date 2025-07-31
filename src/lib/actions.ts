@@ -31,12 +31,12 @@ const OrderSchema = z.object({
 export async function placeOrder(
   data: z.infer<typeof OrderSchema>
 ): Promise<{ success: boolean; message: string; orderId?: string }> {
-  addLog('info', 'placeOrder action started', data);
+  addLog('info', 'placeOrder action started', { variant: data.variant, paymentMethod: data.paymentMethod });
   const validatedFields = OrderSchema.safeParse(data);
 
   if (!validatedFields.success) {
     const errorDetails = validatedFields.error.flatten();
-    addLog('error', 'Order validation failed', errorDetails);
+    await addLog('error', 'Order validation failed', errorDetails);
     return {
       success: false,
       message: 'Invalid data provided. Please check the form.',
@@ -73,9 +73,9 @@ export async function placeOrder(
       userId: userId,
     };
     
-    addLog('info', 'Attempting to add order to database', newOrderData);
+    await addLog('info', 'Attempting to add order to database', { userId, variant });
     const newOrder = await addOrder(newOrderData);
-    addLog('info', 'Order successfully added to database', newOrder);
+    await addLog('info', 'Order successfully added to database', { orderId: newOrder.id });
     
     if (discountCode) {
         await incrementDiscountUsage(discountCode);
@@ -90,11 +90,12 @@ export async function placeOrder(
       orderId: newOrder.id,
     };
   } catch (error: any) {
-    addLog('error', 'placeOrder action failed', {
+    await addLog('error', 'placeOrder action failed', {
         message: error.message,
         stack: error.stack,
         name: error.name,
-        code: error.code
+        code: error.code,
+        data: data
     });
     console.error('Place order error:', error);
     return {
@@ -106,13 +107,9 @@ export async function placeOrder(
   }
 }
 
-/**
- * Simulates a successful prepaid payment authorization.
- */
+
 export async function processPrepaidOrder(): Promise<{ success: boolean }> {
-    // This is a demo function. It always returns true.
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-    addLog('info', 'processPrepaidOrder simulated successfully');
+    await addLog('info', 'processPrepaidOrder simulated successfully');
     return { success: true };
 }
 
@@ -133,7 +130,7 @@ export async function changeOrderStatus(userId: string, orderId: string, status:
         revalidatePath('/orders');
         return { success: true, message: `Order ${orderId} status updated to ${status}` };
     } catch (error: any) {
-        addLog('error', 'changeOrderStatus failed', { orderId, status, error });
+        await addLog('error', 'changeOrderStatus failed', { orderId, status, error });
         return { success: false, message: error.message || 'Failed to update order status.' };
     }
 }
@@ -163,7 +160,7 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
 
     return { success: true, message: "Review submitted successfully." };
   } catch (error: any) {
-    addLog('error', 'submitReview failed', { data, error });
+    await addLog('error', 'submitReview failed', { data, error });
     console.error("Error submitting review:", error);
     return { success: false, message: error.message || "Failed to submit review." };
   }

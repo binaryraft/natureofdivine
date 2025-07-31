@@ -43,7 +43,7 @@ export const getOrders = async (): Promise<Order[]> => {
     const snapshot = await getDocs(ordersQuery);
     return snapshot.docs.map(docToOrder);
   } catch (error: any) {
-    addLog('error', 'getOrders failed', { message: error.message, code: error.code });
+    await addLog('error', 'getOrders failed', { message: error.message, code: error.code });
     console.error("Error fetching all orders:", error);
     if (error.code === 'failed-precondition') {
       throw new Error(
@@ -65,7 +65,7 @@ export const getOrdersByUserId = async (userId: string): Promise<Order[]> => {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToOrder);
   } catch (error) {
-    addLog('error', 'getOrdersByUserId failed', { userId, error });
+    await addLog('error', 'getOrdersByUserId failed', { userId, error });
     console.error(`Error fetching orders for user ${userId}:`, error);
     throw new Error("Could not fetch user orders.");
   }
@@ -82,7 +82,7 @@ export const getOrder = async (userId: string, orderId: string): Promise<Order |
 
         return docSnap.exists() ? docToOrder(docSnap) : null;
     } catch (error) {
-        addLog('error', 'getOrder failed', { userId, orderId, error });
+        await addLog('error', 'getOrder failed', { userId, orderId, error });
         console.error(`Error fetching order ${orderId} for user ${userId}:`, error);
         throw new Error("Could not fetch the specified order.");
     }
@@ -93,7 +93,7 @@ type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
 export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
     const { userId } = orderData;
     if (!userId) {
-        addLog('error', 'addOrder failed: Missing userId');
+        await addLog('error', 'addOrder failed: Missing userId');
         throw new Error("User ID is required to add an order.");
     }
 
@@ -132,11 +132,11 @@ export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
             hasReview: false,
         };
         
-        addLog('info', 'Successfully created order in database', { orderId: newOrderId, userId });
+        await addLog('info', 'Successfully created order in database', { orderId: newOrderId, userId });
         return finalOrder;
 
     } catch(error: any) {
-        addLog('error', 'addOrder database operation failed', {
+        await addLog('error', 'addOrder database operation failed', {
             message: error.message,
             stack: error.stack,
             name: error.name,
@@ -169,7 +169,7 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
         await batch.commit();
 
     } catch (error) {
-        addLog('error', 'updateOrderStatus failed', { userId, orderId, status, error });
+        await addLog('error', 'updateOrderStatus failed', { userId, orderId, status, error });
         console.error(`Error updating status for order ${orderId}:`, error);
         throw new Error("Could not update the order status.");
     }
