@@ -1,7 +1,6 @@
 
 import type { Metadata } from 'next';
 import { CheckoutClient } from './CheckoutClient';
-import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'Secure Checkout | Nature of the Divine',
@@ -12,17 +11,8 @@ export const metadata: Metadata = {
   },
 };
 
-const isProd = process.env.NEXT_PUBLIC_PHONEPE_ENV === 'PRODUCTION';
-const phonePeSdkUrl = isProd 
-    ? 'https://phonepe.mycloudrepo.io/public/repositories/phonepe-web-sdk/latest/bundle.js'
-    : 'https://phonepe.mycloudrepo.io/public/repositories/phonepe-web-sdk-uat/latest/bundle.js';
-
-
 export default function CheckoutPage() {
     return (
-        <>
-            <Script src={phonePeSdkUrl} strategy="lazyOnload" />
-            <CheckoutClient />
-        </>
+        <CheckoutClient />
     );
 }

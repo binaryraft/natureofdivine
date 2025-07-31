@@ -3,12 +3,12 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, processPrepaidOrder, validateDiscountCode } from '@/lib/actions';
+import { placeOrder, validateDiscountCode } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Tag } from 'lucide-react';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Tag, ArrowLeft, User, MapPin, BadgePercent } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -148,13 +148,6 @@ const variantDetails: Record<Exclude<BookVariant, 'ebook'>, { name: string; icon
     hardcover: { name: 'Hardcover', icon: Book, description: "A durable, premium edition." },
 };
 
-// Declare the phonepe object on the window
-declare global {
-    interface Window {
-        phonepe: any;
-    }
-}
-
 export function OrderForm({ stock }: { stock: Stock }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -200,23 +193,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
         }
       }
   }, [user, state.details.name, state.details.email]);
-
-  // Handle payment status from URL
-  useEffect(() => {
-    const error = searchParams.get('error');
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Payment Failed',
-        description: `Your payment could not be completed. Reason: ${error.replace(/_/g, ' ')}`,
-      });
-      // Reset form state after an error
-      const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
-      dispatch({type: 'RESET_TO_VARIANT', payload: state.variant || variantParam });
-      router.replace('/checkout' + (state.variant ? `?variant=${state.variant}`: ''), { scroll: false }); // Clear URL params
-    }
-  }, [searchParams, toast, router, state.variant]);
-
 
   // Handle Pincode Auto-fill
   const handlePincodeChange = async (pinCode: string) => {
@@ -316,51 +292,16 @@ export function OrderForm({ stock }: { stock: Stock }) {
         ...state.details,
         userId: user.uid,
         discountCode: state.discount.applied ? state.discount.code : undefined,
+        paymentMethod: state.paymentMethod,
     };
 
     try {
-        if (state.paymentMethod === 'cod') {
-            const result = await placeOrder({
-                ...orderPayload,
-                paymentMethod: 'cod',
-            });
-
-            if (result.success && result.orderId) {
-                toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
-                router.push(`/orders?success=true&orderId=${result.orderId}`);
-            } else {
-                throw new Error(result.message);
-            }
-        } else if (state.paymentMethod === 'prepaid') {
-             const paymentResult = await processPrepaidOrder(orderPayload);
-            if (paymentResult.success && paymentResult.token) {
-                 if (window.phonepe) {
-                    window.phonepe.openCheckout().on('S2S_CALLBACK', (response: any) => {
-                         if (response.state === 'COMPLETED') {
-                            const transactionId = response.payload.merchantOrderId;
-                            router.push(`/api/payment/callback?transactionId=${transactionId}`);
-                        } else {
-                            toast({
-                                variant: 'destructive',
-                                title: 'Payment Failed',
-                                description: 'Your payment was not successful. Please try again.',
-                            });
-                            dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
-                        }
-                    }).on('FAILURE', (response: any) => {
-                        toast({
-                            variant: 'destructive',
-                            title: 'Payment Error',
-                            description: response.message || 'An error occurred with the payment gateway.',
-                        });
-                        dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
-                    }).open(paymentResult.token);
-                } else {
-                    throw new Error("PhonePe SDK not found. Please refresh the page.");
-                }
-            } else {
-                throw new Error(paymentResult.message || 'Could not get payment token.');
-            }
+        const result = await placeOrder(orderPayload);
+        if (result.success && result.orderId) {
+            toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
+            router.push(`/orders?success=true&orderId=${result.orderId}`);
+        } else {
+            throw new Error(result.message);
         }
     } catch(e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
@@ -373,7 +314,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     return (
         <div className="flex flex-col items-center justify-center gap-4 my-8 min-h-[300px]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg text-muted-foreground">Processing your request...</p>
+            <p className="text-lg text-muted-foreground">Placing your order...</p>
             <p className="text-sm text-muted-foreground">Please do not refresh or go back.</p>
         </div>
     )
@@ -384,11 +325,11 @@ export function OrderForm({ stock }: { stock: Stock }) {
         case 'variant':
             return (
                  <Card className="border-none shadow-none">
-                    <CardHeader className="p-0">
-                        <CardTitle>1. Select Book Type</CardTitle>
-                        <CardDescription>Choose the version of the book you&apos;d like to order.</CardDescription>
+                    <CardHeader className="p-0 text-center">
+                        <CardTitle className="text-2xl">Select Book Type</CardTitle>
+                        <CardDescription>Choose the version you&apos;d like to order.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6 pt-6 p-0">
+                    <CardContent className="space-y-6 pt-8 p-0">
                         {state.errors?.variant && <Alert variant="destructive"><AlertDescription>{state.errors.variant[0]}</AlertDescription></Alert>}
                          {priceLoading || !priceData ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -396,29 +337,29 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 <Skeleton className="h-40 w-full" />
                             </div>
                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {physicalVariants.map(variant => {
                                 if (variant === 'ebook') return null; // E-book is not sold here
                                 const isAvailable = stock[variant] > 0;
                                 const price = priceData[variant];
                                 const locale = getLocaleFromCountry(priceData.country);
                                 const formattedPrice = new Intl.NumberFormat(locale, { style: 'currency', currency: priceData.currencyCode }).format(price);
-                                const { name, icon: Icon } = variantDetails[variant];
+                                const { name, icon: Icon, description } = variantDetails[variant];
 
                                 return (
                                 <div
                                     key={variant}
                                     onClick={() => isAvailable && handleVariantSelect(variant)}
                                     className={cn(
-                                    "rounded-lg border-2 p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center",
-                                    "border-border hover:border-primary/50",
-                                    !isAvailable && "opacity-50 cursor-not-allowed bg-muted/50"
+                                    "rounded-lg border-2 p-6 cursor-pointer transition-all flex flex-col items-center justify-center text-center group hover:border-primary hover:shadow-xl",
+                                    !isAvailable && "opacity-50 cursor-not-allowed bg-muted/50 hover:border-border hover:shadow-none"
                                     )}
                                 >
-                                    <Icon className="h-10 w-10 mb-2 text-primary" />
-                                    <p className="font-bold text-lg">{name}</p>
-                                    <p className="font-semibold text-xl font-headline text-primary">{formattedPrice}</p>
-                                    {!isAvailable && <p className="text-destructive font-medium mt-2">Out of Stock</p>}
+                                    <Icon className="h-12 w-12 mb-3 text-primary transition-transform group-hover:scale-110" />
+                                    <p className="font-bold text-xl font-headline">{name}</p>
+                                    <p className="text-muted-foreground text-sm mb-3">{description}</p>
+                                    <p className="font-semibold text-2xl font-headline text-primary">{formattedPrice}</p>
+                                    {!isAvailable && <p className="text-destructive font-medium mt-2 text-sm">Out of Stock</p>}
                                 </div>
                                 );
                             })}
@@ -430,11 +371,14 @@ export function OrderForm({ stock }: { stock: Stock }) {
         
         case 'details':
             return (
-                <form onSubmit={handleDetailsSubmit} className="space-y-6">
-                    <CardHeader className="p-0">
-                        <CardTitle>2. Your Details</CardTitle>
+                 <Card className="border-none shadow-none">
+                    <CardHeader className="p-0 mb-6">
+                        <Button variant="ghost" size="sm" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="self-start px-2 -ml-2 mb-2">
+                           <ArrowLeft className="mr-2 h-4 w-4"/> Back
+                        </Button>
+                        <CardTitle className="text-2xl">Shipping Details</CardTitle>
                         <CardDescription>
-                            Enter your shipping information. You must be logged in to proceed.
+                            Enter your information. You must be logged in to proceed.
                         </CardDescription>
                     </CardHeader>
                      {!user && !authLoading && (
@@ -445,75 +389,77 @@ export function OrderForm({ stock }: { stock: Stock }) {
                             </AlertDescription>
                         </Alert>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Full Name</Label>
-                            <Input id="name" name="name" required value={state.details?.name} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'name', value: e.target.value}})} />
-                            {state.errors?.name && <p className="text-sm text-destructive">{state.errors.name[0]}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input id="email" name="email" type="email" required value={state.details?.email} readOnly={!!user?.email} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'email', value: e.target.value}})} />
-                            {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" name="phone" type="tel" required value={state.details?.phone} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'phone', value: e.target.value}})} />
-                        {state.errors?.phone && <p className="text-sm text-destructive">{state.errors.phone[0]}</p>}
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="address">Address</Label>
-                        <Textarea id="address" name="address" required value={state.details?.address} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'address', value: e.target.value}})} placeholder="House No, Building Name, Area"/>
-                        {state.errors?.address && <p className="text-sm text-destructive">{state.errors.address[0]}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="street">Landmark (optional)</Label>
-                        <Input id="street" name="street" value={state.details?.street} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'street', value: e.target.value}})} />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                             <Label htmlFor="pinCode">PIN Code</Label>
-                            <div className="relative flex items-center">
-                                <Input id="pinCode" name="pinCode" required value={state.details?.pinCode} onChange={(e) => handlePincodeChange(e.target.value)} />
-                                {isPincodeLoading && <Loader2 className="absolute right-2.5 h-4 w-4 animate-spin" />}
+                    <form onSubmit={handleDetailsSubmit} className="space-y-6">
+                        <div className="space-y-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Full Name</Label>
+                                    <Input id="name" name="name" required value={state.details?.name} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'name', value: e.target.value}})} />
+                                    {state.errors?.name && <p className="text-sm text-destructive">{state.errors.name[0]}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <Input id="email" name="email" type="email" required value={state.details?.email} readOnly={!!user?.email} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'email', value: e.target.value}})} />
+                                    {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
+                                </div>
                             </div>
-                            {pincodeError && <p className="text-sm text-destructive">{pincodeError}</p>}
-                            {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="city">City / District</Label>
-                            <Input id="city" name="city" required value={state.details?.city} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'city', value: e.target.value}})} />
-                            {state.errors?.city && <p className="text-sm text-destructive">{state.errors.city[0]}</p>}
-                        </div>
-                    </div>
+                            
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Phone Number</Label>
+                                <Input id="phone" name="phone" type="tel" required value={state.details?.phone} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'phone', value: e.target.value}})} />
+                                {state.errors?.phone && <p className="text-sm text-destructive">{state.errors.phone[0]}</p>}
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="address">Address</Label>
+                                <Textarea id="address" name="address" required value={state.details?.address} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'address', value: e.target.value}})} placeholder="House No, Building Name, Area"/>
+                                {state.errors?.address && <p className="text-sm text-destructive">{state.errors.address[0]}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="street">Landmark (optional)</Label>
+                                <Input id="street" name="street" value={state.details?.street} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'street', value: e.target.value}})} />
+                            </div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                                <Label htmlFor="state">State</Label>
-                                <Input id="state" name="state" required value={state.details?.state} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'state', value: e.target.value}})} />
-                                {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                     <Label htmlFor="pinCode">PIN Code</Label>
+                                    <div className="relative flex items-center">
+                                        <Input id="pinCode" name="pinCode" required value={state.details?.pinCode} onChange={(e) => handlePincodeChange(e.target.value)} />
+                                        {isPincodeLoading && <Loader2 className="absolute right-2.5 h-4 w-4 animate-spin" />}
+                                    </div>
+                                    {pincodeError && <p className="text-sm text-destructive">{pincodeError}</p>}
+                                    {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="city">City / District</Label>
+                                    <Input id="city" name="city" required value={state.details?.city} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'city', value: e.target.value}})} />
+                                    {state.errors?.city && <p className="text-sm text-destructive">{state.errors.city[0]}</p>}
+                                </div>
+                            </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                        <Label htmlFor="state">State</Label>
+                                        <Input id="state" name="state" required value={state.details?.state} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'state', value: e.target.value}})} />
+                                        {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
+                                </div>
+                                 <div className="space-y-2">
+                                    <Label htmlFor="country">Country</Label>
+                                    <Input id="country" name="country" required value={state.details?.country || ''} readOnly />
+                                    {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
+                                </div>
+                            </div>
+                            {user && (
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Checkbox id="save-address" name="saveAddress" checked={state.details?.saveAddress} onCheckedChange={checked => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'saveAddress', value: !!checked}})} />
+                                    <Label htmlFor="save-address" className="font-normal text-muted-foreground">Save this address for future orders</Label>
+                                </div>
+                            )}
                         </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="country">Country</Label>
-                            <Input id="country" name="country" required value={state.details?.country || ''} readOnly />
-                            {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
-                        </div>
+                    <div className="pt-4">
+                        <Button type="submit" className="w-full" size="lg" disabled={!user || authLoading}>Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/></Button>
                     </div>
-                    {user && (
-                        <div className="flex items-center space-x-2 pt-2">
-                            <Checkbox id="save-address" name="saveAddress" checked={state.details?.saveAddress} onCheckedChange={checked => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'saveAddress', value: !!checked}})} />
-                            <Label htmlFor="save-address" className="font-normal text-muted-foreground">Save this address for future orders</Label>
-                        </div>
-                    )}
-                    
-                <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
-                    <Button type="submit" className="w-full" disabled={!user || authLoading}>Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/></Button>
-                    <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
-                </div>
-                </form>
+                    </form>
+                </Card>
             );
 
         case 'payment':
@@ -532,85 +478,93 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
 
             return (
-                <div>
-                    <Card className="border-none shadow-none">
-                        <CardHeader className="p-0 mb-6">
-                            <CardTitle>3. Payment Method</CardTitle>
-                             <CardDescription>
-                                Confirm your order total and select a payment method.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6 p-0">
-                             <Card className="bg-muted/50">
-                                <CardContent className="p-4 space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <span>Original Price:</span>
-                                        <span className={cn(state.discount.applied && "line-through text-muted-foreground")}>{formattedOriginalPrice}</span>
-                                    </div>
-                                    {state.discount.applied && (
-                                        <div className="flex justify-between items-center text-green-600 font-medium">
-                                            <span>Discount ({state.discount.percent}%):</span>
-                                            <span>- {formattedDiscount}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between items-center font-bold text-lg border-t pt-2 mt-2">
-                                        <span>Total Amount:</span>
-                                        <span>{formattedFinalPrice}</span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                             <div className="space-y-2">
-                                <Label htmlFor="discount-code">Discount Code</Label>
-                                <div className="flex gap-2">
-                                    <Input 
-                                        id="discount-code" 
-                                        placeholder="Enter promo code" 
-                                        value={state.discount.code} 
-                                        onChange={e => dispatch({type: 'SET_DISCOUNT_CODE', payload: e.target.value.toUpperCase()})}
-                                        disabled={state.discount.applied}
-                                    />
-                                    {state.discount.applied ? (
-                                        <Button variant="outline" onClick={() => dispatch({type: 'RESET_DISCOUNT'})}>Remove</Button>
-                                    ) : (
-                                        <Button onClick={handleApplyDiscount} disabled={isCheckingCode || !state.discount.code}>
-                                            {isCheckingCode && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                            Apply
-                                        </Button>
-                                    )}
+                 <Card className="border-none shadow-none">
+                    <CardHeader className="p-0 mb-6">
+                        <Button variant="ghost" size="sm" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="self-start px-2 -ml-2 mb-2">
+                           <ArrowLeft className="mr-2 h-4 w-4"/> Back
+                        </Button>
+                        <CardTitle className="text-2xl">Confirm & Pay</CardTitle>
+                        <CardDescription>
+                            Confirm your order total and select a payment method.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6 p-0">
+                         <Card className="bg-secondary/50">
+                            <CardContent className="p-6 space-y-4">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Item:</span>
+                                    <span className="font-medium capitalize">{state.variant}</span>
                                 </div>
-                                {state.discount.message && <p className={cn("text-sm", state.discount.applied ? "text-green-600" : "text-destructive")}>{state.discount.message}</p>}
-                            </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Price:</span>
+                                    <span className={cn("font-medium", state.discount.applied && "line-through text-muted-foreground")}>{formattedOriginalPrice}</span>
+                                </div>
+                                {state.discount.applied && (
+                                    <div className="flex justify-between items-center text-sm text-green-600 font-medium">
+                                        <span>Discount ({state.discount.percent}%):</span>
+                                        <span>- {formattedDiscount}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center font-bold text-lg border-t pt-4 mt-4">
+                                    <span>Total Amount:</span>
+                                    <span>{formattedFinalPrice}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                            <RadioGroup 
-                                name="paymentMethod" 
-                                className="space-y-4"
-                                onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
-                                value={state.paymentMethod || ''}
-                            >
-                                <Label className={cn("flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all")}>
-                                    <RadioGroupItem value="cod" id="cod" />
-                                    <div className="flex-grow">
-                                        <span className="font-semibold flex items-center gap-2"><Truck/> Cash on Delivery</span>
-                                    </div>
-                                </Label>
-                                <Label className={cn("flex items-center gap-4 rounded-md border p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:bg-secondary has-[[data-state=checked]]:border-primary transition-all" : "cursor-not-allowed opacity-50")}>
-                                    <RadioGroupItem value="prepaid" id="prepaid" disabled={!isPrepaidEnabled} />
-                                    <div className="flex-grow">
-                                        <span className="font-semibold flex items-center gap-2"><CreditCard /> Prepaid</span>
-                                        {!isPrepaidEnabled && <p className="text-sm text-muted-foreground">(Currently unavailable)</p>}
-                                    </div>
-                                </Label>
-                            </RadioGroup>
-                             <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
-                                <Button onClick={handlePaymentSubmit} disabled={!state.paymentMethod || isSubmitting} className="w-full">
-                                    {isSubmitting ? <Loader2 className="animate-spin" /> : (state.paymentMethod === 'cod' ? 'Place Order' : 'Pay Now')}
-                                </Button>
-                                <Button type="button" variant="outline" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="w-full">Back</Button>
+                         <div className="space-y-2">
+                            <Label htmlFor="discount-code">Discount Code</Label>
+                            <div className="flex gap-2">
+                                <Input 
+                                    id="discount-code" 
+                                    placeholder="Enter promo code" 
+                                    value={state.discount.code} 
+                                    onChange={e => dispatch({type: 'SET_DISCOUNT_CODE', payload: e.target.value.toUpperCase()})}
+                                    disabled={state.discount.applied}
+                                />
+                                {state.discount.applied ? (
+                                    <Button variant="outline" onClick={() => dispatch({type: 'RESET_DISCOUNT'})}>Remove</Button>
+                                ) : (
+                                    <Button onClick={handleApplyDiscount} disabled={isCheckingCode || !state.discount.code}>
+                                        {isCheckingCode && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                        Apply
+                                    </Button>
+                                )}
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            {state.discount.message && <p className={cn("text-sm pt-1", state.discount.applied ? "text-green-600" : "text-destructive")}>{state.discount.message}</p>}
+                        </div>
+
+                        <RadioGroup 
+                            name="paymentMethod" 
+                            className="space-y-4 pt-4"
+                            onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
+                            value={state.paymentMethod || ''}
+                        >
+                            <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all")}>
+                                <RadioGroupItem value="cod" id="cod" />
+                                <Truck className="h-6 w-6 text-primary" />
+                                <div className="flex-grow">
+                                    <span className="font-semibold">Cash on Delivery</span>
+                                    <p className="text-xs text-muted-foreground">Pay with cash upon delivery.</p>
+                                </div>
+                            </Label>
+                             <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>
+                                <RadioGroupItem value="prepaid" id="prepaid" disabled={!isPrepaidEnabled} />
+                                <CreditCard className="h-6 w-6 text-primary" />
+                                <div className="flex-grow">
+                                    <span className="font-semibold">Prepaid / Online</span>
+                                     <p className="text-xs text-muted-foreground">Pay with UPI, Card, Netbanking.</p>
+                                    {!isPrepaidEnabled && <p className="text-sm text-muted-foreground">(Currently unavailable)</p>}
+                                </div>
+                            </Label>
+                        </RadioGroup>
+                         <div className="pt-4">
+                            <Button onClick={handlePaymentSubmit} disabled={!state.paymentMethod || isSubmitting} className="w-full" size="lg">
+                                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Place Order'}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
             );
         default:
             return null;

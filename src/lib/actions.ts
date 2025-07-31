@@ -3,13 +3,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus, addPendingOrder, deletePendingOrder, getPendingOrder } from './order-store';
+import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus } from './order-store';
 import type { OrderStatus, BookVariant } from './definitions';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import { addReview as addReviewToStore, getReviews } from './review-store';
-import { auth } from './firebase';
-import { StandardCheckoutClient, Env, CreateSdkOrderRequest } from 'phonepe-pg-sdk-node';
 import { addDiscount, getDiscount, incrementDiscountUsage } from './discount-store';
 
 
@@ -26,25 +24,23 @@ const OrderSchema = z.object({
   pinCode: z.string().min(3, 'Please enter a valid PIN code.'),
   userId: z.string().min(1, "User ID is required."),
   discountCode: z.string().optional(),
-});
-
-const CodOrderSchema = OrderSchema.extend({
-    paymentMethod: z.literal('cod'),
+  paymentMethod: z.enum(['cod', 'prepaid']),
 });
 
 export async function placeOrder(
-  data: z.infer<typeof CodOrderSchema>
+  data: z.infer<typeof OrderSchema>
 ): Promise<{ success: boolean; message: string; orderId?: string }> {
-  const validatedFields = CodOrderSchema.safeParse(data);
+  const validatedFields = OrderSchema.safeParse(data);
 
   if (!validatedFields.success) {
+    console.error("Order validation failed:", validatedFields.error.flatten());
     return {
       success: false,
       message: 'Invalid data provided. Please check the form.',
     };
   }
 
-  const { variant, userId, discountCode, ...orderDetails } = validatedFields.data;
+  const { variant, userId, discountCode, paymentMethod, ...orderDetails } = validatedFields.data;
 
   try {
     const prices = await fetchLocationAndPrice();
@@ -70,7 +66,7 @@ export async function placeOrder(
       originalPrice,
       discountCode,
       discountAmount,
-      paymentMethod: 'cod',
+      paymentMethod: paymentMethod,
       userId: userId,
     });
     
@@ -96,100 +92,6 @@ export async function placeOrder(
     };
   }
 }
-
-const isProd = process.env.NEXT_PUBLIC_PHONEPE_ENV === 'PRODUCTION';
-
-const clientId = process.env.PHONEPE_CLIENT_ID;
-const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
-const env = isProd ? Env.PRODUCTION : Env.SANDBOX;
-
-const HOST_URL = process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000';
-
-
-export async function processPrepaidOrder(
-  data: z.infer<typeof OrderSchema>
-): Promise<{ success: boolean; message: string; token?: string; }> {
-    const validatedFields = OrderSchema.safeParse(data);
-
-    if (!validatedFields.success) {
-        console.error("Prepaid order validation failed:", validatedFields.error.flatten());
-        return {
-            success: false,
-            message: 'Invalid data provided. Please check the form.',
-        };
-    }
-    
-    if (!clientId || !clientSecret || clientSecret === 'YOUR_CLIENT_SECRET_HERE') {
-        console.error('PhonePe client credentials are not configured in the environment.');
-        return { success: false, message: 'Payment gateway is not configured.' };
-    }
-    
-    const { variant, userId, discountCode, ...orderDetails } = validatedFields.data;
-    
-    try {
-        const client = StandardCheckoutClient.getInstance(clientId, clientSecret, 1, env);
-        const prices = await fetchLocationAndPrice();
-        const originalPrice = prices[variant as Exclude<BookVariant, 'ebook'>];
-        
-        let finalPrice = originalPrice;
-        let discountAmount = 0;
-        
-        if (discountCode) {
-            const discount = await getDiscount(discountCode);
-            if (discount) {
-                discountAmount = Math.round(originalPrice * (discount.percent / 100));
-                finalPrice = originalPrice - discountAmount;
-            }
-        }
-
-        const amount = finalPrice * 100; // Amount in paise
-
-        const merchantTransactionId = `MUID${Date.now()}`;
-        
-        await addPendingOrder(merchantTransactionId, {
-            ...orderDetails,
-            variant,
-            price: finalPrice,
-            originalPrice,
-            discountCode,
-            discountAmount,
-            paymentMethod: 'prepaid',
-            userId: userId,
-        });
-        
-        const callbackUrl = `${HOST_URL}/api/payment/callback`;
-        const redirectUrl = `${HOST_URL}/api/payment/callback?transactionId=${merchantTransactionId}`;
-
-        const request = CreateSdkOrderRequest.StandardCheckoutBuilder()
-            .merchantOrderId(merchantTransactionId)
-            .amount(amount)
-            .merchantUserId(userId)
-            .callbackUrl(callbackUrl)
-            .redirectUrl(redirectUrl)
-            .build();
-
-        const response = await client.createSdkOrder(request);
-
-        if (!response.token) {
-            console.error("PhonePe SDK Error:", response);
-            await deletePendingOrder(merchantTransactionId); // Clean up pending order on failure
-            throw new Error('Failed to get payment token from PhonePe.');
-        }
-
-        return {
-            success: true,
-            message: 'Token generated successfully.',
-            token: response.token,
-        };
-    } catch (e: any) {
-        console.error('Prepaid order processing error:', e);
-        return {
-            success: false,
-            message: e.message || 'Could not create a pending order.',
-        };
-    }
-}
-
 
 export async function fetchOrders() {
     return await getOrders();
