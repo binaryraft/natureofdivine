@@ -2,14 +2,15 @@
 'use server';
 
 import { z } from 'zod';
-import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus } from './order-store';
+import { addOrder } from './order-store';
 import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
-import { BookVariant, OrderStatus } from './definitions';
+import { BookVariant, OrderStatus, Review } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
-import { addReview as addReviewToStore, getReviews } from './review-store';
+import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
+import { getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus } from './order-store';
 
 
 const OrderFormSchema = z.object({
@@ -44,7 +45,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     };
   }
   
-  const { variant, userId, discountCode, ...orderDetails } = validatedFields.data;
+  const { variant, userId, discountCode } = validatedFields.data;
 
   try {
     const prices = await fetchLocationAndPrice();
@@ -63,18 +64,28 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
 
     await decreaseStock(variant, 1);
     
+    // Meticulously build the clean data object to pass to the database store.
+    // This prevents any "unsupported field value" errors.
     const newOrderData = {
-      ...orderDetails,
-      variant,
+      userId: validatedFields.data.userId,
+      name: validatedFields.data.name,
+      phone: validatedFields.data.phone,
+      email: validatedFields.data.email,
+      address: validatedFields.data.address,
+      street: validatedFields.data.street || '',
+      city: validatedFields.data.city,
+      country: validatedFields.data.country,
+      state: validatedFields.data.state,
+      pinCode: validatedFields.data.pinCode,
+      paymentMethod: validatedFields.data.paymentMethod,
+      variant: validatedFields.data.variant,
       price: finalPrice,
       originalPrice,
-      discountCode,
+      discountCode: validatedFields.data.discountCode,
       discountAmount,
-      userId: userId,
-      paymentMethod: validatedFields.data.paymentMethod,
     };
     
-    await addLog('info', 'Attempting to add order to database...', { userId, variant });
+    await addLog('info', 'Attempting to add order to database with clean data...', { userId, variant });
     const newOrder = await addOrder(newOrderData);
     await addLog('info', 'Order successfully created in database.', { orderId: newOrder.id });
     
@@ -165,8 +176,8 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   }
 }
 
-export async function fetchReviews() {
-    return await getReviews();
+export async function fetchReviews(): Promise<Review[]> {
+    return await getReviewsFromStore();
 }
 
 export async function validateDiscountCode(code: string): Promise<{ success: boolean; percent?: number; message: string }> {

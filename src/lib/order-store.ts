@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, getDoc, updateDoc, query, orderBy, Timestamp, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, updateDoc, query, orderBy, Timestamp, writeBatch } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 import { addLog } from './log-store';
 
@@ -38,9 +38,7 @@ const docToOrder = (doc: any): Order => {
   };
 };
 
-type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview' | 'paymentMethod'> & {
-    paymentMethod?: 'cod' | 'prepaid';
-};
+type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
 
 
 export async function addOrder(orderData: NewOrderData): Promise<Order> {
@@ -54,32 +52,17 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
     try {
         const batch = writeBatch(db);
 
-        // 1. Generate a single, authoritative document reference for the new order
+        // 1. Generate a single, authoritative document reference for the new order IN THE MAIN COLLECTION
         const newOrderRef = doc(allOrdersCollection);
         const newOrderId = newOrderRef.id;
 
         // 2. Create the user-specific document reference using the SAME ID
         const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
 
-        // 3. Meticulously build the clean data object to be saved
+        // 3. Meticulously build the clean data object to be saved, including the new ID
         const newOrderDocumentData = {
             id: newOrderId,
-            userId: orderData.userId,
-            name: orderData.name,
-            phone: orderData.phone,
-            email: orderData.email,
-            address: orderData.address,
-            street: orderData.street,
-            city: orderData.city,
-            country: orderData.country,
-            state: orderData.state,
-            pinCode: orderData.pinCode,
-            paymentMethod: orderData.paymentMethod || 'cod',
-            variant: orderData.variant,
-            price: orderData.price,
-            originalPrice: orderData.originalPrice,
-            discountCode: orderData.discountCode,
-            discountAmount: orderData.discountAmount,
+            ...orderData,
             status: 'new' as OrderStatus,
             createdAt: Timestamp.now(),
             hasReview: false,
@@ -172,3 +155,4 @@ export async function updateOrderStatus(userId: string, orderId: string, status:
         throw new Error("Could not update the order status.");
     }
 };
+
