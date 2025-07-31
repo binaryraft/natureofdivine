@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, updateDoc, query, orderBy, Timestamp, where, writeBatch } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 import { addLog } from './log-store';
 
@@ -14,7 +14,7 @@ const docToOrder = (doc: any): Order => {
     ? data.createdAt.toMillis() 
     : (typeof data.createdAt === 'number' ? data.createdAt : Date.now());
 
-  const order: Order = {
+  return {
     id: doc.id,
     userId: data.userId || null,
     name: data.name || '',
@@ -36,10 +36,84 @@ const docToOrder = (doc: any): Order => {
     createdAt: createdAtMillis,
     hasReview: data.hasReview || false,
   };
-  return order;
 };
 
-export const getOrders = async (): Promise<Order[]> => {
+type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview' | 'paymentMethod'> & {
+    paymentMethod?: 'cod' | 'prepaid';
+};
+
+
+export async function addOrder(orderData: NewOrderData): Promise<Order> {
+    const { userId } = orderData;
+    if (!userId) {
+        const err = new Error("User ID is required to add an order.");
+        await addLog('error', 'addOrder failed: Missing userId', { error: err });
+        throw err;
+    }
+
+    try {
+        const batch = writeBatch(db);
+
+        // 1. Generate a single, authoritative document reference for the new order
+        const newOrderRef = doc(allOrdersCollection);
+        const newOrderId = newOrderRef.id;
+
+        // 2. Create the user-specific document reference using the SAME ID
+        const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
+
+        // 3. Meticulously build the clean data object to be saved
+        const newOrderDocumentData = {
+            id: newOrderId,
+            userId: orderData.userId,
+            name: orderData.name,
+            phone: orderData.phone,
+            email: orderData.email,
+            address: orderData.address,
+            street: orderData.street,
+            city: orderData.city,
+            country: orderData.country,
+            state: orderData.state,
+            pinCode: orderData.pinCode,
+            paymentMethod: orderData.paymentMethod || 'cod',
+            variant: orderData.variant,
+            price: orderData.price,
+            originalPrice: orderData.originalPrice,
+            discountCode: orderData.discountCode,
+            discountAmount: orderData.discountAmount,
+            status: 'new' as OrderStatus,
+            createdAt: Timestamp.now(),
+            hasReview: false,
+        };
+
+        // 4. Set the same data in both locations within the atomic batch
+        batch.set(newOrderRef, newOrderDocumentData);
+        batch.set(userOrderRef, newOrderDocumentData);
+
+        // 5. Commit the batch
+        await batch.commit();
+
+        // 6. Construct the final Order object to return
+        const finalOrder: Order = {
+            ...newOrderDocumentData,
+            createdAt: newOrderDocumentData.createdAt.toMillis(),
+        };
+
+        return finalOrder;
+
+    } catch(error: any) {
+        await addLog('error', 'addOrder database operation failed', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code,
+            userId: userId,
+        });
+        console.error(`Error adding new order for user ${userId}:`, error);
+        throw error;
+    }
+};
+
+export async function getOrders(): Promise<Order[]> {
   try {
     const ordersQuery = query(allOrdersCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(ordersQuery);
@@ -56,8 +130,7 @@ export const getOrders = async (): Promise<Order[]> => {
   }
 };
 
-
-export const getOrdersByUserId = async (userId: string): Promise<Order[]> => {
+export async function getOrdersByUserId(userId: string): Promise<Order[]> {
   if (!userId) {
       throw new Error("User ID is required to fetch user orders.");
   }
@@ -73,100 +146,7 @@ export const getOrdersByUserId = async (userId: string): Promise<Order[]> => {
   }
 };
 
-
-export const getOrder = async (userId: string, orderId: string): Promise<Order | null> => {
-    if (!userId || !orderId) {
-        throw new Error("User ID and Order ID are required to fetch an order.");
-    }
-    try {
-        const docRef = doc(db, 'users', userId, 'orders', orderId);
-        const docSnap = await getDoc(docRef);
-
-        return docSnap.exists() ? docToOrder(docSnap) : null;
-    } catch (error) {
-        await addLog('error', 'getOrder failed', { userId, orderId, error });
-        console.error(`Error fetching order ${orderId} for user ${userId}:`, error);
-        throw new Error("Could not fetch the specified order.");
-    }
-};
-
-type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
-
-export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
-    const { userId } = orderData;
-    if (!userId) {
-        const err = new Error("User ID is required to add an order.");
-        await addLog('error', 'addOrder failed: Missing userId', { error: err });
-        throw err;
-    }
-
-    try {
-        // 1. Generate a new unique ID for the order first.
-        const newOrderRef = doc(allOrdersCollection);
-        const newOrderId = newOrderRef.id;
-
-        // 2. Explicitly construct the document data to ensure no invalid types are included.
-        const newOrderDocumentData = {
-            id: newOrderId,
-            userId: orderData.userId,
-            name: orderData.name,
-            phone: orderData.phone,
-            email: orderData.email,
-            address: orderData.address,
-            street: orderData.street,
-            city: orderData.city,
-            country: orderData.country,
-            state: orderData.state,
-            pinCode: orderData.pinCode,
-            paymentMethod: orderData.paymentMethod,
-            variant: orderData.variant,
-            price: orderData.price,
-            originalPrice: orderData.originalPrice,
-            discountCode: orderData.discountCode,
-            discountAmount: orderData.discountAmount,
-            status: 'new' as OrderStatus,
-            createdAt: Timestamp.now(),
-            hasReview: false,
-        };
-        
-        // 3. Use a batch to write to both locations atomically
-        const batch = writeBatch(db);
-        
-        // Write to the main all-orders collection
-        batch.set(doc(db, 'all-orders', newOrderId), newOrderDocumentData);
-        
-        // Write to the user-specific collection
-        const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
-        batch.set(userOrderRef, newOrderDocumentData);
-        
-        // 4. Commit the batch
-        await batch.commit();
-
-        // 5. Construct the final Order object to return
-        const finalOrder: Order = {
-            ...newOrderDocumentData,
-            createdAt: newOrderDocumentData.createdAt.toMillis(),
-        };
-        
-        await addLog('info', 'Successfully created order in database', { orderId: newOrderId, userId });
-        return finalOrder;
-
-    } catch(error: any) {
-        await addLog('error', 'addOrder database operation failed', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name,
-            code: error.code,
-            userId: userId
-        });
-        console.error(`Error adding new order for user ${userId}:`, error);
-        // Re-throw the original error so the action can catch it
-        throw new Error(`Could not create a new order in the database. Reason: ${error.message}`);
-    }
-};
-
-
-export const updateOrderStatus = async (userId: string, orderId: string, status: OrderStatus, hasReview?: boolean): Promise<void> => {
+export async function updateOrderStatus(userId: string, orderId: string, status: OrderStatus, hasReview?: boolean): Promise<void> {
     if (!userId || !orderId) {
         throw new Error("User ID and Order ID are required to update status.");
     }

@@ -1,18 +1,18 @@
 
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus } from './order-store';
-import type { OrderStatus, BookVariant } from './definitions';
+import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus } from './order-store';
+import { revalidatePath } from 'next/cache';
+import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
+import { BookVariant, OrderStatus } from './definitions';
+import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews } from './review-store';
-import { addDiscount, getDiscount, incrementDiscountUsage } from './discount-store';
-import { addLog } from './log-store';
 
 
-const OrderSchema = z.object({
+const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email address.'),
@@ -28,22 +28,23 @@ const OrderSchema = z.object({
   paymentMethod: z.enum(['cod', 'prepaid']),
 });
 
-export async function placeOrder(
-  data: z.infer<typeof OrderSchema>
-): Promise<{ success: boolean; message: string; orderId?: string }> {
-  await addLog('info', 'placeOrder action started', { variant: data.variant, paymentMethod: data.paymentMethod });
-  const validatedFields = OrderSchema.safeParse(data);
+export type OrderPayload = z.infer<typeof OrderFormSchema>;
+
+export async function placeOrder(payload: OrderPayload): Promise<{ success: boolean; message: string; orderId?: string }> {
+  await addLog('info', 'placeOrder action initiated.', { paymentMethod: payload.paymentMethod });
+
+  const validatedFields = OrderFormSchema.safeParse(payload);
 
   if (!validatedFields.success) {
     const errorDetails = validatedFields.error.flatten();
-    await addLog('error', 'Order validation failed', errorDetails);
+    await addLog('error', 'Order validation failed.', errorDetails);
     return {
       success: false,
       message: 'Invalid data provided. Please check the form.',
     };
   }
-
-  const { variant, userId, discountCode, paymentMethod, ...orderDetails } = validatedFields.data;
+  
+  const { variant, userId, discountCode, ...orderDetails } = validatedFields.data;
 
   try {
     const prices = await fetchLocationAndPrice();
@@ -69,20 +70,20 @@ export async function placeOrder(
       originalPrice,
       discountCode,
       discountAmount,
-      paymentMethod: paymentMethod,
       userId: userId,
+      paymentMethod: validatedFields.data.paymentMethod,
     };
     
-    await addLog('info', 'Attempting to add order to database', { userId, variant });
+    await addLog('info', 'Attempting to add order to database...', { userId, variant });
     const newOrder = await addOrder(newOrderData);
-    await addLog('info', 'Order successfully added to database', { orderId: newOrder.id });
+    await addLog('info', 'Order successfully created in database.', { orderId: newOrder.id });
     
     if (discountCode) {
         await incrementDiscountUsage(discountCode);
     }
 
     revalidatePath('/admin');
-    revalidatePath(`/orders`);
+    revalidatePath('/orders');
 
     return {
       success: true,
@@ -90,51 +91,47 @@ export async function placeOrder(
       orderId: newOrder.id,
     };
   } catch (error: any) {
-    const errorMessage = error.message || 'An unknown error occurred during order placement.';
+    const errorMessage = error.message || 'An unknown error occurred.';
     await addLog('error', 'placeOrder action failed catastrophically.', {
         message: errorMessage,
         stack: error.stack,
         name: error.name,
         code: error.code,
-        data: { variant: data.variant, userId: data.userId, paymentMethod: data.paymentMethod }
+        payload: payload,
     });
     console.error('CRITICAL placeOrder Error:', error);
     return {
       success: false,
-      message: `Database write failed: ${errorMessage}`,
+      message: `Could not create a new order in the database. Reason: ${errorMessage}`,
     };
   }
 }
 
-
 export async function processPrepaidOrder(): Promise<{ success: boolean }> {
-    // This is a simulation. In a real app, you'd integrate with a payment provider.
-    await addLog('info', 'processPrepaidOrder simulated successfully');
+    await addLog('info', 'Simulating successful prepaid payment.');
     return { success: true };
 }
-
 
 export async function fetchOrders() {
     return await getOrders();
 }
 
 export async function fetchUserOrders(userId: string) {
-    if (!userId) return [];
     return await getOrdersByUserId(userId);
 }
 
-export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus, hasReview?: boolean) {
+export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus) {
     try {
-        await updateOrderStatus(userId, orderId, status, hasReview);
+        await updateDbOrderStatus(userId, orderId, status);
+        await addLog('info', `Order status changed for ${orderId} to ${status}`);
         revalidatePath('/admin');
         revalidatePath('/orders');
-        return { success: true, message: `Order ${orderId} status updated to ${status}` };
-    } catch (error: any) {
-        await addLog('error', 'changeOrderStatus failed', { orderId, status, error });
-        return { success: false, message: error.message || 'Failed to update order status.' };
+        return { success: true, message: 'Order status updated successfully.' };
+    } catch(e: any) {
+        await addLog('error', 'changeOrderStatus failed.', { error: e, userId, orderId, status});
+        return { success: false, message: e.message || 'Failed to update order status.'};
     }
 }
-
 
 const ReviewSchema = z.object({
   orderId: z.string(),
@@ -147,16 +144,18 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
     
+    // NOTE: In a real app, you'd get the user's name from their profile
     const reviewData = {
       ...validatedData,
       userName: 'Anonymous', 
     };
 
     await addReviewToStore(reviewData);
-    await updateOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
+    // After submitting a review, also mark the order as having a review
+    await updateDbOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
     
-    revalidatePath('/');
-    revalidatePath('/orders');
+    revalidatePath('/'); // To show new testimonials
+    revalidatePath('/orders'); // To update the "Leave a Review" button state
 
     return { success: true, message: "Review submitted successfully." };
   } catch (error: any) {
@@ -188,4 +187,3 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
-
