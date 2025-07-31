@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Download, Tag } from 'lucide-react';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Tag } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,7 +26,6 @@ import { Textarea } from '@/components/ui/textarea';
 const isPrepaidEnabled = true;
 
 const physicalVariants: BookVariant[] = ['paperback', 'hardcover'];
-const allVariants: BookVariant[] = ['paperback', 'hardcover', 'ebook'];
 
 // Schemas for validation
 const VariantSchema = z.object({
@@ -315,7 +314,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     const orderPayload = {
         variant: state.variant,
         ...state.details,
-        userId: user.uid, // Ensure user ID is from the authenticated user
+        userId: user.uid,
         discountCode: state.discount.applied ? state.discount.code : undefined,
     };
 
@@ -366,11 +365,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     } catch(e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
-    } finally {
-       // Only reset submitting state on error, as prepaid flow is handled by callbacks
-        if (state.paymentMethod !== 'prepaid') {
-            setIsSubmitting(false);
-        }
+        setIsSubmitting(false);
     }
   };
   

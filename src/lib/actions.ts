@@ -7,7 +7,6 @@ import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus, addPendingOr
 import type { OrderStatus, BookVariant } from './definitions';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
-import { v4 as uuidv4 } from 'uuid';
 import { addReview as addReviewToStore, getReviews } from './review-store';
 import { auth } from './firebase';
 import { StandardCheckoutClient, Env, CreateSdkOrderRequest } from 'phonepe-pg-sdk-node';
@@ -25,7 +24,7 @@ const OrderSchema = z.object({
   country: z.string().min(2, 'Please select a country.'),
   state: z.string().min(2, 'Please select a state.'),
   pinCode: z.string().min(3, 'Please enter a valid PIN code.'),
-  userId: z.string().min(1, "User ID is required."), // Make userId required
+  userId: z.string().min(1, "User ID is required."),
   discountCode: z.string().optional(),
 });
 
@@ -71,7 +70,7 @@ export async function placeOrder(
       originalPrice,
       discountCode,
       discountAmount,
-      paymentMethod: 'cod', // This action is only for COD
+      paymentMethod: 'cod',
       userId: userId,
     });
     
@@ -80,7 +79,7 @@ export async function placeOrder(
     }
 
     revalidatePath('/admin');
-    revalidatePath(`/orders`); // Revalidate the specific user's order page if needed
+    revalidatePath(`/orders`);
 
     return {
       success: true,

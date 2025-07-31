@@ -62,7 +62,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Invalid callback payload' }, { status: 400 });
     }
     
-    // The response is a Base64 encoded JSON string
     const decodedResponse = Buffer.from(responsePayload, 'base64').toString('utf8');
     const responseJson = JSON.parse(decodedResponse);
 
@@ -73,22 +72,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Invalid payload from PhonePe' }, { status: 400 });
     }
 
-    // Perform the authoritative status check
     await checkTransactionStatus(merchantTransactionId);
 
-    // Respond to PhonePe that we have received the callback.
-    // The actual redirection happens on the client-side in the OrderForm.
     return NextResponse.json({ success: true, message: 'Callback received and processed.' });
 
   } catch (error: any) {
     console.error('Payment callback POST error:', error);
-    // Don't redirect here, just return an error response
     return NextResponse.json({ success: false, message: error.message || 'callback_failed' }, { status: 500 });
   }
 }
 
-// This GET route is used for the user's redirection from PhonePe.
-// The final status check happens here to confirm the payment.
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const transactionId = searchParams.get('transactionId');
@@ -108,7 +101,6 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Payment status check GET error:', error);
     if(transactionId) {
-        // It's important to clean up the pending order on failure to prevent orphaned records.
         await deletePendingOrder(transactionId);
     }
     const failureUrl = new URL('/checkout', request.url);
