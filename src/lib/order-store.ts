@@ -105,15 +105,31 @@ export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
         const newOrderRef = doc(allOrdersCollection);
         const newOrderId = newOrderRef.id;
 
+        // 2. Explicitly construct the document data to ensure no invalid types are included.
         const newOrderDocumentData = {
-            ...orderData,
-            id: newOrderId, // Explicitly include the ID in the data
+            id: newOrderId,
+            userId: orderData.userId,
+            name: orderData.name,
+            phone: orderData.phone,
+            email: orderData.email,
+            address: orderData.address,
+            street: orderData.street,
+            city: orderData.city,
+            country: orderData.country,
+            state: orderData.state,
+            pinCode: orderData.pinCode,
+            paymentMethod: orderData.paymentMethod,
+            variant: orderData.variant,
+            price: orderData.price,
+            originalPrice: orderData.originalPrice,
+            discountCode: orderData.discountCode,
+            discountAmount: orderData.discountAmount,
             status: 'new' as OrderStatus,
             createdAt: Timestamp.now(),
             hasReview: false,
         };
         
-        // 2. Use a batch to write to both locations atomically
+        // 3. Use a batch to write to both locations atomically
         const batch = writeBatch(db);
         
         // Write to the main all-orders collection
@@ -123,15 +139,13 @@ export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
         const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
         batch.set(userOrderRef, newOrderDocumentData);
         
-        // 3. Commit the batch
+        // 4. Commit the batch
         await batch.commit();
 
+        // 5. Construct the final Order object to return
         const finalOrder: Order = {
-            ...orderData,
-            id: newOrderId,
-            status: 'new',
+            ...newOrderDocumentData,
             createdAt: newOrderDocumentData.createdAt.toMillis(),
-            hasReview: false,
         };
         
         await addLog('info', 'Successfully created order in database', { orderId: newOrderId, userId });
@@ -178,4 +192,3 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
         throw new Error("Could not update the order status.");
     }
 };
-
