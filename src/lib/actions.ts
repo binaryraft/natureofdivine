@@ -182,5 +182,3 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
-
-    
