@@ -3,7 +3,7 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, validateDiscountCode } from '@/lib/actions';
+import { placeOrder, validateDiscountCode, processPrepaidOrder } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -281,7 +281,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     setIsCheckingCode(false);
   }
 
-  const handlePaymentSubmit = async () => {
+  const handleFinalOrderPlacement = async () => {
     if (!state.variant || !state.details || !state.paymentMethod || !user) return;
     
     setIsSubmitting(true);
@@ -306,7 +306,30 @@ export function OrderForm({ stock }: { stock: Stock }) {
     } catch(e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message || 'An unexpected error occurred.' });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
-        setIsSubmitting(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+
+  const handlePaymentSubmit = async () => {
+    if (!state.paymentMethod) return;
+    
+    if (state.paymentMethod === 'cod') {
+        await handleFinalOrderPlacement();
+    } else if (state.paymentMethod === 'prepaid') {
+        setIsSubmitting(true);
+        // Step 1: Call the demo server action that always returns true
+        const paymentAuthResult = await processPrepaidOrder();
+        
+        if (paymentAuthResult.success) {
+            // Step 2: If payment is "successful", proceed to create the order
+            await handleFinalOrderPlacement();
+        } else {
+            // This part will not be reached with the demo function but is good practice
+            toast({ variant: 'destructive', title: 'Payment Failed', description: 'Your payment could not be processed.' });
+            setIsSubmitting(false);
+        }
     }
   };
   

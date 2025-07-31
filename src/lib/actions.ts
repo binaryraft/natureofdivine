@@ -58,9 +58,8 @@ export async function placeOrder(
     }
 
     await decreaseStock(variant, 1);
-
-    // Pass the complete, validated data to the addOrder function
-    const newOrder = await addOrder(userId, {
+    
+    const newOrderData = {
       ...orderDetails,
       variant,
       price: finalPrice,
@@ -69,7 +68,9 @@ export async function placeOrder(
       discountAmount,
       paymentMethod: paymentMethod,
       userId: userId,
-    });
+    };
+    
+    const newOrder = await addOrder(newOrderData);
     
     if (discountCode) {
         await incrementDiscountUsage(discountCode);
@@ -93,6 +94,17 @@ export async function placeOrder(
     };
   }
 }
+
+/**
+ * Simulates a successful prepaid payment authorization.
+ * In a real app, this would involve integrating with a payment gateway.
+ */
+export async function processPrepaidOrder(): Promise<{ success: boolean }> {
+    // This is a demo function. It always returns true.
+    // In a real application, you would put your PhonePe or other payment gateway logic here.
+    return { success: true };
+}
+
 
 export async function fetchOrders() {
     return await getOrders();
@@ -170,3 +182,5 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
+
+    

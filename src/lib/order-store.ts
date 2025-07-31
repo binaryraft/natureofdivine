@@ -114,15 +114,16 @@ type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
 /**
  * Adds a new order to the specified user's `orders` subcollection in Firestore
  * and also adds a denormalized copy to the top-level `all-orders` collection for admin queries.
- * @param {string} userId - The ID of the user placing the order.
  * @param {NewOrderData} orderData - The data for the new order.
  * @returns {Promise<Order>} A promise that resolves to the newly created order object.
  * @throws Will throw an error if creating the document fails.
  */
-export const addOrder = async (userId: string, orderData: NewOrderData): Promise<Order> => {
+export const addOrder = async (orderData: NewOrderData): Promise<Order> => {
+    const { userId } = orderData;
     if (!userId) {
         throw new Error("User ID is required to add an order.");
     }
+
     try {
         const userOrdersCol = collection(db, 'users', userId, 'orders');
         const newOrderRef = doc(userOrdersCol); // This generates the ID upfront
@@ -146,13 +147,17 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
 
         await batch.commit();
         
-        return {
+        // Construct the final Order object to return
+        const finalOrder: Order = {
             ...orderData,
             id: newOrderRef.id,
             status: 'new',
             createdAt: newOrderDocument.createdAt.toMillis(),
             hasReview: false,
         };
+        
+        return finalOrder;
+
     } catch(error: any) {
         console.error(`Error adding new order for user ${userId}:`, error.message, error.stack);
         throw new Error("Could not create a new order in the database.");
@@ -194,3 +199,5 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
         throw new Error("Could not update the order status.");
     }
 };
+
+    
