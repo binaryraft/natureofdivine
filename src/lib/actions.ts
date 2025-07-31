@@ -59,6 +59,7 @@ export async function placeOrder(
 
     await decreaseStock(variant, 1);
 
+    // Pass the complete, validated data to the addOrder function
     const newOrder = await addOrder(userId, {
       ...orderDetails,
       variant,

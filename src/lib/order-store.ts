@@ -4,7 +4,6 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, query, orderBy, Timestamp, where, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 
-const pendingOrdersCollection = collection(db, 'pending-orders');
 const allOrdersCollection = collection(db, 'all-orders');
 
 // Helper function to safely convert a Firestore document to a validated Order object
@@ -125,9 +124,9 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
         throw new Error("User ID is required to add an order.");
     }
     try {
-        const userOrdersCollection = collection(db, 'users', userId, 'orders');
-        const newOrderRef = doc(userOrdersCollection); // Create a reference with a new ID first
-
+        const userOrdersCol = collection(db, 'users', userId, 'orders');
+        const newOrderRef = doc(userOrdersCol); // This generates the ID upfront
+        
         const newOrderDocument = {
             ...orderData,
             id: newOrderRef.id,
@@ -138,10 +137,10 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
 
         const batch = writeBatch(db);
 
-        // 1. Write to the user's specific order subcollection
+        // 1. Write to the user's specific order subcollection with the generated ref
         batch.set(newOrderRef, newOrderDocument);
 
-        // 2. Write a denormalized copy to the all-orders collection
+        // 2. Write a denormalized copy to the all-orders collection, using the SAME ID
         const allOrdersRef = doc(allOrdersCollection, newOrderRef.id);
         batch.set(allOrdersRef, newOrderDocument);
 
@@ -154,8 +153,8 @@ export const addOrder = async (userId: string, orderData: NewOrderData): Promise
             createdAt: newOrderDocument.createdAt.toMillis(),
             hasReview: false,
         };
-    } catch(error) {
-        console.error(`Error adding new order for user ${userId}:`, error);
+    } catch(error: any) {
+        console.error(`Error adding new order for user ${userId}:`, error.message, error.stack);
         throw new Error("Could not create a new order in the database.");
     }
 };
@@ -195,4 +194,3 @@ export const updateOrderStatus = async (userId: string, orderId: string, status:
         throw new Error("Could not update the order status.");
     }
 };
-
