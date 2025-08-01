@@ -2,15 +2,16 @@
 'use server';
 
 import { z } from 'zod';
-import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus } from './order-store';
+import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById, updateOrderPaymentStatus } from './order-store';
 import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
-import { BookVariant, OrderStatus, Review } from './definitions';
+import { BookVariant, OrderStatus, Review, Order } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
-
+import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
@@ -30,7 +31,7 @@ const OrderFormSchema = z.object({
 
 export type OrderPayload = z.infer<typeof OrderFormSchema>;
 
-export async function placeOrder(payload: OrderPayload): Promise<{ success: boolean; message: string; orderId?: string }> {
+export async function placeOrder(payload: OrderPayload): Promise<{ success: boolean; message: string; orderId?: string; paymentData?: any }> {
   await addLog('info', 'placeOrder action initiated.', { paymentMethod: payload.paymentMethod });
 
   const validatedFields = OrderFormSchema.safeParse(payload);
@@ -44,7 +45,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     };
   }
   
-  const { variant, userId, discountCode } = validatedFields.data;
+  const { variant, userId, discountCode, paymentMethod } = validatedFields.data;
 
   try {
     const prices = await fetchLocationAndPrice();
@@ -60,10 +61,8 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
             finalPrice = originalPrice - discountAmount;
         }
     }
-
-    await decreaseStock(variant, 1);
     
-    const newOrderData = {
+    const newOrderData: Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'> = {
       userId: validatedFields.data.userId,
       name: validatedFields.data.name,
       phone: validatedFields.data.phone,
@@ -86,25 +85,40 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     const newOrder = await addOrder(newOrderData);
     await addLog('info', 'Order successfully created in database.', { orderId: newOrder.id });
     
-    if (discountCode) {
-        await incrementDiscountUsage(discountCode);
+    if (paymentMethod === 'cod') {
+        await decreaseStock(variant, 1);
+        if (discountCode) {
+            await incrementDiscountUsage(discountCode);
+        }
+
+        revalidatePath('/admin');
+        revalidatePath('/orders');
+
+        return {
+          success: true,
+          message: 'Order created successfully!',
+          orderId: newOrder.id,
+        };
+    } else { // prepaid
+        const paymentResponse = await initiatePhonePePayment(newOrder);
+        if (paymentResponse.success && paymentResponse.redirectUrl) {
+            return {
+                success: true,
+                message: 'Redirecting to payment gateway.',
+                paymentData: { redirectUrl: paymentResponse.redirectUrl },
+            };
+        } else {
+             await addLog('error', 'PhonePe payment initiation failed.', { orderId: newOrder.id, response: paymentResponse });
+             // In a real app, you might want to cancel the order here or mark it as 'payment_failed'
+             return { success: false, message: paymentResponse.message || 'Could not initiate payment.' };
+        }
     }
 
-    revalidatePath('/admin');
-    revalidatePath('/orders');
-
-    return {
-      success: true,
-      message: 'Order created successfully!',
-      orderId: newOrder.id,
-    };
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred.';
     await addLog('error', 'placeOrder action failed catastrophically.', {
         message: errorMessage,
         stack: error.stack,
-        name: error.name,
-        code: error.code,
         payload: payload,
     });
     console.error('CRITICAL placeOrder Error:', error);
@@ -115,21 +129,126 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
   }
 }
 
+async function initiatePhonePePayment(order: Order) {
+    const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
+    const host = process.env.NEXT_PUBLIC_HOST_URL;
+    const merchantId = process.env.PHONEPE_MERCHANT_ID;
+    const saltKey = process.env.PHONEPE_SALT_KEY;
+    const saltIndex = process.env.PHONEPE_SALT_INDEX;
+
+    if (!merchantId || !saltKey || !saltIndex || !host) {
+        throw new Error('PhonePe environment variables are not configured.');
+    }
+    
+    const amount = order.price * 100; // Amount in paise
+    const merchantTransactionId = `MUID-${order.id}`;
+
+    const payload = {
+        merchantId,
+        merchantTransactionId,
+        merchantUserId: order.userId,
+        amount: amount,
+        redirectUrl: `${host}/api/payment/callback`,
+        redirectMode: 'POST',
+        callbackUrl: `${host}/api/payment/callback`,
+        mobileNumber: order.phone,
+        paymentInstrument: {
+            type: 'PAY_PAGE',
+        },
+    };
+    
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const apiEndpoint = '/pg/v1/pay';
+    const checksumString = base64Payload + apiEndpoint + saltKey;
+    const sha256 = crypto.createHash('sha256').update(checksumString).digest('hex');
+    const xVerify = `${sha256}###${saltIndex}`;
+
+    const apiUrl = isProd 
+      ? 'https://api.phonepe.com/apis/hermes' 
+      : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+      
+    try {
+        const response = await fetch(`${apiUrl}${apiEndpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-VERIFY': xVerify,
+            },
+            body: JSON.stringify({ request: base64Payload }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.data.instrumentResponse.redirectInfo.url) {
+            return {
+                success: true,
+                redirectUrl: data.data.instrumentResponse.redirectInfo.url
+            };
+        } else {
+             return {
+                success: false,
+                message: data.message || "Failed to get redirect URL from PhonePe.",
+             };
+        }
+    } catch(error: any) {
+        await addLog('error', 'PhonePe API call failed', { error });
+        return { success: false, message: error.message };
+    }
+}
+
+export async function checkPhonePeStatus(merchantTransactionId: string) {
+    const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
+    const merchantId = process.env.PHONEPE_MERCHANT_ID;
+    const saltKey = process.env.PHONEPE_SALT_KEY;
+    const saltIndex = process.env.PHONEPE_SALT_INDEX;
+
+    if (!merchantId || !saltKey || !saltIndex) {
+        throw new Error('PhonePe environment variables are not configured.');
+    }
+    
+    const apiEndpoint = `/pg/v1/status/${merchantId}/${merchantTransactionId}`;
+    const checksumString = apiEndpoint + saltKey;
+    const sha256 = crypto.createHash('sha256').update(checksumString).digest('hex');
+    const xVerify = `${sha256}###${saltIndex}`;
+
+    const apiUrl = isProd
+      ? 'https://api.phonepe.com/apis/hermes'
+      : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+      
+    try {
+        const response = await fetch(`${apiUrl}${apiEndpoint}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-MERCHANT-ID': merchantId,
+                'X-VERIFY': xVerify,
+            },
+        });
+
+        const data = await response.json();
+        return data; // Return the full status response
+    } catch (error: any) {
+        await addLog('error', 'checkPhonePeStatus failed', { error, merchantTransactionId });
+        return { success: false, message: error.message };
+    }
+}
+
+
 export async function processPrepaidOrder(): Promise<{ success: boolean }> {
     await addLog('info', 'Simulating successful prepaid payment.');
     return { success: true };
 }
 
-export async function fetchOrdersAction() {
+export async function fetchOrders() {
     return await getOrders();
 }
 
-export async function fetchUserOrdersAction(userId: string) {
+export async function fetchUserOrders(userId: string) {
     return await getOrdersByUserId(userId);
 }
 
-export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
-    return await updateDbOrderStatus(userId, orderId, status);
+export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus) {
+    return await updateOrderStatus(userId, orderId, status);
 }
 
 const ReviewSchema = z.object({
@@ -143,18 +262,21 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
     
-    // NOTE: In a real app, you'd get the user's name from their profile
+    const order = await getOrderById(validatedData.userId, validatedData.orderId);
+    if (!order) {
+        throw new Error("Order not found.");
+    }
+    
     const reviewData = {
       ...validatedData,
-      userName: 'Anonymous', 
+      userName: order.name, 
     };
 
     await addReviewToStore(reviewData);
-    // After submitting a review, also mark the order as having a review
-    await updateDbOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
+    await updateOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
     
-    revalidatePath('/'); // To show new testimonials
-    revalidatePath('/orders'); // To update the "Leave a Review" button state
+    revalidatePath('/');
+    revalidatePath('/orders');
 
     return { success: true, message: "Review submitted successfully." };
   } catch (error: any) {

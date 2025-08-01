@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, updateDoc, query, orderBy, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, updateDoc, query, orderBy, Timestamp, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 import { addLog } from './log-store';
 
@@ -52,30 +52,39 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
     try {
         const batch = writeBatch(db);
 
-        // 1. Generate a single, authoritative document reference for the new order IN THE MAIN COLLECTION
         const newOrderRef = doc(allOrdersCollection);
         const newOrderId = newOrderRef.id;
 
-        // 2. Create the user-specific document reference using the SAME ID
         const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
 
-        // 3. Meticulously build the clean data object to be saved, including the new ID
         const newOrderDocumentData = {
             id: newOrderId,
-            ...orderData,
+            userId: orderData.userId,
+            name: orderData.name,
+            phone: orderData.phone,
+            email: orderData.email,
+            address: orderData.address,
+            street: orderData.street,
+            city: orderData.city,
+            country: orderData.country,
+            state: orderData.state,
+            pinCode: orderData.pinCode,
+            paymentMethod: orderData.paymentMethod,
+            variant: orderData.variant,
+            price: orderData.price,
+            originalPrice: orderData.originalPrice,
+            discountCode: orderData.discountCode,
+            discountAmount: orderData.discountAmount,
             status: 'new' as OrderStatus,
             createdAt: Timestamp.now(),
             hasReview: false,
         };
 
-        // 4. Set the same data in both locations within the atomic batch
         batch.set(newOrderRef, newOrderDocumentData);
         batch.set(userOrderRef, newOrderDocumentData);
 
-        // 5. Commit the batch
         await batch.commit();
 
-        // 6. Construct the final Order object to return
         const finalOrder: Order = {
             ...newOrderDocumentData,
             createdAt: newOrderDocumentData.createdAt.toMillis(),
@@ -113,6 +122,19 @@ export async function getOrders(): Promise<Order[]> {
   }
 };
 
+export async function getOrderById(userId: string, orderId: string): Promise<Order | null> {
+    if (!userId || !orderId) return null;
+    try {
+        const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+        const docSnap = await getDoc(userOrderRef);
+        return docSnap.exists() ? docToOrder(docSnap) : null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+}
+
+
 export async function getOrdersByUserId(userId: string): Promise<Order[]> {
   if (!userId) {
       throw new Error("User ID is required to fetch user orders.");
@@ -136,16 +158,16 @@ export async function updateOrderStatus(userId: string, orderId: string, status:
     try {
         const batch = writeBatch(db);
 
-        const updateData: { status: OrderStatus; hasReview?: boolean } = { status };
+        const updateData: any = { status };
         if (typeof hasReview === 'boolean') {
             updateData.hasReview = hasReview;
         }
 
         const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
-        batch.update(userOrderRef, updateData as any);
+        batch.update(userOrderRef, updateData);
 
         const allOrdersRef = doc(allOrdersCollection, orderId);
-        batch.update(allOrdersRef, updateData as any);
+        batch.update(allOrdersRef, updateData);
 
         await batch.commit();
 
@@ -156,3 +178,62 @@ export async function updateOrderStatus(userId: string, orderId: string, status:
     }
 };
 
+export async function updateOrderPaymentStatus(orderId: string, paymentStatus: 'SUCCESS' | 'FAILURE' | 'PENDING', paymentData: any): Promise<void> {
+    if (!orderId) {
+        throw new Error("Order ID is required to update payment status.");
+    }
+    try {
+        const allOrdersRef = doc(allOrdersCollection, orderId);
+        const orderSnap = await getDoc(allOrdersRef);
+        
+        if (!orderSnap.exists()) {
+             await addLog('error', 'updateOrderPaymentStatus failed: Order not found in all-orders', { orderId });
+            return;
+        }
+
+        const order = docToOrder(orderSnap);
+        const userId = order.userId;
+
+        if (!userId) {
+            await addLog('error', 'updateOrderPaymentStatus failed: User ID missing from order', { orderId });
+            return;
+        }
+
+        const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+        const userOrderSnap = await getDoc(userOrderRef);
+        
+        if (!userOrderSnap.exists()) {
+             await addLog('error', 'updateOrderPaymentStatus failed: Order not found in user subcollection', { userId, orderId });
+             return;
+        }
+
+        const batch = writeBatch(db);
+        let newStatus: OrderStatus = order.status;
+        
+        if (paymentStatus === 'SUCCESS') {
+            newStatus = 'new'; // Set to 'new' as it's now a confirmed order
+            await decreaseStock(order.variant, 1);
+            if (order.discountCode) {
+                 await incrementDiscountUsage(order.discountCode);
+            }
+        } else {
+            newStatus = 'cancelled'; // Or a new status like 'payment_failed'
+        }
+        
+        const updateData = {
+            status: newStatus,
+            paymentDetails: paymentData // Storing the full callback for reference
+        };
+        
+        batch.update(allOrdersRef, updateData as any);
+        batch.update(userOrderRef, updateData as any);
+        
+        await batch.commit();
+        await addLog('info', 'Order payment status updated successfully', { orderId, newStatus });
+
+    } catch(error) {
+        await addLog('error', 'updateOrderPaymentStatus failed', { orderId, paymentStatus, error });
+        console.error(`Error updating payment status for order ${orderId}:`, error);
+        throw new Error("Could not update the order's payment status.");
+    }
+}

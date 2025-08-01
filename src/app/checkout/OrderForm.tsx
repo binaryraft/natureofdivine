@@ -3,7 +3,7 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, validateDiscountCode, processPrepaidOrder } from '@/lib/actions';
+import { placeOrder, validateDiscountCode } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,6 @@ import { z } from 'zod';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 
-
 const isPrepaidEnabled = true;
 
 const physicalVariants: BookVariant[] = ['paperback', 'hardcover'];
@@ -34,7 +33,7 @@ const VariantSchema = z.object({
 const DetailsSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email address.'),
-  phone: z.string().min(10, 'Please enter a valid phone number.'),
+  phone: z.string().min(10, 'Please enter a valid phone number.').refine(val => /^\d{10,15}$/.test(val), { message: "Phone number must be between 10 and 15 digits."}),
   address: z.string().min(5, 'Address must be at least 5 characters.'),
   street: z.string().optional(),
   city: z.string().min(2, 'Please enter a valid city.'),
@@ -187,8 +186,11 @@ export function OrderForm({ stock }: { stock: Stock }) {
         if (!state.details.email && user.email) {
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email }})
         }
+        if (!state.details.phone && user.phoneNumber) {
+             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'phone', value: user.phoneNumber }})
+        }
       }
-  }, [user, state.details.name, state.details.email]);
+  }, [user, state.details.name, state.details.email, state.details.phone]);
 
   const handlePincodeChange = async (pinCode: string) => {
     dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: pinCode } });
@@ -275,7 +277,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     setIsCheckingCode(false);
   }
 
-  const handleFinalOrderPlacement = async () => {
+  const handlePaymentSubmit = async () => {
     if (!state.variant || !state.details || !state.paymentMethod || !user) return;
     
     setIsSubmitting(true);
@@ -291,9 +293,15 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
     try {
         const result = await placeOrder(orderPayload);
-        if (result.success && result.orderId) {
-            toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
-            router.push(`/orders?success=true&orderId=${result.orderId}`);
+        if (result.success) {
+            if (result.paymentData?.redirectUrl) {
+                // This is a prepaid order, redirect to PhonePe
+                router.push(result.paymentData.redirectUrl);
+            } else {
+                 // This is a COD order
+                toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
+                router.push(`/orders?success=true&orderId=${result.orderId}`);
+            }
         } else {
             throw new Error(result.message);
         }
@@ -301,39 +309,22 @@ export function OrderForm({ stock }: { stock: Stock }) {
         toast({ 
             variant: 'destructive', 
             title: 'Error Placing Order', 
-            description: e.message || 'An unexpected error occurred.',
+            description: e.message || 'An unexpected error occurred. Check server logs for details.',
             duration: 10000,
         });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
     } finally {
-      setIsSubmitting(false);
+      // This will be reached for COD orders, but for prepaid, the user is redirected.
+      // The processing state is reset on the form to allow another attempt if it fails before redirect.
+      setIsSubmitting(false); 
     }
   }
-
-
-  const handlePaymentSubmit = async () => {
-    if (!state.paymentMethod) return;
-    
-    setIsSubmitting(true);
-    if (state.paymentMethod === 'cod') {
-        await handleFinalOrderPlacement();
-    } else if (state.paymentMethod === 'prepaid') {
-        const paymentAuthResult = await processPrepaidOrder();
-        
-        if (paymentAuthResult.success) {
-            await handleFinalOrderPlacement();
-        } else {
-            toast({ variant: 'destructive', title: 'Payment Failed', description: 'Your payment could not be processed.' });
-            setIsSubmitting(false);
-        }
-    }
-  };
   
   if (state.step === 'processing' || isSubmitting) {
     return (
         <div className="flex flex-col items-center justify-center gap-4 my-8 min-h-[300px]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg text-muted-foreground">Placing your order...</p>
+            <p className="text-lg text-muted-foreground">Processing your order...</p>
             <p className="text-sm text-muted-foreground">Please do not refresh or go back.</p>
         </div>
     )
@@ -572,7 +563,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 <CreditCard className="h-6 w-6 text-primary" />
                                 <div className="flex-grow">
                                     <span className="font-semibold">Prepaid / Online</span>
-                                     <p className="text-xs text-muted-foreground">Pay with UPI, Card, Netbanking.</p>
+                                     <p className="text-xs text-muted-foreground">Pay via PhonePe (UPI, Card, etc).</p>
                                     {!isPrepaidEnabled && <p className="text-sm text-muted-foreground">(Currently unavailable)</p>}
                                 </div>
                             </Label>
@@ -597,5 +588,3 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
-
-    
