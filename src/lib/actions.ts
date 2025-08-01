@@ -141,12 +141,13 @@ async function initiatePhonePePayment(order: Order) {
     }
     
     const amount = order.price * 100; // Amount in paise
-    const merchantTransactionId = `MUID-${order.id}`;
+    const merchantTransactionId = `MUID-${order.id}-${Date.now()}`;
+    const merchantUserId = order.userId ? `CUID-${order.userId.substring(0, 25)}` : `CUID-GUEST-${Date.now()}`;
 
     const payload = {
         merchantId,
         merchantTransactionId,
-        merchantUserId: order.userId,
+        merchantUserId,
         amount: amount,
         redirectUrl: `${host}/api/payment/callback`,
         redirectMode: 'POST',
@@ -156,6 +157,8 @@ async function initiatePhonePePayment(order: Order) {
             type: 'PAY_PAGE',
         },
     };
+
+    await addLog('info', 'Initiating PhonePe payment with payload', { payload });
     
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
     const apiEndpoint = '/pg/v1/pay';
@@ -179,6 +182,8 @@ async function initiatePhonePePayment(order: Order) {
         
         const data = await response.json();
         
+        await addLog('info', 'PhonePe API response received', { data });
+
         if (data.success && data.data.instrumentResponse.redirectInfo.url) {
             return {
                 success: true,
@@ -191,7 +196,7 @@ async function initiatePhonePePayment(order: Order) {
              };
         }
     } catch(error: any) {
-        await addLog('error', 'PhonePe API call failed', { error });
+        await addLog('error', 'PhonePe API call failed', { error: { message: error.message, stack: error.stack } });
         return { success: false, message: error.message };
     }
 }
@@ -239,15 +244,15 @@ export async function processPrepaidOrder(): Promise<{ success: boolean }> {
     return { success: true };
 }
 
-export async function fetchOrders() {
+export async function fetchOrdersAction() {
     return await getOrders();
 }
 
-export async function fetchUserOrders(userId: string) {
+export async function fetchUserOrdersAction(userId: string) {
     return await getOrdersByUserId(userId);
 }
 
-export async function changeOrderStatus(userId: string, orderId: string, status: OrderStatus) {
+export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
     return await updateOrderStatus(userId, orderId, status);
 }
 
