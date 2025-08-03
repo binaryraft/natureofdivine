@@ -27,28 +27,6 @@ const navLinks = [
   { href: '/orders', label: 'My Orders' },
 ];
 
-function FlipkartLogo(props: React.SVGProps<SVGSVGElement>) {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            {...props}
-        >
-            <path d="M4.5 15.5l15-7" />
-            <path d="M7.5 16.5l12-12" />
-            <path d="M10.5 17.5l9-17" />
-            <path d="M13.5 18.5l6-22" />
-        </svg>
-    );
-}
-
 export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
@@ -132,7 +110,7 @@ export function SiteHeader() {
           {flipkartLink && (
             <Button asChild className="hidden sm:inline-flex bg-[#2874F0] hover:bg-[#2874F0]/90 text-white">
                 <a href={flipkartLink} target="_blank" rel="noopener noreferrer">
-                    <FlipkartLogo className="mr-2 h-5 w-5 fill-current" /> Buy on Flipkart
+                    Buy on Flipkart
                 </a>
             </Button>
            )}

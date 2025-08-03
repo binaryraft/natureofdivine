@@ -44,6 +44,7 @@ export function HomeClient() {
 
   const showAuthorPhoto = false;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
+  const flipkartLink = buyLinks.find(link => link.name === 'Flipkart');
   
   const buttonStyles: Record<string, string> = {
     Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold',
@@ -79,6 +80,13 @@ export function HomeClient() {
                     <HomePrice />
                  </Suspense>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
+                    {flipkartLink?.visible && (
+                        <Button asChild size="lg" className={buttonStyles['Flipkart']}>
+                            <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
+                                Buy on Flipkart
+                            </a>
+                        </Button>
+                    )}
                     <Button asChild size="lg" className="cta-button">
                       <Link href="/checkout">
                         Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
