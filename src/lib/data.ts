@@ -67,7 +67,7 @@ export const quotes: { text: string; author: string }[] = [];
 export const buyLinks = [
     {
         name: "Amazon",
-        url: "https://www.amazon.in",
+        url: "https://amzn.in/d/iPmewQL",
         visible: true,
     },
     {
@@ -81,5 +81,3 @@ export const buyLinks = [
         visible: false,
     }
 ];
-
-    

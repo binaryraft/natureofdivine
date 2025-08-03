@@ -17,29 +17,31 @@ const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.c
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Nature of the Divine | A Book by Alfas B",
+    default: "Nature of the Divine | Official Website & Book by Alfas B",
     template: "%s | Nature of the Divine",
   },
-  description: "Explore 'Nature of the Divine', a profound philosophical book by Alfas B about consciousness, the essence of existence, and humanity's path to aligning with the divine. Available worldwide in paperback and hardcover.",
-  keywords: ["Nature of the Divine book", "spiritual books India", "books on consciousness and mind", "Alfas B author book", "ebooks about divinity", "new philosophical books 2025"],
+  description: "Official website for 'Nature of the Divine' by Alfas B. A profound philosophical book exploring consciousness, the essence of existence, and humanity's path to aligning with the divine. Read samples and order your copy.",
+  keywords: ["Nature of the Divine book", "spiritual books India", "books on consciousness and mind", "Alfas B author book", "ebooks about divinity", "new philosophical books 2025", "philosophy of existence", "spiritual awakening"],
   authors: [{ name: 'Alfas B', url: siteUrl }],
   creator: 'Alfas B',
-  publisher: 'Firebase Studio',
+  publisher: 'Notion Press',
   
   alternates: {
     canonical: '/',
   },
+  
+  sitemap: `${siteUrl}/sitemap.xml`,
 
   openGraph: {
     title: 'Nature of the Divine | A Book by Alfas B',
-    description: "Explore a profound philosophical book about the divine essence of existence and its impact on life and spirituality.",
+    description: "Explore a profound philosophical book about the divine essence of existence and its impact on life and spirituality. Written by Alfas B.",
     url: siteUrl,
     siteName: 'Nature of the Divine',
     images: [
       {
-        url: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
-        width: 450,
-        height: 675,
+        url: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/og-image.png',
+        width: 1200,
+        height: 630,
         alt: 'Cover of Nature of the Divine book by Alfas B, featuring divine light and philosophical themes',
       },
     ],
@@ -49,9 +51,9 @@ export const metadata: Metadata = {
   
   twitter: {
     card: 'summary_large_image',
-    title: 'Nature of the Divine | A Book by Alfas B',
+    title: 'Nature of the Divine | Official Book Website by Alfas B',
     description: 'A deep philosophical work explaining humanity\'s complex struggles and the elegant path to aligning with the divine, written by Alfas B. Discover the true nature of existence.',
-    images: ['https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png'],
+    images: [`${siteUrl}/twitter-image.png`],
   },
 
   robots: {
@@ -83,6 +85,7 @@ export default function RootLayout({
     "author": {
       "@type": "Person",
       "name": "Alfas B",
+       "url": siteUrl,
       "address": {
         "@type": "PostalAddress",
         "addressCountry": "IN",
@@ -91,13 +94,30 @@ export default function RootLayout({
     },
     "publisher": {
         "@type": "Organization",
-        "name": "Independent"
+        "name": "Notion Press"
     },
     "inLanguage": "en",
-    "bookFormat": "http://schema.org/EBook",
+    "isbn": "978-9334306514",
+    "bookFormat": "http://schema.org/Paperback",
     "url": "https://natureofthedivine.com",
     "description": "A philosophical and spiritual awakening book by Alfas B, exploring the mind, the divine, and the path to aligning with the nature of existence. This work explains humanity's complex struggles and offers a singular, elegant solution.",
-    "datePublished": "2025-06-01"
+    "datePublished": "2025-06-01",
+    "image": "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+     "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "reviewCount": "1"
+    },
+    "offers": {
+        "@type": "Offer",
+        "price": "299.00",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+            "@type": "Organization",
+            "name": "Flipkart"
+        }
+    }
   };
 
   return (

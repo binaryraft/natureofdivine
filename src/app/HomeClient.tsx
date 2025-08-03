@@ -29,14 +29,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Testimonials } from "@/components/Testimonials";
 
 const bookGlimpseImages = [
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from the book", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "Preface of the book", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the preface", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents", locked: false },
-  { src: "https://placehold.co/600x800.png", alt: "Locked page 6", locked: true, "data-ai-hint": "book page" },
-  { src: "https://placehold.co/600x800.png", alt: "Locked page 7", locked: true, "data-ai-hint": "book page" },
-  { src: "https://placehold.co/600x800.png", alt: "Locked page 8", locked: true, "data-ai-hint": "book page" },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book Nature of the Divine", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from inside the book showing a chapter start", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "The preface page of the book Nature of the Divine", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the book's preface", locked: false },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents for the book", locked: false },
+  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, "data-ai-hint": "book page" },
+  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, "data-ai-hint": "book page" },
+  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, "data-ai-hint": "book page" },
 ];
 
 
@@ -45,6 +45,7 @@ export function HomeClient() {
   const showAuthorPhoto = false;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
   const flipkartLink = buyLinks.find(link => link.name === 'Flipkart');
+  const amazonLink = buyLinks.find(link => link.name === 'Amazon');
   
   const buttonStyles: Record<string, string> = {
     Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold',
@@ -87,6 +88,13 @@ export function HomeClient() {
                             </a>
                         </Button>
                     )}
+                    {amazonLink?.visible && (
+                        <Button asChild size="lg" className={buttonStyles['Amazon']}>
+                            <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
+                                Buy on Amazon
+                            </a>
+                        </Button>
+                    )}
                     <Button asChild size="lg" className="cta-button">
                       <Link href="/checkout">
                         Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
@@ -104,7 +112,7 @@ export function HomeClient() {
                   src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
                   width="450"
                   height="675"
-                  alt="Cover of Nature of the Divine book by Alfas B, featuring divine light and philosophical themes"
+                  alt="Official book cover for Nature of the Divine by Alfas B, featuring an ethereal, divine light over a philosophical design."
                   className="mx-auto aspect-[2/3] object-contain sm:w-full lg:order-last rounded-lg"
                   data-ai-hint="book cover"
                   priority
