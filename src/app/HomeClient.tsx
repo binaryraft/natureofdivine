@@ -47,8 +47,7 @@ export function HomeClient() {
   
   const buttonStyles: Record<string, string> = {
     Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold',
-    Flipkart: 'bg-[#2874F0] hover:bg-[#2874F0]/90 text-white',
-    'E-book': 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-white/80',
+    Flipkart: 'bg-[#2874F0] hover:bg-[#2874F0]/90 text-white shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110',
   };
 
   return (
@@ -82,7 +81,7 @@ export function HomeClient() {
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
                     <Button asChild size="lg" className="cta-button">
                       <Link href="/checkout">
-                        Buy Now <ShoppingCart className="ml-2 h-5 w-5" />
+                        Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
                       </Link>
                     </Button>
                   <Button asChild size="lg" variant="outline" className="shadow-sm hover:shadow-md transition-shadow">
@@ -169,7 +168,7 @@ export function HomeClient() {
                     {!chapter.locked ? chapter.content : (
                       <div className="p-8 text-center bg-secondary rounded-lg">
                             <Button asChild size="lg" className="cta-button">
-                                <Link href="/checkout">Buy Now</Link>
+                                <Link href="/checkout">Buy Signed Copy</Link>
                             </Button>
                       </div>
                     )}
@@ -209,7 +208,7 @@ export function HomeClient() {
                               <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
                               <p className="text-sm text-muted-foreground mt-1">Purchase the book to read the full story.</p>
                                 <Button asChild size="sm" className="mt-4 cta-button">
-                                  <Link href="/checkout">Buy Now</Link>
+                                  <Link href="/checkout">Buy Signed Copy</Link>
                                 </Button>
                             </div>
                           )}
@@ -254,13 +253,13 @@ export function HomeClient() {
               <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
                 {visibleBuyLinks.map((link) => (
                   <Button key={link.name} asChild size="lg" className={buttonStyles[link.name]}>
-                    <a href={link.url} target={link.name.includes('book') ? '_self' : '_blank'} rel="noopener noreferrer">
+                    <a href={link.url} target="_blank" rel="noopener noreferrer">
                       {link.name}
                     </a>
                   </Button>
                 ))}
                 {visibleBuyLinks.length > 0 && <div className="text-sm font-medium mx-2">OR</div>}
-                <Button asChild size="lg" className="bg-background text-primary hover:bg-background/90 shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110">
+                <Button asChild size="lg" className="bg-background text-primary hover:bg-background/90 shadow-lg hover:shadow-xl transition-all">
                   <Link href="/checkout">
                     Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
                   </Link>

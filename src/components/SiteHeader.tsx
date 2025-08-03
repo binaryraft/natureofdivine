@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Settings, LogOut, BookHeart } from 'lucide-react';
+import { Menu, Settings, LogOut, BookHeart, ShoppingCart } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useLocation } from '@/hooks/useLocation';
 import { getCountryFlag } from '@/lib/countries';
+import { buyLinks } from '@/lib/data';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -26,6 +27,27 @@ const navLinks = [
   { href: '/orders', label: 'My Orders' },
 ];
 
+function FlipkartLogo(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            {...props}
+        >
+            <path d="M4.5 15.5l15-7" />
+            <path d="M7.5 16.5l12-12" />
+            <path d="M10.5 17.5l9-17" />
+            <path d="M13.5 18.5l6-22" />
+        </svg>
+    );
+}
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -44,6 +66,7 @@ export function SiteHeader() {
   };
   
   const activeLinks = user ? navLinks : navLinks.filter(link => link.href !== '/orders');
+  const flipkartLink = buyLinks.find(link => link.name === 'Flipkart')?.url;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -99,12 +122,20 @@ export function SiteHeader() {
           </Sheet>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-4">
+        <div className="flex flex-1 items-center justify-end gap-2">
            {locationLoading ? (
             <div className="h-6 w-6 animate-pulse rounded-full bg-muted" />
            ) : priceData?.country ? (
             <div className="text-2xl">{getCountryFlag(priceData.country)}</div>
            ) : null}
+
+          {flipkartLink && (
+            <Button asChild className="hidden sm:inline-flex bg-[#2874F0] hover:bg-[#2874F0]/90 text-white">
+                <a href={flipkartLink} target="_blank" rel="noopener noreferrer">
+                    <FlipkartLogo className="mr-2 h-5 w-5 fill-current" /> Buy on Flipkart
+                </a>
+            </Button>
+           )}
 
            {authLoading ? (
              <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />

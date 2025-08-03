@@ -72,13 +72,13 @@ export const buyLinks = [
     },
     {
         name: "Flipkart",
-        url: "https://www.flipkart.com",
+        url: "https://www.flipkart.com/nature-divine-align/p/itm2433ecc20ab88?pid=9789334306514",
         visible: true,
     },
     {
         name: "E-book",
         url: "https://www.amazon.in/kindle-dbs/storefront",
-        visible: true,
+        visible: false,
     }
 ];
 
