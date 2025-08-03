@@ -80,31 +80,35 @@ export function HomeClient() {
                  }>
                     <HomePrice />
                  </Suspense>
-                <div className="flex flex-col gap-4 min-[400px]:flex-row">
-                    {flipkartLink?.visible && (
-                        <Button asChild size="lg" className={buttonStyles['Flipkart']}>
-                            <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
-                                Buy on Flipkart
-                            </a>
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                         {flipkartLink?.visible && (
+                            <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full sm:w-auto flex-1`}>
+                                <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
+                                    Buy on Flipkart
+                                </a>
+                            </Button>
+                        )}
+                        {amazonLink?.visible && (
+                            <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full sm:w-auto flex-1`}>
+                                <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
+                                    Buy on Amazon
+                                </a>
+                            </Button>
+                        )}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                         <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow">
+                          <Link href="/checkout">
+                            Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
+                          </Link>
                         </Button>
-                    )}
-                    {amazonLink?.visible && (
-                        <Button asChild size="lg" className={buttonStyles['Amazon']}>
-                            <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
-                                Buy on Amazon
-                            </a>
+                        <Button asChild size="lg" variant="outline" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow">
+                           <a href="#sample-chapters">
+                            Read a Sample <BookOpen className="ml-2 h-5 w-5" />
+                          </a>
                         </Button>
-                    )}
-                    <Button asChild size="lg" className="cta-button">
-                      <Link href="/checkout">
-                        Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
-                      </Link>
-                    </Button>
-                  <Button asChild size="lg" variant="outline" className="shadow-sm hover:shadow-md transition-shadow">
-                     <a href="#sample-chapters">
-                      Read a Sample <BookOpen className="ml-2 h-5 w-5" />
-                    </a>
-                  </Button>
+                    </div>
                 </div>
               </div>
               <div className="flex items-center justify-center">
