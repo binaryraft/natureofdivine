@@ -2,16 +2,15 @@
 'use server';
 
 import { z } from 'zod';
-import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById, updateOrderPaymentStatus } from './order-store';
+import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus, updateOrderPaymentStatus, getOrderById } from './order-store';
 import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
-import { decreaseStock } from './stock-store';
+import { decreaseStock, checkStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import { BookVariant, OrderStatus, Review, Order } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
 import crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
 
 const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
@@ -48,6 +47,13 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
   const { variant, userId, discountCode, paymentMethod } = validatedFields.data;
 
   try {
+    // Transactional stock check
+    const hasStock = await checkStock(variant, 1);
+    if (!hasStock) {
+        await addLog('warn', 'Order blocked due to insufficient stock.', { variant });
+        return { success: false, message: `The ${variant} is currently out of stock.` };
+    }
+
     const prices = await fetchLocationAndPrice();
     const originalPrice = prices[variant as Exclude<BookVariant, 'ebook'>];
     
@@ -86,6 +92,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     await addLog('info', 'Order successfully created in database.', { orderId: newOrder.id });
     
     if (paymentMethod === 'cod') {
+        // Decrease stock and increment discount usage for COD orders
         await decreaseStock(variant, 1);
         if (discountCode) {
             await incrementDiscountUsage(discountCode);
@@ -102,6 +109,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     } else { // prepaid
         const paymentResponse = await initiatePhonePePayment(newOrder);
         if (paymentResponse.success && paymentResponse.redirectUrl) {
+            await updateOrderPaymentStatus(newOrder.id, 'PENDING', { merchantTransactionId: paymentResponse.merchantTransactionId });
             return {
                 success: true,
                 message: 'Redirecting to payment gateway.',
@@ -109,7 +117,8 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
             };
         } else {
              await addLog('error', 'PhonePe payment initiation failed.', { orderId: newOrder.id, response: paymentResponse });
-             // In a real app, you might want to cancel the order here or mark it as 'payment_failed'
+             // Mark order as cancelled if payment initiation fails
+             await updateDbOrderStatus(newOrder.userId, newOrder.id, 'cancelled');
              return { success: false, message: paymentResponse.message || 'Could not initiate payment.' };
         }
     }
@@ -142,12 +151,12 @@ async function initiatePhonePePayment(order: Order) {
     
     const amount = order.price * 100; // Amount in paise
     const merchantTransactionId = `MUID-${order.id}-${Date.now()}`;
-    const merchantUserId = order.userId ? `CUID-${order.userId.substring(0, 25)}` : `CUID-GUEST-${Date.now()}`;
+    const merchantUserId = order.userId ? `CUID-${order.userId}` : `CUID-GUEST-${Date.now()}`;
 
     const payload = {
         merchantId,
         merchantTransactionId,
-        merchantUserId,
+        merchantUserId: merchantUserId.substring(0, 35),
         amount: amount,
         redirectUrl: `${host}/api/payment/callback`,
         redirectMode: 'POST',
@@ -187,7 +196,8 @@ async function initiatePhonePePayment(order: Order) {
         if (data.success && data.data.instrumentResponse.redirectInfo.url) {
             return {
                 success: true,
-                redirectUrl: data.data.instrumentResponse.redirectInfo.url
+                redirectUrl: data.data.instrumentResponse.redirectInfo.url,
+                merchantTransactionId,
             };
         } else {
              return {
@@ -221,6 +231,7 @@ export async function checkPhonePeStatus(merchantTransactionId: string) {
       : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
       
     try {
+        await addLog('info', 'Checking PhonePe status for', { merchantTransactionId, apiUrl, apiEndpoint, xVerify: xVerify.substring(0,10) + '...' });
         const response = await fetch(`${apiUrl}${apiEndpoint}`, {
             method: 'GET',
             headers: {
@@ -233,16 +244,11 @@ export async function checkPhonePeStatus(merchantTransactionId: string) {
         const data = await response.json();
         return data; // Return the full status response
     } catch (error: any) {
-        await addLog('error', 'checkPhonePeStatus failed', { error, merchantTransactionId });
+        await addLog('error', 'checkPhonePeStatus failed', { error: {message: error.message}, merchantTransactionId });
         return { success: false, message: error.message };
     }
 }
 
-
-export async function processPrepaidOrder(): Promise<{ success: boolean }> {
-    await addLog('info', 'Simulating successful prepaid payment.');
-    return { success: true };
-}
 
 export async function fetchOrdersAction() {
     return await getOrders();
@@ -253,7 +259,7 @@ export async function fetchUserOrdersAction(userId: string) {
 }
 
 export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
-    return await updateOrderStatus(userId, orderId, status);
+    return await updateDbOrderStatus(userId, orderId, status);
 }
 
 const ReviewSchema = z.object({
@@ -278,14 +284,14 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
     };
 
     await addReviewToStore(reviewData);
-    await updateOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
+    await updateDbOrderStatus(validatedData.userId, validatedData.orderId, 'delivered', true);
     
     revalidatePath('/');
     revalidatePath('/orders');
 
     return { success: true, message: "Review submitted successfully." };
   } catch (error: any) {
-    await addLog('error', 'submitReview failed', { data, error });
+    await addLog('error', 'submitReview failed', { data, error: { message: error.message } });
     console.error("Error submitting review:", error);
     return { success: false, message: error.message || "Failed to submit review." };
   }
@@ -313,3 +319,5 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
+
+    

@@ -5,6 +5,9 @@ import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, updateDoc, query, orderBy, Timestamp, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 import { addLog } from './log-store';
+import { decreaseStock, checkStock } from './stock-store';
+import { incrementDiscountUsage } from './discount-store';
+
 
 const allOrdersCollection = collection(db, 'all-orders');
 
@@ -35,10 +38,11 @@ const docToOrder = (doc: any): Order => {
     status: data.status || 'new',
     createdAt: createdAtMillis,
     hasReview: data.hasReview || false,
+    paymentDetails: data.paymentDetails || null
   };
 };
 
-type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'>;
+type NewOrderData = Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview' | 'paymentDetails'>;
 
 
 export async function addOrder(orderData: NewOrderData): Promise<Order> {
@@ -57,7 +61,7 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
 
         const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
 
-        const newOrderDocumentData = {
+        const newOrderDocumentData: Omit<Order, 'createdAt'> & { createdAt: Timestamp } = {
             id: newOrderId,
             userId: orderData.userId,
             name: orderData.name,
@@ -75,15 +79,18 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
             originalPrice: orderData.originalPrice,
             discountCode: orderData.discountCode,
             discountAmount: orderData.discountAmount,
-            status: 'new' as OrderStatus,
+            status: 'pending', // Default to pending until payment status is confirmed
             createdAt: Timestamp.now(),
             hasReview: false,
+            paymentDetails: null
         };
 
         batch.set(newOrderRef, newOrderDocumentData);
         batch.set(userOrderRef, newOrderDocumentData);
 
         await batch.commit();
+        
+        await addLog('info', 'addOrder created pending order', { orderId: newOrderId, userId: userId });
 
         const finalOrder: Order = {
             ...newOrderDocumentData,
@@ -145,7 +152,7 @@ export async function getOrdersByUserId(userId: string): Promise<Order[]> {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToOrder);
   } catch (error) {
-    await addLog('error', 'getOrdersByUserId failed', { userId, error });
+    await addLog('error', 'getOrdersByUserId failed', { userId, error: { message: (error as Error).message } });
     console.error(`Error fetching orders for user ${userId}:`, error);
     throw new Error("Could not fetch user orders.");
   }
@@ -170,9 +177,10 @@ export async function updateOrderStatus(userId: string, orderId: string, status:
         batch.update(allOrdersRef, updateData);
 
         await batch.commit();
+        await addLog('info', 'updateOrderStatus success', { userId, orderId, status });
 
     } catch (error) {
-        await addLog('error', 'updateOrderStatus failed', { userId, orderId, status, error });
+        await addLog('error', 'updateOrderStatus failed', { userId, orderId, status, error: { message: (error as Error).message } });
         console.error(`Error updating status for order ${orderId}:`, error);
         throw new Error("Could not update the order status.");
     }
@@ -187,11 +195,18 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         const orderSnap = await getDoc(allOrdersRef);
         
         if (!orderSnap.exists()) {
-             await addLog('error', 'updateOrderPaymentStatus failed: Order not found in all-orders', { orderId });
+            await addLog('error', 'updateOrderPaymentStatus failed: Order not found in all-orders', { orderId });
             return;
         }
 
         const order = docToOrder(orderSnap);
+        
+        // If order is already processed, don't update it again
+        if(order.status === 'new' || order.status === 'dispatched' || order.status === 'delivered') {
+            await addLog('warn', 'updateOrderPaymentStatus ignored for already processed order', { orderId, currentStatus: order.status });
+            return;
+        }
+        
         const userId = order.userId;
 
         if (!userId) {
@@ -200,24 +215,22 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         }
 
         const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
-        const userOrderSnap = await getDoc(userOrderRef);
         
-        if (!userOrderSnap.exists()) {
-             await addLog('error', 'updateOrderPaymentStatus failed: Order not found in user subcollection', { userId, orderId });
-             return;
-        }
-
         const batch = writeBatch(db);
         let newStatus: OrderStatus = order.status;
         
         if (paymentStatus === 'SUCCESS') {
-            newStatus = 'new'; // Set to 'new' as it's now a confirmed order
+            newStatus = 'new';
+            // Decrease stock and increment discount usage within the same batch/transaction if possible
+            // For now, we'll do it separately but this is a point of improvement.
             await decreaseStock(order.variant, 1);
             if (order.discountCode) {
                  await incrementDiscountUsage(order.discountCode);
             }
+        } else if(paymentStatus === 'FAILURE') {
+            newStatus = 'cancelled';
         } else {
-            newStatus = 'cancelled'; // Or a new status like 'payment_failed'
+            newStatus = 'pending';
         }
         
         const updateData = {
@@ -231,9 +244,14 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         await batch.commit();
         await addLog('info', 'Order payment status updated successfully', { orderId, newStatus });
 
+        revalidatePath('/admin');
+        revalidatePath(`/orders`);
+
     } catch(error) {
-        await addLog('error', 'updateOrderPaymentStatus failed', { orderId, paymentStatus, error });
+        await addLog('error', 'updateOrderPaymentStatus failed', { orderId, paymentStatus, error: { message: (error as Error).message } });
         console.error(`Error updating payment status for order ${orderId}:`, error);
         throw new Error("Could not update the order's payment status.");
     }
 }
+
+    

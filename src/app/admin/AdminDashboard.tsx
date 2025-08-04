@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
@@ -23,7 +23,8 @@ const statusColors: Record<OrderStatus, string> = {
     new: 'bg-blue-500',
     dispatched: 'bg-yellow-500',
     delivered: 'bg-green-500',
-    cancelled: 'bg-red-500'
+    cancelled: 'bg-red-500',
+    pending: 'bg-gray-500'
 }
 
 const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChange: (userId: string, orderId: string, newStatus: OrderStatus) => void }) => {
@@ -92,6 +93,7 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                                         <SelectItem value="dispatched">Dispatched</SelectItem>
                                         <SelectItem value="delivered">Delivered</SelectItem>
                                         <SelectItem value="cancelled">Cancelled</SelectItem>
+                                        <SelectItem value="pending" disabled>Pending</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </TableCell>
@@ -328,12 +330,10 @@ export function AdminDashboard() {
             setOrders(fetchedOrders);
         } catch(e: any) {
             let description = "Failed to load orders. Please try again later.";
-            // This specific error message indicates a missing Firestore index
             if (e.message && e.message.includes("indexes?create_composite")) {
-                 // Extract the URL from the error message
                  const urlMatch = e.message.match(/(https?:\/\/[^\s]+)/);
                  if (urlMatch) {
-                    const firebaseUrl = urlMatch[0].replace(/\\"/g, ''); // Clean up the URL
+                    const firebaseUrl = urlMatch[0].replace(/\\"/g, '');
                     toast({
                         variant: 'destructive',
                         title: 'Database Index Required',
@@ -345,7 +345,7 @@ export function AdminDashboard() {
                         ),
                          duration: 30000,
                     });
-                    return; // Stop further execution
+                    return;
                  }
             }
              toast({
@@ -393,6 +393,7 @@ export function AdminDashboard() {
     dispatched: orders.filter(o => o.status === 'dispatched'),
     delivered: orders.filter(o => o.status === 'delivered'),
     cancelled: orders.filter(o => o.status === 'cancelled'),
+    pending: orders.filter(o => o.status === 'pending')
   };
 
   if (!isAuthenticated) {
@@ -448,10 +449,11 @@ export function AdminDashboard() {
                         </div>
                      ) : (
                         <Tabs defaultValue="new" className="w-full">
-                            <TabsList className="grid w-full grid-cols-4">
+                            <TabsList className="grid w-full grid-cols-5">
                                 <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
                                 <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
                                 <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
+                                <TabsTrigger value="pending">Pending ({categorizedOrders.pending.length})</TabsTrigger>
                                 <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
                             </TabsList>
                             <TabsContent value="new" className="mt-4">
@@ -462,6 +464,9 @@ export function AdminDashboard() {
                             </TabsContent>
                             <TabsContent value="delivered" className="mt-4">
                                 <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} />
+                            </TabsContent>
+                             <TabsContent value="pending" className="mt-4">
+                                <OrderTable orders={categorizedOrders.pending} onStatusChange={handleStatusChange} />
                             </TabsContent>
                              <TabsContent value="cancelled" className="mt-4">
                                 <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} />
@@ -481,3 +486,5 @@ export function AdminDashboard() {
     </div>
   );
 }
+
+    

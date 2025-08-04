@@ -1,6 +1,6 @@
 
 
-export type OrderStatus = 'new' | 'dispatched' | 'delivered' | 'cancelled';
+export type OrderStatus = 'new' | 'dispatched' | 'delivered' | 'cancelled' | 'pending';
 
 export type BookVariant = 'paperback' | 'hardcover' | 'ebook';
 
@@ -25,6 +25,7 @@ export type Order = {
   status: OrderStatus;
   createdAt: number; // Storing as timestamp for Firestore
   hasReview?: boolean;
+  paymentDetails?: any | null;
 };
 
 export type Stock = {
@@ -49,4 +50,5 @@ export type Discount = {
     usageCount: number;
     createdAt: number;
 };
+    
     
