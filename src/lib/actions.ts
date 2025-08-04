@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { addOrder, getOrders, getOrdersByUserId, updateOrderStatus as updateDbOrderStatus, updateOrderPaymentStatus, getOrderById } from './order-store';
 import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
-import { decreaseStock, checkStock } from './stock-store';
+import { checkStock, decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import { BookVariant, OrderStatus, Review, Order } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
@@ -47,7 +47,6 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
   const { variant, userId, discountCode, paymentMethod } = validatedFields.data;
 
   try {
-    // Transactional stock check
     const hasStock = await checkStock(variant, 1);
     if (!hasStock) {
         await addLog('warn', 'Order blocked due to insufficient stock.', { variant });
@@ -68,7 +67,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
         }
     }
     
-    const newOrderData: Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview'> = {
+    const newOrderData: Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview' | 'paymentDetails'> = {
       userId: validatedFields.data.userId,
       name: validatedFields.data.name,
       phone: validatedFields.data.phone,
@@ -87,16 +86,14 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
       discountAmount,
     };
     
-    await addLog('info', 'Attempting to add order to database with clean data...', { userId, variant });
-    const newOrder = await addOrder(newOrderData);
-    await addLog('info', 'Order successfully created in database.', { orderId: newOrder.id });
-    
     if (paymentMethod === 'cod') {
-        // Decrease stock and increment discount usage for COD orders
+        // For COD, we create the order and decrease stock immediately.
         await decreaseStock(variant, 1);
         if (discountCode) {
             await incrementDiscountUsage(discountCode);
         }
+        const newOrder = await addOrder(newOrderData);
+        await updateDbOrderStatus(userId, newOrder.id, 'new');
 
         revalidatePath('/admin');
         revalidatePath('/orders');
@@ -107,17 +104,20 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
           orderId: newOrder.id,
         };
     } else { // prepaid
+        // For prepaid, we create a 'pending' order first. Stock is not decreased yet.
+        const newOrder = await addOrder(newOrderData);
         const paymentResponse = await initiatePhonePePayment(newOrder);
+
         if (paymentResponse.success && paymentResponse.redirectUrl) {
             await updateOrderPaymentStatus(newOrder.id, 'PENDING', { merchantTransactionId: paymentResponse.merchantTransactionId });
             return {
                 success: true,
                 message: 'Redirecting to payment gateway.',
                 paymentData: { redirectUrl: paymentResponse.redirectUrl },
+                orderId: newOrder.id,
             };
         } else {
              await addLog('error', 'PhonePe payment initiation failed.', { orderId: newOrder.id, response: paymentResponse });
-             // Mark order as cancelled if payment initiation fails
              await updateDbOrderStatus(newOrder.userId, newOrder.id, 'cancelled');
              return { success: false, message: paymentResponse.message || 'Could not initiate payment.' };
         }
@@ -133,7 +133,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     console.error('CRITICAL placeOrder Error:', error);
     return {
       success: false,
-      message: `Could not create a new order in the database. Reason: ${errorMessage}`,
+      message: `${errorMessage}`,
     };
   }
 }
@@ -319,5 +319,3 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
-
-    

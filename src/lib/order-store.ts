@@ -216,13 +216,11 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
 
         const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
         
-        const batch = writeBatch(db);
         let newStatus: OrderStatus = order.status;
         
         if (paymentStatus === 'SUCCESS') {
             newStatus = 'new';
-            // Decrease stock and increment discount usage within the same batch/transaction if possible
-            // For now, we'll do it separately but this is a point of improvement.
+            // Decrease stock and increment discount usage for confirmed orders
             await decreaseStock(order.variant, 1);
             if (order.discountCode) {
                  await incrementDiscountUsage(order.discountCode);
@@ -232,20 +230,18 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         } else {
             newStatus = 'pending';
         }
-        
+
         const updateData = {
             status: newStatus,
-            paymentDetails: paymentData // Storing the full callback for reference
+            paymentDetails: paymentData
         };
-        
+
+        const batch = writeBatch(db);
         batch.update(allOrdersRef, updateData as any);
         batch.update(userOrderRef, updateData as any);
-        
         await batch.commit();
-        await addLog('info', 'Order payment status updated successfully', { orderId, newStatus });
 
-        revalidatePath('/admin');
-        revalidatePath(`/orders`);
+        await addLog('info', 'Order payment status updated successfully', { orderId, newStatus });
 
     } catch(error) {
         await addLog('error', 'updateOrderPaymentStatus failed', { orderId, paymentStatus, error: { message: (error as Error).message } });
@@ -253,5 +249,3 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         throw new Error("Could not update the order's payment status.");
     }
 }
-
-    

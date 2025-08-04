@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { fetchOrdersAction, changeOrderStatusAction, createDiscount } from '@/lib/actions';
 import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, AlertCircle } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
@@ -107,22 +108,24 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
 
 function StockManager() {
     const { toast } = useToast();
+    const router = useRouter();
     const [stock, setStock] = useState<Stock | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoadingStock, setIsLoadingStock] = useState(true);
 
-    useEffect(() => {
-        async function loadStock() {
-            setIsLoadingStock(true);
-            try {
-                const fetchedStock = await getStock();
-                setStock(fetchedStock);
-            } catch (error) {
-                 toast({ variant: 'destructive', title: 'Error', description: 'Failed to load stock levels.' });
-            } finally {
-                setIsLoadingStock(false);
-            }
+    const loadStock = async () => {
+        setIsLoadingStock(true);
+        try {
+            const fetchedStock = await getStock();
+            setStock(fetchedStock);
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load stock levels.' });
+        } finally {
+            setIsLoadingStock(false);
         }
+    }
+
+    useEffect(() => {
         loadStock();
     }, [toast]);
 
@@ -140,6 +143,7 @@ function StockManager() {
         try {
             await updateStock(stock);
             toast({ title: 'Success', description: 'Stock levels updated successfully.' });
+            router.refresh(); // Force a server-side data refetch
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update stock.' });
         } finally {
@@ -486,5 +490,3 @@ export function AdminDashboard() {
     </div>
   );
 }
-
-    

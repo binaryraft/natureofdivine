@@ -2,7 +2,8 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, increment, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
+import { revalidatePath } from 'next/cache';
 import type { Stock, BookVariant } from './definitions';
 import { addLog } from './log-store';
 
@@ -38,6 +39,7 @@ export const updateStock = async (newStock: Stock): Promise<void> => {
         const stockToSet = { ...newStock, ebook: 99999 };
         await setDoc(stockDocRef, stockToSet, { merge: true });
         await addLog('info', 'Stock levels updated via admin panel.', { newStock });
+        // Revalidate paths to ensure fresh data is fetched on the client
         revalidatePath('/admin');
         revalidatePath('/checkout');
     } catch (error: any) {
@@ -57,7 +59,6 @@ export const checkStock = async (variant: BookVariant, quantity: number): Promis
     }
 }
 
-
 export const decreaseStock = async (variant: BookVariant, quantity: number): Promise<void> => {
     if (quantity <= 0 || variant === 'ebook') return;
 
@@ -68,21 +69,28 @@ export const decreaseStock = async (variant: BookVariant, quantity: number): Pro
                 throw new Error("Stock document does not exist! Cannot decrease stock.");
             }
             
-            const currentStock = stockDoc.data()[variant];
+            const currentStock = stockDoc.data()[variant as Exclude<BookVariant, 'ebook'>];
             
             if (currentStock < quantity) {
-                throw new Error(`Not enough stock for ${variant}. Available: ${currentStock}, Required: ${quantity}`);
+                await addLog('warn', 'Stock decrease blocked by transaction', {
+                    message: 'Not enough stock.',
+                    variant,
+                    available: currentStock,
+                    required: quantity,
+                });
+                throw new Error(`Not enough stock for ${variant}.`);
             }
             
             const newQuantity = currentStock - quantity;
             transaction.update(stockDocRef, { [variant]: newQuantity });
         });
-        await addLog('info', 'Stock decreased successfully', { variant, quantity });
+        await addLog('info', 'Stock decreased successfully via transaction', { variant, quantity });
     } catch (e: any) {
-        await addLog('error', 'Stock decrease transaction failed', { error: { message: e.message }, variant, quantity });
+        if (!e.message.includes('Not enough stock')) {
+            await addLog('error', 'Stock decrease transaction failed', { error: { message: e.message }, variant, quantity });
+        }
         console.error("Stock update transaction failed: ", e.message);
-        throw e;
+        throw e; // Re-throw the error to be handled by the calling function
     }
 };
-
     
