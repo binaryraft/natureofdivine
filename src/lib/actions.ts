@@ -16,7 +16,7 @@ const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email address.'),
-  phone: z.string().min(10, 'Please enter a valid phone number.'),
+  phone: z.string().min(10, 'Please enter a valid phone number.').refine(val => /^\d{10,15}$/.test(val), { message: "Phone number must be between 10 and 15 digits."}),
   address: z.string().min(5, 'Address must be at least 5 characters.'),
   street: z.string().optional(),
   city: z.string().min(2, 'Please enter a valid city.'),
@@ -319,3 +319,5 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
+
+    

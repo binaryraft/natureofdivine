@@ -56,11 +56,13 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
     try {
         const batch = writeBatch(db);
 
+        // Use the auto-generated ID for both documents.
         const newOrderRef = doc(allOrdersCollection);
         const newOrderId = newOrderRef.id;
 
         const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
 
+        // We explicitly define the object to ensure no extra properties are included
         const newOrderDocumentData: Omit<Order, 'createdAt'> & { createdAt: Timestamp } = {
             id: newOrderId,
             userId: orderData.userId,
@@ -201,7 +203,7 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
 
         const order = docToOrder(orderSnap);
         
-        // If order is already processed, don't update it again
+        // If order is already processed, don't update it again to prevent double stock deduction
         if(order.status === 'new' || order.status === 'dispatched' || order.status === 'delivered') {
             await addLog('warn', 'updateOrderPaymentStatus ignored for already processed order', { orderId, currentStatus: order.status });
             return;
@@ -249,3 +251,5 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         throw new Error("Could not update the order's payment status.");
     }
 }
+
+    

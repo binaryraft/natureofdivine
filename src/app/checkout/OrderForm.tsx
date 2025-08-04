@@ -309,13 +309,11 @@ export function OrderForm({ stock }: { stock: Stock }) {
         toast({ 
             variant: 'destructive', 
             title: 'Error Placing Order', 
-            description: e.message || 'An unexpected error occurred. Check server logs for details.',
+            description: e.message || 'An unexpected error occurred. Please try again.',
             duration: 10000,
         });
         dispatch({type: 'RESET_TO_VARIANT', payload: state.variant});
     } finally {
-      // This will be reached for COD orders, but for prepaid, the user is redirected.
-      // The processing state is reset on the form to allow another attempt if it fails before redirect.
       setIsSubmitting(false); 
     }
   }
@@ -588,3 +586,5 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
+
+    

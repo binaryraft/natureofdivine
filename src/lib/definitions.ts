@@ -6,7 +6,7 @@ export type BookVariant = 'paperback' | 'hardcover' | 'ebook';
 
 export type Order = {
   id: string;
-  userId: string | null;
+  userId: string;
   name: string;
   phone: string;
   email: string;
@@ -17,15 +17,15 @@ export type Order = {
   state: string;
   pinCode:string;
   paymentMethod: 'cod' | 'prepaid';
-  variant: BookVariant;
+  variant: Exclude<BookVariant, 'ebook'>;
   price: number;
-  originalPrice?: number;
-  discountCode?: string;
-  discountAmount?: number;
+  originalPrice: number;
+  discountCode: string;
+  discountAmount: number;
   status: OrderStatus;
   createdAt: number; // Storing as timestamp for Firestore
-  hasReview?: boolean;
-  paymentDetails?: any | null;
+  hasReview: boolean;
+  paymentDetails: any | null;
 };
 
 export type Stock = {
@@ -51,4 +51,6 @@ export type Discount = {
     createdAt: number;
 };
     
+    
+
     
