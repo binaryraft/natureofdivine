@@ -87,7 +87,6 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     };
     
     if (paymentMethod === 'cod') {
-        // For COD, we create the order and decrease stock immediately.
         await decreaseStock(variant, 1);
         if (discountCode) {
             await incrementDiscountUsage(discountCode);
@@ -104,7 +103,6 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
           orderId: newOrder.id,
         };
     } else { // prepaid
-        // For prepaid, we create a 'pending' order first. Stock is not decreased yet.
         const newOrder = await addOrder(newOrderData);
         const paymentResponse = await initiatePhonePePayment(newOrder);
 
@@ -262,6 +260,21 @@ export async function changeOrderStatusAction(userId: string, orderId: string, s
     return await updateDbOrderStatus(userId, orderId, status);
 }
 
+export async function changeMultipleOrderStatusAction(orders: {orderId: string, userId: string}[], status: OrderStatus) {
+    try {
+        await Promise.all(
+            orders.map(order => updateDbOrderStatus(order.userId, order.orderId, status))
+        );
+        addLog('info', `Bulk updated ${orders.length} orders to ${status}.`);
+        revalidatePath('/admin');
+        return { success: true, message: `${orders.length} orders updated.` };
+    } catch (error: any) {
+        addLog('error', 'Bulk order update failed.', { status, count: orders.length, error: error.message });
+        return { success: false, message: 'Failed to update some orders.' };
+    }
+}
+
+
 const ReviewSchema = z.object({
   orderId: z.string(),
   userId: z.string(),
@@ -319,5 +332,3 @@ export async function createDiscount(code: string, percent: number): Promise<{su
     }
     return result;
 }
-
-    

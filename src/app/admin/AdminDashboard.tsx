@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchOrdersAction, changeOrderStatusAction, createDiscount } from '@/lib/actions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction } from '@/lib/actions';
 import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,12 +12,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
 import { getAllDiscounts } from '@/lib/discount-store';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -28,16 +29,41 @@ const statusColors: Record<OrderStatus, string> = {
     pending: 'bg-gray-500'
 }
 
-const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChange: (userId: string, orderId: string, newStatus: OrderStatus) => void }) => {
+const OrderTable = ({ 
+    orders, 
+    onStatusChange, 
+    selectedOrders,
+    onSelectionChange
+}: { 
+    orders: Order[], 
+    onStatusChange: (userId: string, orderId: string, newStatus: OrderStatus) => void,
+    selectedOrders: string[],
+    onSelectionChange: (orderId: string, checked: boolean) => void
+}) => {
+
+    const handleSelectAll = (checked: boolean) => {
+        orders.forEach(order => onSelectionChange(order.id, checked));
+    }
+    
     if (orders.length === 0) {
         return <p className="text-center py-8 text-muted-foreground">No orders in this category.</p>;
     }
+
+    const allSelected = orders.length > 0 && orders.every(order => selectedOrders.includes(order.id));
+    const isIndeterminate = !allSelected && orders.some(order => selectedOrders.includes(order.id));
 
     return (
         <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead className="w-[50px]">
+                           <Checkbox
+                                onCheckedChange={handleSelectAll}
+                                checked={allSelected}
+                                aria-label="Select all rows"
+                            />
+                        </TableHead>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Address</TableHead>
@@ -50,7 +76,14 @@ const OrderTable = ({ orders, onStatusChange }: { orders: Order[], onStatusChang
                 </TableHeader>
                 <TableBody>
                     {orders.map((order) => (
-                        <TableRow key={order.id}>
+                        <TableRow key={order.id} data-state={selectedOrders.includes(order.id) ? "selected" : ""}>
+                            <TableCell>
+                                <Checkbox 
+                                    onCheckedChange={(checked) => onSelectionChange(order.id, !!checked)}
+                                    checked={selectedOrders.includes(order.id)}
+                                    aria-label={`Select order ${order.id}`}
+                                />
+                            </TableCell>
                             <TableCell className="font-mono text-xs">{order.id}</TableCell>
                             <TableCell>
                                 <div className="font-medium">{order.name}</div>
@@ -143,7 +176,7 @@ function StockManager() {
         try {
             await updateStock(stock);
             toast({ title: 'Success', description: 'Stock levels updated successfully.' });
-            router.refresh(); // Force a server-side data refetch
+            router.refresh();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update stock.' });
         } finally {
@@ -309,6 +342,26 @@ function DiscountManager() {
     )
 }
 
+function BulkActions({ selectedCount, onAction }: { selectedCount: number; onAction: (status: OrderStatus) => void }) {
+    if (selectedCount === 0) return null;
+
+    return (
+        <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border my-4">
+            <p className="text-sm font-medium">{selectedCount} order{selectedCount > 1 ? 's' : ''} selected</p>
+            <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => onAction('dispatched')}>
+                    <Send className="mr-2 h-4 w-4" />
+                    Mark as Dispatched
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => onAction('cancelled')}>
+                     <Trash2 className="mr-2 h-4 w-4" />
+                    Cancel Selected
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 export function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState('');
@@ -316,6 +369,8 @@ export function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,6 +387,7 @@ export function AdminDashboard() {
         try {
             const fetchedOrders = await fetchOrdersAction();
             setOrders(fetchedOrders);
+            setSelectedOrders([]); // Clear selection on refresh
         } catch(e: any) {
             let description = "Failed to load orders. Please try again later.";
             if (e.message && e.message.includes("indexes?create_composite")) {
@@ -392,6 +448,40 @@ export function AdminDashboard() {
     }
   };
 
+    const handleSelectionChange = (orderId: string, checked: boolean) => {
+        setSelectedOrders(prev => 
+            checked ? [...prev, orderId] : prev.filter(id => id !== orderId)
+        );
+    }
+    
+    const handleBulkStatusChange = async (status: OrderStatus) => {
+        setIsBulkUpdating(true);
+        try {
+            const ordersToUpdate = selectedOrders
+                .map(id => orders.find(o => o.id === id))
+                .filter(o => o && o.userId)
+                .map(o => ({ orderId: o!.id, userId: o!.userId! }));
+
+            if (ordersToUpdate.length > 0) {
+                 const result = await changeMultipleOrderStatusAction(ordersToUpdate, status);
+                 if(result.success) {
+                    toast({ title: 'Success', description: result.message });
+                 } else {
+                    throw new Error(result.message);
+                 }
+            }
+            loadOrders();
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Bulk Update Failed',
+                description: error.message || 'Could not update all selected orders.',
+            });
+        } finally {
+            setIsBulkUpdating(false);
+        }
+    }
+
   const categorizedOrders = {
     new: orders.filter(o => o.status === 'new'),
     dispatched: orders.filter(o => o.status === 'dispatched'),
@@ -447,12 +537,13 @@ export function AdminDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                     {isPending ? (
+                     {isPending || isBulkUpdating ? (
                         <div className="flex justify-center items-center p-8">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="ml-2">{isBulkUpdating ? 'Applying bulk actions...' : 'Loading orders...'}</p>
                         </div>
                      ) : (
-                        <Tabs defaultValue="new" className="w-full">
+                        <Tabs defaultValue="new" className="w-full" onValueChange={() => setSelectedOrders([])}>
                             <TabsList className="grid w-full grid-cols-5">
                                 <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
                                 <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
@@ -460,20 +551,21 @@ export function AdminDashboard() {
                                 <TabsTrigger value="pending">Pending ({categorizedOrders.pending.length})</TabsTrigger>
                                 <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
                             </TabsList>
+                            <BulkActions selectedCount={selectedOrders.length} onAction={handleBulkStatusChange}/>
                             <TabsContent value="new" className="mt-4">
-                                <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} />
+                                <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                             </TabsContent>
                             <TabsContent value="dispatched" className="mt-4">
-                                <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} />
+                                <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                             </TabsContent>
                             <TabsContent value="delivered" className="mt-4">
-                                <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} />
+                                <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                             </TabsContent>
                              <TabsContent value="pending" className="mt-4">
-                                <OrderTable orders={categorizedOrders.pending} onStatusChange={handleStatusChange} />
+                                <OrderTable orders={categorizedOrders.pending} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                             </TabsContent>
                              <TabsContent value="cancelled" className="mt-4">
-                                <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} />
+                                <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                             </TabsContent>
                         </Tabs>
                      )}
