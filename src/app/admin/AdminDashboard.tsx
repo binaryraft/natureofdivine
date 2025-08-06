@@ -3,8 +3,8 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction } from '@/lib/actions';
-import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount } from '@/lib/definitions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics } from '@/lib/actions';
+import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,13 +12,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
 import { getAllDiscounts } from '@/lib/discount-store';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -518,8 +519,9 @@ export function AdminDashboard() {
   return (
     <div className="container mx-auto py-12 md:py-16 space-y-8">
         <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="stock">Stock</TabsTrigger>
                 <TabsTrigger value="discounts">Discounts</TabsTrigger>
             </TabsList>
@@ -571,6 +573,9 @@ export function AdminDashboard() {
                      )}
                   </CardContent>
                 </Card>
+            </TabsContent>
+             <TabsContent value="analytics" className="mt-6">
+                <AnalyticsDashboard />
             </TabsContent>
             <TabsContent value="stock" className="mt-6">
                 <StockManager />

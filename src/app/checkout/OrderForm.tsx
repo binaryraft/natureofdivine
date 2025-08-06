@@ -3,7 +3,7 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, validateDiscountCode } from '@/lib/actions';
+import { placeOrder, validateDiscountCode, trackEvent } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -118,8 +118,14 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'SET_ERRORS':
       return { ...state, errors: action.payload };
     case 'NEXT_STEP': {
-      if (state.step === 'variant') return { ...state, step: 'details' };
-      if (state.step === 'details') return { ...state, step: 'payment' };
+      if (state.step === 'variant') {
+        trackEvent('checkout_reached_shipping');
+        return { ...state, step: 'details' };
+      }
+      if (state.step === 'details') {
+        trackEvent('checkout_completed_shipping');
+        return { ...state, step: 'payment' };
+      }
       return state;
     }
     case 'PREVIOUS_STEP': {

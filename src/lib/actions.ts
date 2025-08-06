@@ -11,6 +11,7 @@ import { BookVariant, OrderStatus, Review, Order } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
 import crypto from 'crypto';
+import { addEvent, getAnalytics } from './analytics-store';
 
 const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
@@ -93,6 +94,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
         }
         const newOrder = await addOrder(newOrderData);
         await updateDbOrderStatus(userId, newOrder.id, 'new');
+        await addEvent('order_placed_cod');
 
         revalidatePath('/admin');
         revalidatePath('/orders');
@@ -104,6 +106,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
         };
     } else { // prepaid
         const newOrder = await addOrder(newOrderData);
+        await addEvent('order_placed_prepaid_initiated');
         const paymentResponse = await initiatePhonePePayment(newOrder);
 
         if (paymentResponse.success && paymentResponse.redirectUrl) {
@@ -331,4 +334,24 @@ export async function createDiscount(code: string, percent: number): Promise<{su
         revalidatePath('/admin');
     }
     return result;
+}
+
+
+// Analytics Actions
+export async function trackEvent(
+    type: string,
+    metadata?: Record<string, any>
+): Promise<{success: boolean}> {
+    try {
+        await addEvent(type, metadata);
+        return { success: true };
+    } catch(e) {
+        // Fail silently on the client, but log it
+        addLog('error', 'trackEvent failed', { type, metadata, error: (e as Error).message });
+        return { success: false };
+    }
+}
+
+export async function fetchAnalytics() {
+    return await getAnalytics();
 }

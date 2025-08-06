@@ -50,7 +50,29 @@ export type Discount = {
     usageCount: number;
     createdAt: number;
 };
-    
-    
 
-    
+export type AnalyticsEvent = {
+    id: string;
+    type: string;
+    timestamp: number;
+    metadata?: Record<string, any>;
+}
+
+export type AnalyticsData = {
+    totalVisitors: number;
+    clicks: Record<string, number>;
+    checkoutFunnel: {
+        reachedShipping: number;
+        completedShipping: number;
+    };
+    orders: {
+        cod: number;
+        prepaid: number;
+        prepaidInitiated: number;
+    };
+    users: {
+        login: number;
+        signup: number;
+    };
+    sampleChapters: Record<string, number>;
+}

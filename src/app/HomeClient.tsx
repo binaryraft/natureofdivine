@@ -24,9 +24,10 @@ import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizonta
 import Link from "next/link";
 import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Testimonials } from "@/components/Testimonials";
+import { trackEvent } from "@/lib/actions";
 
 const bookGlimpseImages = [
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book Nature of the Divine", locked: false },
@@ -41,6 +42,10 @@ const bookGlimpseImages = [
 
 
 export function HomeClient() {
+  
+  useEffect(() => {
+    trackEvent('page_view_home');
+  }, [])
 
   const showAuthorPhoto = false;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
@@ -83,14 +88,14 @@ export function HomeClient() {
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col sm:flex-row gap-4">
                          {flipkartLink?.visible && (
-                            <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full sm:w-auto flex-1`}>
+                            <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full sm:w-auto flex-1`} onClick={() => trackEvent('click_buy_flipkart_hero')}>
                                 <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
                                     Buy on Flipkart
                                 </a>
                             </Button>
                         )}
                         {amazonLink?.visible && (
-                            <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full sm:w-auto flex-1`}>
+                            <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full sm:w-auto flex-1`} onClick={() => trackEvent('click_buy_amazon_hero')}>
                                 <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
                                     Buy on Amazon
                                 </a>
@@ -98,12 +103,12 @@ export function HomeClient() {
                         )}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4">
-                         <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow">
+                         <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_buy_signed_hero')}>
                           <Link href="/checkout">
                             Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
                           </Link>
                         </Button>
-                        <Button asChild size="lg" variant="outline" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow">
+                        <Button asChild size="lg" variant="outline" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
                            <a href="#sample-chapters">
                             Read a Sample <BookOpen className="ml-2 h-5 w-5" />
                           </a>
@@ -177,7 +182,7 @@ export function HomeClient() {
               </div>
             <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto" defaultValue="item-1">
               {sampleChapters.map((chapter) => (
-                 <AccordionItem value={`item-${chapter.number}`} key={chapter.number}>
+                 <AccordionItem value={`item-${chapter.number}`} key={chapter.number} onClick={() => trackEvent('view_sample_chapter', { chapter: chapter.number })}>
                   <AccordionTrigger className="text-2xl md:text-3xl font-headline text-left hover:no-underline">
                     <div className="flex items-center gap-4">
                       {chapter.locked && <Lock className="w-6 h-6 text-accent/50" />}
@@ -187,7 +192,7 @@ export function HomeClient() {
                   <AccordionContent className="pt-4 text-lg/relaxed text-muted-foreground">
                     {!chapter.locked ? chapter.content : (
                       <div className="p-8 text-center bg-secondary rounded-lg">
-                            <Button asChild size="lg" className="cta-button">
+                            <Button asChild size="lg" className="cta-button" onClick={() => trackEvent('click_buy_signed_sample_chapter')}>
                                 <Link href="/checkout">Buy Signed Copy</Link>
                             </Button>
                       </div>
@@ -227,7 +232,7 @@ export function HomeClient() {
                               <Lock className="w-12 h-12 mb-4 text-accent" />
                               <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
                               <p className="text-sm text-muted-foreground mt-1">Purchase the book to read the full story.</p>
-                                <Button asChild size="sm" className="mt-4 cta-button">
+                                <Button asChild size="sm" className="mt-4 cta-button" onClick={() => trackEvent('click_buy_signed_gallery')}>
                                   <Link href="/checkout">Buy Signed Copy</Link>
                                 </Button>
                             </div>
@@ -272,14 +277,14 @@ export function HomeClient() {
               </p>
               <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
                 {visibleBuyLinks.map((link) => (
-                  <Button key={link.name} asChild size="lg" className={buttonStyles[link.name]}>
+                  <Button key={link.name} asChild size="lg" className={buttonStyles[link.name]} onClick={() => trackEvent(`click_buy_${link.name.toLowerCase()}_footer`)}>
                     <a href={link.url} target="_blank" rel="noopener noreferrer">
                       {link.name}
                     </a>
                   </Button>
                 ))}
                 {visibleBuyLinks.length > 0 && <div className="text-sm font-medium mx-2">OR</div>}
-                <Button asChild size="lg" className="bg-background text-primary hover:bg-background/90 shadow-lg hover:shadow-xl transition-all">
+                <Button asChild size="lg" className="bg-background text-primary hover:bg-background/90 shadow-lg hover:shadow-xl transition-all" onClick={() => trackEvent('click_buy_signed_footer')}>
                   <Link href="/checkout">
                     Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
                   </Link>

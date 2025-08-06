@@ -7,6 +7,7 @@ import type { Order, OrderStatus } from './definitions';
 import { addLog } from './log-store';
 import { decreaseStock, checkStock } from './stock-store';
 import { incrementDiscountUsage } from './discount-store';
+import { addEvent } from './analytics-store';
 
 
 const allOrdersCollection = collection(db, 'all-orders');
@@ -227,6 +228,7 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
             if (order.discountCode) {
                  await incrementDiscountUsage(order.discountCode);
             }
+            await addEvent('order_placed_prepaid_success');
         } else if(paymentStatus === 'FAILURE') {
             newStatus = 'cancelled';
         } else {

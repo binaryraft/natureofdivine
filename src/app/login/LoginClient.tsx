@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { trackEvent } from '@/lib/actions';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -37,6 +38,7 @@ export function LoginClient() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      await trackEvent('user_login', { method: 'email' });
       toast({ title: "Logged in successfully!" });
       router.push('/');
     } catch (error: any) {
@@ -55,6 +57,7 @@ export function LoginClient() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      await trackEvent('user_login', { method: 'google' });
       toast({ title: "Logged in successfully!" });
       router.push('/');
     } catch (error: any) {
