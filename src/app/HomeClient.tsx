@@ -69,7 +69,7 @@ export function HomeClient() {
     setIsClient(true);
   }, [])
 
-  const showAuthorPhoto = true;
+  const showAuthorPhoto = false;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
   const flipkartLink = buyLinks.find(link => link.name === 'Flipkart');
   const amazonLink = buyLinks.find(link => link.name === 'Amazon');
@@ -327,7 +327,3 @@ export function HomeClient() {
     </div>
   );
 }
-
-    
-
-    
