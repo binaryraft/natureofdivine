@@ -72,8 +72,8 @@ export function AnalyticsDashboard() {
         );
     }
     
-    const clickData = Object.entries(analyticsData.clicks).map(([key, value]) => ({ name: key.replace('click_', '').replace(/_/g, ' ').replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase()), clicks: value }));
-    const chapterData = Object.entries(analyticsData.sampleChapters).map(([key, value]) => ({ name: `Ch. ${key}`, views: value }));
+    const clickData = analyticsData.clicks ? Object.entries(analyticsData.clicks).map(([key, value]) => ({ name: key.replace('click_', '').replace(/_/g, ' ').replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase()), clicks: value })) : [];
+    const chapterData = analyticsData.sampleChapters ? Object.entries(analyticsData.sampleChapters).map(([key, value]) => ({ name: `Ch. ${key}`, views: value })) : [];
 
     const conversionRate = analyticsData.totalVisitors > 0 ? ((analyticsData.orders.cod + analyticsData.orders.prepaid) / analyticsData.totalVisitors) * 100 : 0;
     
@@ -109,7 +109,8 @@ export function AnalyticsDashboard() {
                     description="How many times each sample chapter was opened."
                 />
             </div>
-
+            
+            {analyticsData.checkoutFunnel && (
              <Card>
                 <CardHeader>
                     <CardTitle>Checkout Funnel</CardTitle>
@@ -118,7 +119,7 @@ export function AnalyticsDashboard() {
                 <CardContent className="space-y-4 text-center">
                     <div className="flex items-center justify-center gap-2 md:gap-4">
                          <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{analyticsData.clicks['click_buy_signed_hero'] || 0}</div>
+                            <div className="text-3xl font-bold">{analyticsData.clicks?.['click_buy_signed_hero'] || 0}</div>
                             <p className="text-sm text-muted-foreground">Clicked "Buy Signed"</p>
                         </div>
                         <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
@@ -139,6 +140,7 @@ export function AnalyticsDashboard() {
                     </div>
                 </CardContent>
             </Card>
+            )}
 
         </div>
     );
