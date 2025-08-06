@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | Nature of the Divine",
   },
   description: "Official website for 'Nature of the Divine' by Alfas B. A profound philosophical book exploring consciousness, the essence of existence, and humanity's path to aligning with the divine. Read samples and order your copy.",
-  keywords: ["Nature of the Divine book", "spiritual books India", "books on consciousness and mind", "Alfas B author book", "ebooks about divinity", "new philosophical books 2025", "philosophy of existence", "spiritual awakening"],
+  keywords: ["spiritual awakening books", "philosophy of life books", "consciousness explained", "divinity within", "Indian philosophy books", "existential philosophy", "mindfulness and consciousness", "self discovery books", "metaphysical books", "new age spirituality", "Nature of the Divine book", "spiritual books India", "Alfas B author book", "new philosophical books 2025", "philosophy of existence"],
   authors: [{ name: 'Alfas B', url: siteUrl }],
   creator: 'Alfas B',
   publisher: 'Notion Press',
