@@ -135,35 +135,31 @@ export function HomeClient() {
                  }>
                     <HomePrice />
                  </Suspense>
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                         {flipkartLink?.visible && (
-                            <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full sm:w-auto flex-1`} onClick={() => trackEvent('click_buy_flipkart_hero')}>
-                                <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
-                                    Buy on Flipkart
-                                </a>
-                            </Button>
-                        )}
-                        {amazonLink?.visible && (
-                            <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full sm:w-auto flex-1`} onClick={() => trackEvent('click_buy_amazon_hero')}>
-                                <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
-                                    Buy on Amazon
-                                </a>
-                            </Button>
-                        )}
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                         <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_buy_signed_hero')}>
-                          <Link href="/checkout">
-                            Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
-                          </Link>
+                <div className="grid grid-cols-2 sm:flex sm:flex-col gap-4">
+                    {flipkartLink?.visible && (
+                        <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full sm:w-auto sm:flex-1`} onClick={() => trackEvent('click_buy_flipkart_hero')}>
+                            <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
+                                Buy on Flipkart
+                            </a>
                         </Button>
-                        <Button asChild size="lg" variant="outline" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
-                           <a href="#sample-chapters">
-                            Read a Sample <BookOpen className="ml-2 h-5 w-5" />
-                          </a>
+                    )}
+                    {amazonLink?.visible && (
+                        <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full sm:w-auto sm:flex-1`} onClick={() => trackEvent('click_buy_amazon_hero')}>
+                            <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
+                                Buy on Amazon
+                            </a>
                         </Button>
-                    </div>
+                    )}
+                    <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto sm:flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_buy_signed_hero')}>
+                        <Link href="/checkout">
+                        Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
+                        </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline" className="w-full sm:w-auto sm:flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
+                        <a href="#sample-chapters">
+                        Read a Sample <BookOpen className="ml-2 h-5 w-5" />
+                        </a>
+                    </Button>
                 </div>
               </div>
               <div className="flex items-center justify-center">
@@ -331,5 +327,7 @@ export function HomeClient() {
     </div>
   );
 }
+
+    
 
     
