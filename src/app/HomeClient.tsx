@@ -24,10 +24,11 @@ import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizonta
 import Link from "next/link";
 import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Testimonials } from "@/components/Testimonials";
 import { trackEvent } from "@/lib/actions";
+import dynamic from "next/dynamic";
 
 const bookGlimpseImages = [
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book Nature of the Divine", locked: false },
@@ -40,11 +41,32 @@ const bookGlimpseImages = [
   { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, "data-ai-hint": "book page" },
 ];
 
+const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').then(mod => mod.Testimonials), {
+  loading: () => (
+    <section className="w-full py-16 md:py-24 lg:py-32">
+        <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
+              <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
+              <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
+            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+          </div>
+      </div>
+    </section>
+  ),
+  ssr: false
+});
+
 
 export function HomeClient() {
+  const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
-    trackEvent('page_view_home');
+    trackEvent('page_view_home', { sessionId: crypto.randomUUID() });
+    setIsClient(true);
   }, [])
 
   const showAuthorPhoto = false;
@@ -56,6 +78,34 @@ export function HomeClient() {
     Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold',
     Flipkart: 'bg-[#2874F0] hover:bg-[#2874F0]/90 text-white shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110',
   };
+
+  if (!isClient) {
+    return (
+      <div className="flex flex-col min-h-[100dvh]">
+        <main className="flex-1">
+          <div className="w-full py-20 md:py-32 lg:py-40">
+            <div className="container px-4 md:px-6">
+              <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-24">
+                <div className="flex flex-col justify-center space-y-6">
+                  <Skeleton className="h-12 w-3/4" />
+                  <Skeleton className="h-6 w-1/2" />
+                  <Skeleton className="h-16 w-48 mt-4" />
+                  <div className="flex gap-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-center">
+                  <Skeleton className="aspect-[2/3] w-full max-w-[450px] rounded-lg" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -249,23 +299,7 @@ export function HomeClient() {
           </div>
         </section>
         
-        <Suspense fallback={
-            <section className="w-full py-16 md:py-24 lg:py-32">
-                 <div className="container px-4 md:px-6">
-                     <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                        <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Testimonials</div>
-                        <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
-                      </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
-                    </div>
-                </div>
-            </section>
-        }>
-            <Testimonials />
-        </Suspense>
+        <DynamicTestimonials />
 
         {/* Buy Now Section */}
         <section id="buy" className="w-full py-20 md:py-28 lg:py-32 bg-primary text-primary-foreground">
