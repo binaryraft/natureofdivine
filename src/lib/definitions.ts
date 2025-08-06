@@ -40,7 +40,9 @@ export type Review = {
     userId: string;
     userName: string;
     rating: number;
+    title: string;
     reviewText?: string;
+    imageUrls: string[];
     createdAt: number;
 };
 
@@ -75,4 +77,8 @@ export type AnalyticsData = {
         signup: number;
     };
     sampleChapters: Record<string, number>;
+    reviews: {
+        total: number;
+        averageRating: number;
+    }
 }

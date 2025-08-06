@@ -20,15 +20,16 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote } from "lucide-react";
+import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Star } from "lucide-react";
 import Link from "next/link";
 import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
 import { Suspense, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Testimonials } from "@/components/Testimonials";
-import { trackEvent } from "@/lib/actions";
+import { trackEvent, fetchAnalytics } from "@/lib/actions";
 import dynamic from "next/dynamic";
+import { cn } from "@/lib/utils";
 
 const bookGlimpseImages = [
   { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book Nature of the Divine", locked: false },
@@ -60,13 +61,31 @@ const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').th
   ssr: false
 });
 
+function StarRating({ rating, totalReviews }: { rating: number, totalReviews: number }) {
+    if (totalReviews === 0) return null;
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={cn("h-5 w-5", i < Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30")} />
+                ))}
+            </div>
+            <span className="text-muted-foreground text-sm font-medium">
+                {rating.toFixed(1)} ({totalReviews} reviews)
+            </span>
+        </div>
+    );
+}
 
 export function HomeClient() {
   const [isClient, setIsClient] = useState(false);
+  const [analytics, setAnalytics] = useState<any>(null);
   
   useEffect(() => {
     trackEvent('page_view_home', { sessionId: crypto.randomUUID() });
     setIsClient(true);
+    fetchAnalytics().then(setAnalytics);
   }, [])
 
   const showAuthorPhoto = false;
@@ -123,6 +142,14 @@ export function HomeClient() {
                   <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
                     A journey into the heart of mystery, faith, and human existence.
                   </p>
+                  {analytics?.reviews ? (
+                     <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="h-5 w-28" />
+                        <Skeleton className="h-5 w-20" />
+                    </div>
+                  )}
                 </div>
                  <Suspense fallback={
                     <div className="space-y-4">
@@ -135,7 +162,7 @@ export function HomeClient() {
                  }>
                     <HomePrice />
                  </Suspense>
-                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
+                 <div className="grid grid-cols-2 gap-4">
                     {flipkartLink?.visible && (
                         <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full`} onClick={() => trackEvent('click_buy_flipkart_hero')}>
                             <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">

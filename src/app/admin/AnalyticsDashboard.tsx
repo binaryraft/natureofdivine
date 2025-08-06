@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAnalytics, trackEvent } from '@/lib/actions';
 import { AnalyticsData } from '@/lib/definitions';
-import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen } from 'lucide-react';
+import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star } from 'lucide-react';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { sampleChapters } from '@/lib/data';
 
@@ -75,7 +75,8 @@ export function AnalyticsDashboard() {
     const clickData = analyticsData.clicks ? Object.entries(analyticsData.clicks).map(([key, value]) => ({ name: key.replace('click_', '').replace(/_/g, ' ').replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase()), clicks: value })) : [];
     const chapterData = analyticsData.sampleChapters ? Object.entries(analyticsData.sampleChapters).map(([key, value]) => ({ name: `Ch. ${key}`, views: value })) : [];
 
-    const conversionRate = analyticsData.totalVisitors > 0 ? ((analyticsData.orders.cod + analyticsData.orders.prepaid) / analyticsData.totalVisitors) * 100 : 0;
+    const totalOrders = (analyticsData.orders?.cod || 0) + (analyticsData.orders?.prepaid || 0);
+    const conversionRate = analyticsData.totalVisitors > 0 ? (totalOrders / analyticsData.totalVisitors) * 100 : 0;
     
     return (
         <div className="space-y-6">
@@ -86,11 +87,12 @@ export function AnalyticsDashboard() {
                 </CardHeader>
             </Card>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard title="Total Visitors" value={analyticsData.totalVisitors} icon={Users} description="Unique homepage sessions" />
-                <StatCard title="Total Orders" value={analyticsData.orders.cod + analyticsData.orders.prepaid} icon={ShoppingCart} description={`${analyticsData.orders.cod} COD, ${analyticsData.orders.prepaid} Prepaid`}/>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                <StatCard title="Total Visitors" value={analyticsData.totalVisitors || 0} icon={Users} description="Unique homepage sessions" />
+                <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} description={`${analyticsData.orders?.cod || 0} COD, ${analyticsData.orders?.prepaid || 0} Prepaid`}/>
                 <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={BarChart} description="Visitors to Orders" />
-                 <StatCard title="New Users" value={analyticsData.users.signup} icon={UserPlus} description={`${analyticsData.users.login} total logins`}/>
+                <StatCard title="New Users" value={analyticsData.users?.signup || 0} icon={UserPlus} description={`${analyticsData.users?.login || 0} total logins`}/>
+                <StatCard title="Avg. Rating" value={analyticsData.reviews?.averageRating.toFixed(1) || 'N/A'} icon={Star} description={`${analyticsData.reviews?.total || 0} total reviews`}/>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -117,7 +119,7 @@ export function AnalyticsDashboard() {
                     <CardDescription>How users progress through the checkout process for signed copies.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-center">
-                    <div className="flex items-center justify-center gap-2 md:gap-4">
+                    <div className="flex items-center justify-center gap-2 md:gap-4 flex-wrap">
                          <div className="flex flex-col items-center">
                             <div className="text-3xl font-bold">{analyticsData.clicks?.['click_buy_signed_hero'] || 0}</div>
                             <p className="text-sm text-muted-foreground">Clicked "Buy Signed"</p>
@@ -145,5 +147,3 @@ export function AnalyticsDashboard() {
         </div>
     );
 }
-
-    

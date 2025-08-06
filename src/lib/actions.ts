@@ -12,6 +12,15 @@ import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-sto
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
 import { v4 as uuidv4 } from 'uuid';
 import SHA256 from 'crypto-js/sha256';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({ 
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+  api_key: process.env.CLOUDINARY_API_KEY, 
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
+
 
 const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
@@ -120,7 +129,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
 
 async function initiatePhonePePayment(order: Order) {
   try {
-    const merchantTransactionId = `MTID-${uuidv4().slice(0, 8)}`;
+    const merchantTransactionId = `MTID-${uuidv4().slice(0, 8)}-${order.id}`;
     const merchantId = process.env.PHONEPE_MERCHANT_ID;
     const saltKey = process.env.PHONEPE_SALT_KEY;
     const saltIndex = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
@@ -254,8 +263,22 @@ const ReviewSchema = z.object({
   orderId: z.string(),
   userId: z.string(),
   rating: z.number().min(1).max(5),
+  title: z.string().min(3, "Title must be at least 3 characters long."),
   reviewText: z.string().optional(),
+  images: z.array(z.string()).optional(), // array of base64 strings
 });
+
+async function uploadImages(images: string[]): Promise<string[]> {
+    const uploadPromises = images.map(image => 
+        cloudinary.uploader.upload(image, {
+            folder: "reviews",
+            transformation: [{ width: 1000, height: 1000, crop: "limit" }]
+        })
+    );
+    const results = await Promise.all(uploadPromises);
+    return results.map(result => result.secure_url);
+}
+
 
 export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
@@ -266,9 +289,19 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
         throw new Error("Order not found.");
     }
     
+    let imageUrls: string[] = [];
+    if (validatedData.images && validatedData.images.length > 0) {
+        imageUrls = await uploadImages(validatedData.images);
+    }
+    
     const reviewData = {
-      ...validatedData,
-      userName: order.name, 
+      orderId: validatedData.orderId,
+      userId: validatedData.userId,
+      rating: validatedData.rating,
+      title: validatedData.title,
+      reviewText: validatedData.reviewText,
+      userName: order.name,
+      imageUrls: imageUrls
     };
 
     await addReviewToStore(reviewData);
@@ -276,10 +309,11 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
     
     revalidatePath('/');
     revalidatePath('/orders');
+    revalidatePath('/admin');
 
     return { success: true, message: "Review submitted successfully." };
   } catch (error: any) {
-    await addLog('error', 'submitReview failed', { data, error: { message: error.message } });
+    await addLog('error', 'submitReview failed', { data: { ...data, images: "hidden" }, error: { message: error.message } });
     console.error("Error submitting review:", error);
     return { success: false, message: error.message || "Failed to submit review." };
   }
@@ -327,3 +361,5 @@ export async function trackEvent(
 export async function fetchAnalytics() {
     return await getAnalytics();
 }
+
+import { getAnalytics, addEvent } from './analytics-store';

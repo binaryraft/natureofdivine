@@ -7,7 +7,7 @@ import { fetchUserOrdersAction, submitReview } from '@/lib/actions';
 import { Order, OrderStatus } from '@/lib/definitions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, PackageSearch, XCircle, CheckCircle, Truck, ShoppingCart, Package, Star, MessageSquareQuote } from 'lucide-react';
+import { Loader2, PackageSearch, XCircle, CheckCircle, Truck, ShoppingCart, Package, Star, MessageSquareQuote, ImagePlus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,24 +16,58 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import Image from 'next/image';
 
 const statusInfo: Record<OrderStatus, { label: string; Icon: React.ElementType; color: string }> = {
   new: { label: 'Order Placed', Icon: ShoppingCart, color: 'bg-blue-500' },
   dispatched: { label: 'Dispatched', Icon: Truck, color: 'bg-yellow-500' },
   delivered: { label: 'Delivered', Icon: CheckCircle, color: 'bg-green-500' },
   cancelled: { label: 'Cancelled', Icon: XCircle, color: 'bg-red-500' },
+  pending: { label: 'Payment Pending', Icon: Loader2, color: 'bg-gray-500 animate-spin'},
 };
 
 function ReviewDialog({ order, isOpen, onOpenChange }: { order: Order; isOpen: boolean; onOpenChange: (open: boolean) => void }) {
     const { toast } = useToast();
-    const [rating, setRating] = useState(0);
-    const [reviewText, setReviewText] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
+    const [rating, setRating] = useState(0);
+    const [title, setTitle] = useState('');
+    const [reviewText, setReviewText] = useState('');
+    const [images, setImages] = useState<string[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            const currentImageCount = images.length;
+            if (files.length + currentImageCount > 5) {
+                toast({ variant: 'destructive', title: 'Too many images', description: 'You can upload a maximum of 5 images.' });
+                return;
+            }
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setImages(prev => [...prev, reader.result as string]);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    };
+
+    const removeImage = (index: number) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
+    }
+
 
     const handleReviewSubmit = async () => {
         if (rating === 0) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a star rating.' });
+            return;
+        }
+         if (!title) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a title for your review.' });
             return;
         }
         setIsSubmitting(true);
@@ -42,13 +76,18 @@ function ReviewDialog({ order, isOpen, onOpenChange }: { order: Order; isOpen: b
                 orderId: order.id,
                 userId: order.userId!,
                 rating,
+                title,
                 reviewText,
+                images
             });
 
             if (result.success) {
                 toast({ title: 'Success', description: 'Your review has been submitted. Thank you!' });
+                setRating(0);
+                setTitle('');
+                setReviewText('');
+                setImages([]);
                 onOpenChange(false);
-                // Optionally, refresh the orders page to show that review is submitted
                 router.refresh(); 
             } else {
                 throw new Error(result.message);
@@ -62,27 +101,55 @@ function ReviewDialog({ order, isOpen, onOpenChange }: { order: Order; isOpen: b
     
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Leave a Review for Order #{order.id.substring(0, 7)}</DialogTitle>
                     <DialogDescription>Share your thoughts about &quot;Nature of the Divine&quot;.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                                key={star}
-                                className={cn("h-8 w-8 cursor-pointer transition-colors", rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground hover:text-yellow-300')}
-                                onClick={() => setRating(star)}
-                            />
-                        ))}
+                    <div className="space-y-2">
+                        <Label>Your Rating*</Label>
+                        <div className="flex items-center justify-center gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                    key={star}
+                                    className={cn("h-8 w-8 cursor-pointer transition-colors", rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground hover:text-yellow-300')}
+                                    onClick={() => setRating(star)}
+                                />
+                            ))}
+                        </div>
                     </div>
-                    <Textarea
-                        placeholder="Tell us more about your experience..."
-                        value={reviewText}
-                        onChange={(e) => setReviewText(e.target.value)}
-                        rows={4}
-                    />
+
+                    <div className="space-y-2">
+                        <Label htmlFor="review-title">Review Title*</Label>
+                        <Input id="review-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A brief summary of your experience"/>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="review-text">Your Review</Label>
+                        <Textarea
+                            id="review-text"
+                            placeholder="Tell us more about your experience..."
+                            value={reviewText}
+                            onChange={(e) => setReviewText(e.target.value)}
+                            rows={4}
+                        />
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="review-images">Add Photos (optional)</Label>
+                        <Input id="review-images" type="file" multiple accept="image/*" onChange={handleImageUpload} />
+                         <div className="flex flex-wrap gap-2 mt-2">
+                            {images.map((img, index) => (
+                                <div key={index} className="relative">
+                                    <Image src={img} alt={`review-image-${index}`} width={80} height={80} className="rounded-md object-cover h-20 w-20"/>
+                                    <Button size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
                  <div className="flex justify-end gap-2">
                      <DialogClose asChild>
@@ -138,6 +205,11 @@ function OrderItem({ order }: { order: Order }) {
                 </Button>
             </div>
          )}
+          {order.status === 'delivered' && order.hasReview && (
+             <div className="flex justify-end pt-2">
+                <p className="text-sm text-green-600 flex items-center gap-2"><CheckCircle className="h-4 w-4"/> Review Submitted</p>
+            </div>
+          )}
       </CardContent>
     </Card>
     {order.status === 'delivered' && <ReviewDialog order={order} isOpen={isReviewOpen} onOpenChange={setIsReviewOpen} />}

@@ -17,7 +17,9 @@ const docToReview = (doc: any): Review => {
         userId: data.userId,
         userName: data.userName,
         rating: data.rating,
+        title: data.title || 'Review',
         reviewText: data.reviewText,
+        imageUrls: data.imageUrls || [],
         createdAt: createdAtMillis,
     };
 };

@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -18,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { fetchReviews } from "@/lib/actions";
 import { Review } from "@/lib/definitions";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 
 function StarRating({ rating }: { rating: number }) {
@@ -57,9 +59,9 @@ export function Testimonials() {
                         <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><Quote/> From Our Readers</h2>
                       </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
+                        <Skeleton className="h-56 w-full" />
+                        <Skeleton className="h-56 w-full" />
+                        <Skeleton className="h-56 w-full" />
                     </div>
                 </div>
             </section>
@@ -90,10 +92,29 @@ export function Testimonials() {
                       <Card className="h-full flex flex-col justify-between border-l-4 border-primary bg-secondary/50 p-6">
                         <CardContent className="p-0 text-left space-y-4">
                            <div className="flex items-center justify-between">
-                             <h3 className="text-xl font-bold font-headline">{review.userName || 'Anonymous'}</h3>
+                             <p className="text-sm font-semibold">{review.userName || 'Anonymous'}</p>
                              <StarRating rating={review.rating} />
                            </div>
-                          <p className="text-lg/relaxed text-muted-foreground">&ldquo;{review.reviewText}&rdquo;</p>
+                           <h3 className="text-xl font-bold font-headline">{review.title}</h3>
+                          {review.reviewText && <p className="text-lg/relaxed text-muted-foreground">&ldquo;{review.reviewText}&rdquo;</p>}
+                          
+                          {review.imageUrls && review.imageUrls.length > 0 && (
+                            <ScrollArea className="w-full whitespace-nowrap rounded-md">
+                                <div className="flex w-max space-x-4 p-2">
+                                {review.imageUrls.map((url, index) => (
+                                    <Image
+                                        key={index}
+                                        src={url}
+                                        alt={`Review image ${index + 1} for ${review.title}`}
+                                        width={100}
+                                        height={100}
+                                        className="h-24 w-24 object-cover rounded-md"
+                                    />
+                                ))}
+                                </div>
+                                <ScrollBar orientation="horizontal" />
+                            </ScrollArea>
+                          )}
                         </CardContent>
                       </Card>
                     </div>

@@ -3,9 +3,10 @@
 
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, Timestamp, query, orderBy, getDoc, doc, setDoc } from 'firebase/firestore';
-import type { AnalyticsData, AnalyticsEvent } from './definitions';
+import type { AnalyticsData, AnalyticsEvent, Review } from './definitions';
 import { addLog } from './log-store';
 import { sampleChapters } from './data';
+import { getReviews } from './review-store';
 
 const eventsCollection = collection(db, 'analyticsEvents');
 const summaryDocRef = doc(db, 'analytics', 'summary');
@@ -28,6 +29,7 @@ export async function getAnalytics(): Promise<AnalyticsData> {
     try {
         const eventsSnapshot = await getDocs(query(eventsCollection, orderBy('timestamp', 'asc')));
         const events = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AnalyticsEvent));
+        const reviews = await getReviews();
 
         const analytics: AnalyticsData = {
             totalVisitors: 0,
@@ -46,6 +48,10 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                 signup: 0,
             },
             sampleChapters: sampleChapters.reduce((acc, chap) => ({...acc, [chap.number]: 0}), {}),
+            reviews: {
+                total: reviews.length,
+                averageRating: reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0,
+            }
         };
 
         const uniqueVisitors = new Set();
@@ -57,9 +63,9 @@ export async function getAnalytics(): Promise<AnalyticsData> {
             }
             // Page Views
             if (event.type.startsWith('page_view_')) {
-                 if(!uniqueVisitors.has(event.metadata?.sessionId)) {
+                 if(event.metadata?.sessionId && !uniqueVisitors.has(event.metadata.sessionId)) {
                     analytics.totalVisitors += 1;
-                    uniqueVisitors.add(event.metadata?.sessionId);
+                    uniqueVisitors.add(event.metadata.sessionId);
                  }
             }
             // Checkout
