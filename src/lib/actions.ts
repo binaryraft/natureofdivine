@@ -177,7 +177,7 @@ async function initiatePhonePePayment(order: Order) {
     const xVerify = `${sha256}###${saltIndex}`;
 
     const apiUrl = isProd 
-      ? 'https://api.phonepe.com/apis/hermes' 
+      ? 'https://api.phonepe.com/apis/pg'
       : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
       
     try {
@@ -228,7 +228,7 @@ export async function checkPhonePeStatus(merchantTransactionId: string) {
     const xVerify = `${sha256}###${saltIndex}`;
 
     const apiUrl = isProd
-      ? 'https://api.phonepe.com/apis/hermes'
+      ? 'https://api.phonepe.com/apis/pg'
       : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
       
     try {

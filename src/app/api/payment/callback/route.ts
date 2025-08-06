@@ -15,8 +15,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const formData = await req.formData();
-        const responseData = formData.get('response');
+        const textResponse = await req.text();
+        const body = JSON.parse(textResponse);
+        const responseData = body.response;
 
         if (typeof responseData !== 'string') {
              await addLog('error', 'PhonePe callback handler: No response data found.');
@@ -41,13 +42,11 @@ export async function POST(req: NextRequest) {
         await addLog('info', 'PhonePe callback decoded', { data: decodedResponse });
 
         const { success, code, message, data } = decodedResponse;
-        const { merchantTransactionId, amount } = data;
+        const { merchantTransactionId } = data;
         
-        // The merchant transaction ID might have a timestamp, we need the base order ID.
-        // MUID-${order.id}-${Date.now()}
         const orderId = merchantTransactionId.split('-')[1];
 
-        if (code === 'PAYMENT_SUCCESS') {
+        if (success && code === 'PAYMENT_SUCCESS') {
             await addLog('info', 'Payment successful according to callback. Verifying with status check API.');
             const statusResponse = await checkPhonePeStatus(merchantTransactionId);
             await addLog('info', 'PhonePe Status Check API response', { statusResponse });
@@ -75,24 +74,6 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// This GET handler is typically used when the user presses "Back" on the PhonePe page.
-// The transaction is usually a failure in this case.
 export async function GET(req: NextRequest) {
-    const params = req.nextUrl.searchParams;
-    const orderId = params.get('orderId'); // This might not be available
-    const message = params.get('message') || 'Payment was cancelled or failed.';
-    
-    await addLog('info', 'PhonePe callback received GET request', { params: Object.fromEntries(params) });
-
-    // It is not guaranteed that we will have an orderId here, so this part is opportunistic.
-    // The robust check happens in the POST handler.
-    if (orderId) {
-        try {
-            await updateOrderPaymentStatus(orderId, 'FAILURE', { message: 'User cancelled or went back from the payment process.' });
-        } catch(e: any) {
-            await addLog('error', 'Failed to update order status on GET callback', { orderId, error: e.message });
-        }
-    }
-
-    return NextResponse.redirect(new URL(`/checkout?error=${encodeURIComponent(message)}`, req.url));
+    return NextResponse.redirect(new URL('/checkout?error=payment_cancelled_by_user', req.url));
 }
