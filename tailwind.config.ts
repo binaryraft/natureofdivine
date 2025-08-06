@@ -15,10 +15,6 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ['Alegreya', 'sans-serif'],
-        headline: ['"Alfa Slab One"', 'serif'],
-      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
