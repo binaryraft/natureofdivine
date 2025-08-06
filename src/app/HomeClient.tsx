@@ -135,27 +135,27 @@ export function HomeClient() {
                  }>
                     <HomePrice />
                  </Suspense>
-                <div className="grid grid-cols-2 sm:flex sm:flex-col gap-4">
+                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
                     {flipkartLink?.visible && (
-                        <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full sm:w-auto sm:flex-1`} onClick={() => trackEvent('click_buy_flipkart_hero')}>
+                        <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full`} onClick={() => trackEvent('click_buy_flipkart_hero')}>
                             <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
                                 Buy on Flipkart
                             </a>
                         </Button>
                     )}
                     {amazonLink?.visible && (
-                        <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full sm:w-auto sm:flex-1`} onClick={() => trackEvent('click_buy_amazon_hero')}>
+                        <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full`} onClick={() => trackEvent('click_buy_amazon_hero')}>
                             <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
                                 Buy on Amazon
                             </a>
                         </Button>
                     )}
-                    <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto sm:flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_buy_signed_hero')}>
+                    <Button asChild size="lg" variant="secondary" className="w-full shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_buy_signed_hero')}>
                         <Link href="/checkout">
                         Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
                         </Link>
                     </Button>
-                    <Button asChild size="lg" variant="outline" className="w-full sm:w-auto sm:flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
+                    <Button asChild size="lg" variant="outline" className="w-full shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
                         <a href="#sample-chapters">
                         Read a Sample <BookOpen className="ml-2 h-5 w-5" />
                         </a>
