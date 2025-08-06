@@ -63,7 +63,6 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
 
         const userOrderRef = doc(db, 'users', userId, 'orders', newOrderId);
 
-        // We explicitly define the object to ensure no extra properties are included
         const newOrderDocumentData: Omit<Order, 'createdAt'> & { createdAt: Timestamp } = {
             id: newOrderId,
             userId: orderData.userId,
@@ -82,7 +81,7 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
             originalPrice: orderData.originalPrice,
             discountCode: orderData.discountCode,
             discountAmount: orderData.discountAmount,
-            status: 'pending', // Default to pending until payment status is confirmed
+            status: 'pending', // Default to pending. Will be updated by the caller.
             createdAt: Timestamp.now(),
             hasReview: false,
             paymentDetails: null
@@ -204,7 +203,6 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
 
         const order = docToOrder(orderSnap);
         
-        // If order is already processed, don't update it again to prevent double stock deduction
         if(order.status === 'new' || order.status === 'dispatched' || order.status === 'delivered') {
             await addLog('warn', 'updateOrderPaymentStatus ignored for already processed order', { orderId, currentStatus: order.status });
             return;
@@ -223,7 +221,6 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         
         if (paymentStatus === 'SUCCESS') {
             newStatus = 'new';
-            // Decrease stock and increment discount usage for confirmed orders
             await decreaseStock(order.variant, 1);
             if (order.discountCode) {
                  await incrementDiscountUsage(order.discountCode);
@@ -253,5 +250,3 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         throw new Error("Could not update the order's payment status.");
     }
 }
-
-    
