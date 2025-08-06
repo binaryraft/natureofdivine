@@ -10,8 +10,8 @@ import { fetchLocationAndPrice } from './fetch-location-price';
 import { BookVariant, OrderStatus, Review, Order } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
-import { randomUUID } from 'crypto';
-import { addEvent, getAnalytics } from './analytics-store';
+import { v4 as uuidv4 } from 'uuid';
+import SHA256 from 'crypto-js/sha256';
 
 const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
@@ -84,50 +84,142 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     await addLog('info', 'Attempting to add order to database with clean data...', { userId, variant });
     const newOrder = await addOrder(newOrderData);
     await addLog('info', 'Order successfully created in database.', { orderId: newOrder.id });
-    
-    // Set order to new immediately for COD
-    await updateOrderStatus(userId, newOrder.id, 'new');
 
     if (paymentMethod === 'cod') {
-      await decreaseStock(variant, 1);
-      if (discountCode) {
-        await incrementDiscountUsage(discountCode);
-      }
-      await trackEvent('order_placed_cod');
-
-      revalidatePath('/admin');
-      revalidatePath('/orders');
-
-      return {
-        success: true,
-        message: 'Order created successfully!',
-        orderId: newOrder.id,
-      };
+        await updateOrderStatus(userId, newOrder.id, 'new');
+        await decreaseStock(variant, 1);
+        if (discountCode) {
+            await incrementDiscountUsage(discountCode);
+        }
+        revalidatePath('/admin');
+        revalidatePath('/orders');
+        await addEvent('order_placed_cod');
+        return { success: true, message: 'Order created successfully!', orderId: newOrder.id };
     } else {
-      // Since the SDK is not available, we can't proceed with prepaid orders.
-      await addLog('error', 'PhonePe payment initiation failed.', { orderId: newOrder.id, reason: 'SDK not available/installed.' });
-      return { success: false, message: 'Online payment is temporarily unavailable. Please choose Cash on Delivery.' };
+      // Prepaid Order
+      await addEvent('order_placed_prepaid_initiated');
+      const paymentResponse = await initiatePhonePePayment(newOrder);
+      if (paymentResponse.success && paymentResponse.redirectUrl) {
+        return {
+          success: true,
+          message: 'Redirecting to payment gateway.',
+          paymentData: { redirectUrl: paymentResponse.redirectUrl },
+        };
+      } else {
+        await addLog('error', 'PhonePe payment initiation failed.', { orderId: newOrder.id, response: paymentResponse });
+        return { success: false, message: paymentResponse.message || 'Could not initiate payment.' };
+      }
     }
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred.';
-    await addLog('error', 'placeOrder action failed catastrophically.', {
-      message: errorMessage,
-      stack: error.stack,
-      payload,
-    });
+    await addLog('error', 'placeOrder action failed catastrophically.', { message: errorMessage, stack: error.stack, payload });
     console.error('CRITICAL placeOrder Error:', error);
-    return {
-      success: false,
-      message: `Could not create a new order in the database. Reason: ${errorMessage}`,
-    };
+    return { success: false, message: `Could not create a new order in the database. Reason: ${errorMessage}` };
   }
 }
 
+async function initiatePhonePePayment(order: Order) {
+  try {
+    const merchantTransactionId = `MTID-${uuidv4().slice(0, 8)}`;
+    const merchantId = process.env.PHONEPE_MERCHANT_ID;
+    const saltKey = process.env.PHONEPE_SALT_KEY;
+    const saltIndex = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
+    const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
+    const phonepeApiUrl = isProd ? 'https://api.phonepe.com/apis/pg/v1/pay' : 'https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay';
+
+
+    if (!merchantId || !saltKey) {
+      throw new Error("PhonePe merchant credentials are not configured in .env file.");
+    }
+    
+    const payload = {
+        merchantId,
+        merchantTransactionId,
+        merchantUserId: `MUID-${order.userId}`,
+        amount: order.price * 100, // Amount in paise
+        redirectUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/orders?orderId=${order.id}`,
+        redirectMode: "REDIRECT",
+        callbackUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/api/payment/callback`,
+        mobileNumber: order.phone,
+        paymentInstrument: {
+            type: "PAY_PAGE",
+        },
+    };
+
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const xVerify = SHA256(base64Payload + '/pg/v1/pay' + saltKey).toString() + '###' + saltIndex;
+    
+    await addLog('info', 'Initiating PhonePe payment', { url: phonepeApiUrl, transactionId: merchantTransactionId });
+
+    const response = await fetch(phonepeApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VERIFY': xVerify,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ request: base64Payload }),
+    });
+
+    const responseData = await response.json();
+
+    if (responseData.success) {
+      await addLog('info', 'PhonePe payment initiation successful', { orderId: order.id, transactionId: merchantTransactionId });
+      return { success: true, redirectUrl: responseData.data.instrumentResponse.redirectInfo.url };
+    } else {
+      await addLog('error', 'PhonePe API returned an error', { orderId: order.id, responseData });
+      throw new Error(responseData.message || 'PhonePe payment initiation failed.');
+    }
+
+  } catch (error: any) {
+    const errorMessage = error.message || 'Failed to initiate PhonePe payment';
+    await addLog('error', 'initiatePhonePePayment failed', { orderId: order.id, error: errorMessage, stack: error.stack });
+    console.error('PhonePe Payment Error:', error);
+    return { success: false, message: errorMessage };
+  }
+}
 
 export async function checkPhonePeStatus(merchantTransactionId: string) {
-    // This function is now a placeholder as the SDK is not available.
-    await addLog('warn', 'checkPhonePeStatus called, but SDK is not available. Returning failure.');
-    return { success: false, message: "Payment status check is currently unavailable.", code: 'SERVICE_UNAVAILABLE' };
+    const merchantId = process.env.PHONEPE_MERCHANT_ID;
+    const saltKey = process.env.PHONEPE_SALT_KEY;
+    const saltIndex = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
+    const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
+    const statusApiUrl = isProd 
+      ? `https://api.phonepe.com/apis/pg/v1/status/${merchantId}/${merchantTransactionId}` 
+      : `https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/${merchantId}/${merchantTransactionId}`;
+
+    if (!merchantId || !saltKey) {
+        throw new Error("PhonePe merchant credentials are not configured.");
+    }
+    
+    const xVerify = SHA256(`/pg/v1/status/${merchantId}/${merchantTransactionId}` + saltKey).toString() + '###' + saltIndex;
+
+    try {
+        await addLog('info', `Checking PhonePe status for transaction: ${merchantTransactionId}`);
+        const response = await fetch(statusApiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-VERIFY': xVerify,
+                'X-MERCHANT-ID': merchantId,
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+             await addLog('info', 'PhonePe status check successful', { transactionId: merchantTransactionId, state: data.code });
+             return { success: true, status: data.code, data: data.data };
+        } else {
+             await addLog('warn', 'PhonePe status check returned failure', { transactionId: merchantTransactionId, response: data });
+             return { success: false, message: data.message };
+        }
+    } catch (error: any) {
+        const errorMessage = error.message || 'Failed to check PhonePe status';
+        await addLog('error', 'checkPhonePeStatus failed', { transactionId: merchantTransactionId, error: errorMessage, stack: error.stack });
+        console.error('PhonePe Status Check Error:', error);
+        return { success: false, message: errorMessage };
+    }
 }
 
 

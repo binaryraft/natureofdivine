@@ -592,5 +592,3 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
-
-    
