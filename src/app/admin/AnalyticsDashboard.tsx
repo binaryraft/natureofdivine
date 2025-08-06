@@ -113,7 +113,7 @@ export function AnalyticsDashboard() {
              <Card>
                 <CardHeader>
                     <CardTitle>Checkout Funnel</CardTitle>
-                    <CardDescription>How users progress through the checkout process.</CardDescription>
+                    <CardDescription>How users progress through the checkout process for signed copies.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-center">
                     <div className="flex items-center justify-center gap-2 md:gap-4">
@@ -124,7 +124,7 @@ export function AnalyticsDashboard() {
                         <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
                         <div className="flex flex-col items-center">
                             <div className="text-3xl font-bold">{analyticsData.checkoutFunnel.reachedShipping}</div>
-                            <p className="text-sm text-muted-foreground">Reached Shipping Details</p>
+                            <p className="text-sm text-muted-foreground">Reached Shipping</p>
                         </div>
                          <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
                          <div className="flex flex-col items-center">
@@ -143,3 +143,5 @@ export function AnalyticsDashboard() {
         </div>
     );
 }
+
+    

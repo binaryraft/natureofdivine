@@ -69,14 +69,14 @@ export function HomeClient() {
     setIsClient(true);
   }, [])
 
-  const showAuthorPhoto = false;
+  const showAuthorPhoto = true;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
   const flipkartLink = buyLinks.find(link => link.name === 'Flipkart');
   const amazonLink = buyLinks.find(link => link.name === 'Amazon');
   
   const buttonStyles: Record<string, string> = {
-    Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold',
-    Flipkart: 'bg-[#2874F0] hover:bg-[#2874F0]/90 text-white shadow-lg hover:shadow-xl transition-all scale-105 hover:scale-110',
+    Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105',
+    Flipkart: 'bg-[#2874F0] hover:bg-[#2874F0]/90 text-white shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105',
   };
 
   if (!isClient) {
@@ -331,3 +331,5 @@ export function HomeClient() {
     </div>
   );
 }
+
+    
