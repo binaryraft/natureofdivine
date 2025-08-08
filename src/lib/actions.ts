@@ -14,14 +14,6 @@ import { v4 as uuidv4 } from 'uuid';
 import SHA256 from 'crypto-js/sha256';
 import { v2 as cloudinary } from 'cloudinary';
 
-cloudinary.config({ 
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
-  api_key: process.env.CLOUDINARY_API_KEY, 
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
-});
-
-
 const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -283,6 +275,13 @@ async function uploadImages(images: string[]): Promise<string[]> {
 export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
+
+    cloudinary.config({ 
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+        api_key: process.env.CLOUDINARY_API_KEY, 
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true
+    });
     
     const order = await getOrderById(validatedData.userId, validatedData.orderId);
     if (!order) {
