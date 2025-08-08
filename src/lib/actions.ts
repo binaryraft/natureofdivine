@@ -14,14 +14,7 @@ import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from
 import { v4 as uuidv4 } from 'uuid';
 import { v2 as cloudinary } from 'cloudinary';
 import { getAnalytics, addEvent } from './analytics-store';
-import { SHA256 } from 'crypto-js';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
-});
+import SHA256 from 'crypto-js/sha256';
 
 const OrderFormSchema = z.object({
   variant: z.enum(['paperback', 'hardcover']),
@@ -40,45 +33,6 @@ const OrderFormSchema = z.object({
 });
 
 export type OrderPayload = z.infer<typeof OrderFormSchema>;
-
-async function fetchPhonePeAccessToken(): Promise<{ success: boolean; accessToken?: string; message?: string }> {
-  try {
-    const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
-    const clientId = isProd ? process.env.PHONEPE_PROD_CLIENT_ID : process.env.PHONEPE_SANDBOX_CLIENT_ID;
-    const clientSecret = isProd ? process.env.PHONEPE_PROD_CLIENT_SECRET : process.env.PHONEPE_SANDBOX_CLIENT_SECRET;
-    const clientVersion = isProd ? process.env.PHONEPE_PROD_CLIENT_VERSION : process.env.PHONEPE_SANDBOX_CLIENT_VERSION;
-    const tokenUrl = isProd 
-      ? 'https://api.phonepe.com/apis/identity-manager/v1/oauth/token'
-      : 'https://api-preprod.phonepe.com/apis/pg-sandbox/v1/oauth/token';
-
-    if (!clientId || !clientSecret || !clientVersion) {
-      throw new Error('PhonePe client credentials are not configured.');
-    }
-
-    await addLog('info', 'Fetching PhonePe access token', { environment: isProd ? 'production' : 'sandbox' });
-
-    const response = await axios.post(tokenUrl, new URLSearchParams({
-      client_id: clientId,
-      client_version: clientVersion,
-      client_secret: clientSecret,
-      grant_type: 'client_credentials',
-    }), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-
-    if (response.data.access_token) {
-      await addLog('info', 'PhonePe access token retrieved');
-      return { success: true, accessToken: response.data.access_token };
-    }
-
-    await addLog('error', 'PhonePe access token retrieval failed', { response: response.data });
-    throw new Error(response.data.message || 'Failed to retrieve PhonePe access token.');
-  } catch (error: any) {
-    const errorMessage = error.message || 'Failed to fetch PhonePe access token';
-    await addLog('error', 'fetchPhonePeAccessToken failed', { error: errorMessage });
-    return { success: false, message: errorMessage };
-  }
-}
 
 export async function placeOrder(payload: OrderPayload): Promise<{ success: boolean; message: string; orderId?: string; paymentData?: any }> {
   await addLog('info', 'placeOrder initiated', { paymentMethod: payload.paymentMethod });
@@ -155,111 +109,100 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
 
 async function initiatePhonePePayment(order: Order) {
   try {
-    const merchantTransactionId = `MTID-${uuidv4().slice(0, 8)}-${order.id}`;
     const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
-    const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
+    const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : (process.env.PHONEPE_SANDBOX_MERCHANT_ID || process.env.PHONEPE_MERCHANT_ID);
+    const saltKey = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SALT_KEY;
+    const saltIndex = parseInt(isProd ? process.env.PHONEPE_PROD_SALT_INDEX || '1' : process.env.PHONEPE_SALT_INDEX || '1');
+    
     const phonepeApiUrl = isProd 
-      ? 'https://api.phonepe.com/apis/pg/checkout/v2/pay'
-      : 'https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay';
+      ? 'https://api.phonepe.com/pg/v1/pay'
+      : 'https://api-preprod.phonepe.com/pg/v1/pay';
+      
+    if (!merchantId || !saltKey) throw new Error('PhonePe merchant credentials are not configured for the current environment.');
 
-    if (!merchantId) throw new Error('PhonePe merchant ID not configured.');
-
-    const tokenResponse = await fetchPhonePeAccessToken();
-    if (!tokenResponse.success || !tokenResponse.accessToken) {
-      throw new Error(tokenResponse.message || 'Failed to obtain PhonePe access token.');
-    }
+    const merchantTransactionId = `MTID-${uuidv4()}`;
 
     const payload = {
-      merchantOrderId: merchantTransactionId,
+      merchantId: merchantId,
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: order.userId,
       amount: order.price * 100, // Amount in paise
-      expireAfter: 1200,
-      metaInfo: {
-        udf1: `Order for ${order.variant}`,
-        udf2: order.userId,
-      },
-      paymentFlow: {
-        type: 'PG_CHECKOUT',
-        message: 'Payment for book order',
-        merchantUrls: {
-          redirectUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/orders?orderId=${order.id}`,
-        },
-        paymentModeConfig: {
-          enabledPaymentModes: [
-            { type: 'UPI_INTENT' },
-            { type: 'UPI_COLLECT' },
-            { type: 'UPI_QR' },
-            { type: 'NET_BANKING' },
-            { type: 'CARD', cardTypes: ['DEBIT_CARD', 'CREDIT_CARD'] },
-          ],
-        },
-      },
+      redirectUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/orders?orderId=${order.id}`,
+      redirectMode: 'POST',
+      callbackUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/api/payment/callback`,
+      mobileNumber: order.phone,
+      paymentInstrument: {
+        type: 'PAY_PAGE'
+      }
     };
-
+    
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const xVerify = SHA256(base64Payload + '/pg/v1/pay' + saltKey).toString() + '###' + saltIndex;
+    
     await addLog('info', 'Initiating PhonePe payment', { url: phonepeApiUrl, transactionId: merchantTransactionId });
 
-    const response = await axios.post(phonepeApiUrl, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `O-Bearer ${tokenResponse.accessToken}`,
-      },
-    });
-
-    if (response.data.state === 'PENDING') {
+    const response = await axios.post(
+      phonepeApiUrl,
+      { request: base64Payload },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-VERIFY': xVerify
+        },
+      }
+    );
+    
+    if (response.data.success) {
       await addLog('info', 'PhonePe payment initiation successful', { orderId: order.id, transactionId: merchantTransactionId });
-      return { success: true, redirectUrl: response.data.redirectUrl };
+      return { success: true, redirectUrl: response.data.data.instrumentResponse.redirectInfo.url };
     }
 
     await addLog('error', 'PhonePe API error', { orderId: order.id, response: response.data });
     throw new Error(response.data.message || 'PhonePe payment initiation failed.');
   } catch (error: any) {
-    const errorMessage = error.message || 'Failed to initiate PhonePe payment';
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to initiate PhonePe payment';
     await addLog('error', 'initiatePhonePePayment failed', { orderId: order.id, error: errorMessage });
     return { success: false, message: errorMessage };
   }
 }
 
 export async function checkPhonePeStatus(merchantTransactionId: string) {
-  try {
     const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
-    const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
-    const saltKey = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SANDBOX_SALT_KEY;
-    const saltIndex = parseInt(isProd ? process.env.PHONEPE_PROD_SALT_INDEX || '1' : process.env.PHONEPE_SANDBOX_SALT_INDEX || '1');
+    const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : (process.env.PHONEPE_SANDBOX_MERCHANT_ID || process.env.PHONEPE_MERCHANT_ID);
+    const saltKey = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SALT_KEY;
+    const saltIndex = parseInt(isProd ? process.env.PHONEPE_PROD_SALT_INDEX || '1' : process.env.PHONEPE_SALT_INDEX || '1');
     const statusApiUrl = isProd 
-      ? `https://api.phonepe.com/apis/pg/v1/status/${merchantId}/${merchantTransactionId}`
-      : `https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/${merchantId}/${merchantTransactionId}`;
+      ? `https://api.phonepe.com/pg/v1/status/${merchantId}/${merchantTransactionId}`
+      : `https://api-preprod.phonepe.com/pg/v1/status/${merchantId}/${merchantTransactionId}`;
 
-    if (!merchantId || !saltKey) throw new Error('PhonePe merchant credentials not configured.');
-
-    const tokenResponse = await fetchPhonePeAccessToken();
-    if (!tokenResponse.success || !tokenResponse.accessToken) {
-      throw new Error(tokenResponse.message || 'Failed to obtain PhonePe access token.');
-    }
+    if (!merchantId || !saltKey) throw new Error('PhonePe merchant credentials not configured for status check.');
 
     const xVerify = SHA256(`/pg/v1/status/${merchantId}/${merchantTransactionId}` + saltKey).toString() + '###' + saltIndex;
 
-    await addLog('info', `Checking PhonePe status for transaction: ${merchantTransactionId}`);
-    const response = await axios.get(statusApiUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': xVerify,
-        'X-MERCHANT-ID': merchantId,
-        'Authorization': `O-Bearer ${tokenResponse.accessToken}`,
-      },
-    });
-
-    if (response.data.success) {
-      await addLog('info', 'PhonePe status check successful', { transactionId: merchantTransactionId, state: response.data.code });
-      return { success: true, status: response.data.code, data: response.data.data };
+    try {
+        await addLog('info', `Checking PhonePe status for transaction: ${merchantTransactionId}`);
+        const response = await axios.get(statusApiUrl, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-VERIFY': xVerify,
+                'X-MERCHANT-ID': merchantId,
+            },
+        });
+        
+        if (response.data.success) {
+            await addLog('info', 'PhonePe status check successful', { transactionId: merchantTransactionId, state: response.data.code });
+            return { success: true, status: response.data.code, data: response.data.data };
+        }
+        
+        await addLog('warn', 'PhonePe status check failed', { transactionId: merchantTransactionId, response: response.data });
+        return { success: false, message: response.data.message };
+    } catch (error: any) {
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to check PhonePe status';
+        await addLog('error', 'checkPhonePeStatus failed', { transactionId: merchantTransactionId, error: errorMessage });
+        return { success: false, message: errorMessage };
     }
-
-    await addLog('warn', 'PhonePe status check failed', { transactionId: merchantTransactionId, response: response.data });
-    return { success: false, message: response.data.message };
-  } catch (error: any) {
-    const errorMessage = error.message || 'Failed to check PhonePe status';
-    await addLog('error', 'checkPhonePeStatus failed', { transactionId: merchantTransactionId, error: errorMessage });
-    return { success: false, message: errorMessage };
-  }
 }
+
 
 export async function fetchOrdersAction() {
   return await getOrders();
@@ -294,6 +237,20 @@ const ReviewSchema = z.object({
   images: z.array(z.string()).optional(),
 });
 
+async function uploadImages(images: string[]): Promise<string[]> {
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true
+    });
+  const uploadPromises = images.map(image => 
+    cloudinary.uploader.upload(image, { folder: 'reviews', transformation: [{ width: 1000, height: 1000, crop: 'limit' }] })
+  );
+  const results = await Promise.all(uploadPromises);
+  return results.map(result => result.secure_url);
+}
+
 export async function submitReview(data: z.infer<typeof ReviewSchema>) {
   try {
     const validatedData = ReviewSchema.parse(data);
@@ -322,14 +279,6 @@ export async function submitReview(data: z.infer<typeof ReviewSchema>) {
     await addLog('error', 'submitReview failed', { error: errorMessage });
     return { success: false, message: errorMessage };
   }
-}
-
-async function uploadImages(images: string[]): Promise<string[]> {
-  const uploadPromises = images.map(image => 
-    cloudinary.uploader.upload(image, { folder: 'reviews', transformation: [{ width: 1000, height: 1000, crop: 'limit' }] })
-  );
-  const results = await Promise.all(uploadPromises);
-  return results.map(result => result.secure_url);
 }
 
 export async function fetchReviews(): Promise<Review[]> {
