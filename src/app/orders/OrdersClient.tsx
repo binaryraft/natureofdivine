@@ -7,7 +7,7 @@ import { fetchUserOrdersAction, submitReview } from '@/lib/actions';
 import { Order, OrderStatus } from '@/lib/definitions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, PackageSearch, XCircle, CheckCircle, Truck, ShoppingCart, Package, Star, MessageSquareQuote, ImagePlus, X } from 'lucide-react';
+import { Loader2, PackageSearch, XCircle, CheckCircle, Truck, ShoppingCart, Package, Star, MessageSquareQuote, ImagePlus, X, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -25,7 +25,7 @@ const statusInfo: Record<OrderStatus, { label: string; Icon: React.ElementType; 
   dispatched: { label: 'Dispatched', Icon: Truck, color: 'bg-yellow-500' },
   delivered: { label: 'Delivered', Icon: CheckCircle, color: 'bg-green-500' },
   cancelled: { label: 'Cancelled', Icon: XCircle, color: 'bg-red-500' },
-  pending: { label: 'Payment Pending', Icon: Loader2, color: 'bg-gray-500 animate-spin'},
+  pending: { label: 'Payment Pending', Icon: Clock, color: 'bg-gray-500' },
 };
 
 function ReviewDialog({ order, isOpen, onOpenChange }: { order: Order; isOpen: boolean; onOpenChange: (open: boolean) => void }) {
@@ -176,7 +176,7 @@ function OrderItem({ order }: { order: Order }) {
       <CardHeader className="pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="text-base font-medium">Order ID: <span className="font-mono text-sm">{order.id}</span></CardTitle>
-            <Badge variant="secondary" className={cn("capitalize text-white w-fit", color)}>
+            <Badge variant="secondary" className={cn("capitalize text-white w-fit", color, order.status === 'pending' ? '' : '')}>
                 <Icon className="mr-2 h-4 w-4" />
                 {label}
             </Badge>
@@ -186,16 +186,33 @@ function OrderItem({ order }: { order: Order }) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-         <div className="grid sm:grid-cols-2 gap-4 text-sm">
-            <div>
-                <p className="font-medium">Shipping to: {order.name}</p>
-                {order.address && <p className="text-muted-foreground">{order.address}, {order.city}, {order.state} {order.pinCode}</p>}
+        <div className="flex gap-4">
+             <div className="w-24 h-36 md:w-32 md:h-48 relative flex-shrink-0">
+                <Image 
+                    src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
+                    alt="Book Cover for Nature of the Divine"
+                    layout="fill"
+                    objectFit="cover"
+                    className="rounded-md"
+                    data-ai-hint="book cover"
+                />
             </div>
-            <div className="sm:text-right">
-                <p className="font-medium">Item</p>
-                <p className="text-muted-foreground capitalize">{order.variant} (₹{order.price})</p>
+            <div className="flex-grow space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p className="font-medium">Shipping to: {order.name}</p>
+                        {order.address && <p className="text-muted-foreground">{order.address}, {order.city}, {order.state} {order.pinCode}</p>}
+                    </div>
+                    <div className="sm:text-right">
+                        <p className="font-medium">Item</p>
+                        <p className="text-muted-foreground capitalize">{order.variant} (₹{order.price})</p>
+                    </div>
+                </div>
+                 <div className="font-bold text-lg">
+                    Qty: 1
+                </div>
             </div>
-         </div>
+        </div>
 
         {order.status === 'delivered' && !order.hasReview && (
             <div className="flex justify-end pt-2">
