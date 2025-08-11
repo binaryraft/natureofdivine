@@ -20,7 +20,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Star } from "lucide-react";
+import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Star, Alegreya, Alegreya_Sans } from "lucide-react";
 import Link from "next/link";
 import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
@@ -130,8 +130,9 @@ export function HomeClient() {
     <div className="flex flex-col min-h-[100dvh]">
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-20 md:py-32 lg:py-40 relative overflow-hidden">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-secondary via-background to-background"></div>
+        <section className="w-full py-20 md:py-32 lg:py-40 relative overflow-hidden bg-background">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-purple-50 to-background"></div>
+           <div className="absolute top-0 left-0 -z-10 h-full w-full bg-[radial-gradient(circle_400px_at_50%_300px,#E6E6FA,transparent)]"></div>
           <div className="container px-4 md:px-6">
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-24">
               <div className="flex flex-col justify-center space-y-6">
@@ -140,7 +141,7 @@ export function HomeClient() {
                     Nature of the Divine
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
-                    A journey into the heart of mystery, faith, and human existence.
+                    In this deep philosophical work, this book explains the complex struggles of humanity and its one simple solution. The secret key, the divine code, the ultimate truth opens doors of infinite wisdom and enlightens readers with understandings about a world created by God, the real world - the one full of divinity. Nature of the Divine teaches readers how to align with the divine nature of existence.
                   </p>
                   {analytics?.reviews ? (
                      <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />
@@ -164,20 +165,20 @@ export function HomeClient() {
                  </Suspense>
                  <div className="grid grid-cols-2 gap-4">
                     {flipkartLink?.visible && (
-                        <Button asChild size="lg" className={`${buttonStyles['Flipkart']} w-full`} onClick={() => trackEvent('click_buy_flipkart_hero')}>
+                        <Button asChild size="lg" className="bg-[#2874F0] hover:bg-[#2874F0]/90 text-white shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_flipkart_hero')}>
                             <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
                                 Buy on Flipkart
                             </a>
                         </Button>
                     )}
                     {amazonLink?.visible && (
-                        <Button asChild size="lg" className={`${buttonStyles['Amazon']} w-full`} onClick={() => trackEvent('click_buy_amazon_hero')}>
+                        <Button asChild size="lg" className="bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_amazon_hero')}>
                             <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
                                 Buy on Amazon
                             </a>
                         </Button>
                     )}
-                    <Button asChild size="lg" variant="secondary" className="w-full shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_buy_signed_hero')}>
+                    <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_signed_hero')}>
                         <Link href="/checkout">
                         Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
                         </Link>
