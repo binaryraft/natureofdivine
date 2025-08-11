@@ -141,7 +141,7 @@ export function HomeClient() {
                     Nature of the Divine
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
-                    In this deep philosophical work, this book explains the complex struggles of humanity and its one simple solution. The secret key, the divine code, the ultimate truth opens doors of infinite wisdom and enlightens readers with understandings about a world created by God, the real world - the one full of divinity. Nature of the Divine teaches readers how to align with the divine nature of existence.
+                    A profound philosophical journey into the nature of God, the complex struggles of humanity, and the simple, elegant path to aligning with divine existence.
                   </p>
                   {analytics?.reviews ? (
                      <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />

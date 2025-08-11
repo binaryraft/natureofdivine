@@ -1,5 +1,5 @@
 
-export const synopsis = `In this deep philosophical work, humanity's complex struggles are explained alongside a singular, elegant solution. The book illuminates the nature of God, guiding readers to align their minds with the divine essence of existence. Unlike typical self-improvement guides, it presents a genuine path to transformation: ascending to radiate brilliance by embracing God and His divine nature.`;
+export const synopsis = `This profound philosophical work delves into the core of human existence, explaining our complex struggles and revealing a singular, elegant solution. It is a guide to understanding the true nature of God and the universe, teaching readers how to unlock the divine code within their own minds. By aligning with the divine nature of reality, this book offers a genuine path to transformation, allowing one to ascend to a state of brilliance and radiate with the wisdom of the creator.`;
 
 export const authorBio = `Alfas B, a computer engineer with a vision of a world steeped in the divine, discovered that the most powerful personal transformation is a journey with God. Through years of disciplined self-monitoring, he uncovered a path that, while demanding, feels as light as a feather. Upon reading, one can move mountains with the effort of lifting a single quill.`;
 
