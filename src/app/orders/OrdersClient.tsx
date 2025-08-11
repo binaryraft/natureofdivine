@@ -177,7 +177,7 @@ function OrderItem({ order }: { order: Order }) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="text-base font-medium">Order ID: <span className="font-mono text-sm">{order.id}</span></CardTitle>
             <Badge variant="secondary" className={cn("capitalize text-white w-fit", color)}>
-                <Icon className="mr-2 h-4 w-4" />
+                <Icon className={"mr-2 h-4 w-4"} />
                 {label}
             </Badge>
         </div>
@@ -321,3 +321,5 @@ export function OrdersClient() {
     </div>
   );
 }
+
+    
