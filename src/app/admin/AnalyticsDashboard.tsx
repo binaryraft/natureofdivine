@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAnalytics, trackEvent } from '@/lib/actions';
 import { AnalyticsData } from '@/lib/definitions';
-import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star } from 'lucide-react';
+import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star, Target, ChevronsRight, MousePointerClick } from 'lucide-react';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { sampleChapters } from '@/lib/data';
 
@@ -52,6 +52,18 @@ function SimpleBarChart({ data, xKey, yKey, title, description }: { data: any[],
     )
 }
 
+function FunnelStep({ value, label, icon: Icon }: {value: number, label: string, icon: React.ElementType}) {
+    return (
+        <div className="flex flex-col items-center text-center">
+            <div className="flex items-center justify-center bg-primary/10 rounded-full w-16 h-16 mb-2 border-2 border-primary/20">
+                <Icon className="h-8 w-8 text-primary" />
+            </div>
+            <div className="text-3xl font-bold">{value}</div>
+            <p className="text-sm text-muted-foreground">{label}</p>
+        </div>
+    )
+}
+
 export function AnalyticsDashboard() {
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
     const [isPending, startTransition] = useTransition();
@@ -78,8 +90,8 @@ export function AnalyticsDashboard() {
     const totalOrders = (analyticsData.orders?.cod || 0) + (analyticsData.orders?.prepaid || 0);
     const conversionRate = analyticsData.totalVisitors > 0 ? (totalOrders / analyticsData.totalVisitors) * 100 : 0;
     
-    const signedCopyClicks = (analyticsData.clicks?.['click_buy_signed_hero'] || 0) + (analyticsData.clicks?.['click_buy_signed_sample_chapter'] || 0) + (analyticsData.clicks?.['click_buy_signed_gallery'] || 0) + (analyticsData.clicks?.['click_buy_signed_footer'] || 0);
-    const totalSales = analyticsData.orders.cod + analyticsData.orders.prepaid;
+    const amazonClicks = (analyticsData.clicks?.['click_buy_amazon_hero'] || 0) + (analyticsData.clicks?.['click_buy_amazon_footer'] || 0);
+    const flipkartClicks = (analyticsData.clicks?.['click_buy_flipkart_hero'] || 0) + (analyticsData.clicks?.['click_buy_flipkart_footer'] || 0);
 
     return (
         <div className="space-y-6">
@@ -92,10 +104,46 @@ export function AnalyticsDashboard() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 <StatCard title="Total Visitors" value={analyticsData.totalVisitors || 0} icon={Users} description="Unique homepage sessions" />
-                <StatCard title="Total Sales" value={totalSales} icon={ShoppingCart} description={`${analyticsData.orders?.cod || 0} COD, ${analyticsData.orders?.prepaid || 0} Prepaid`}/>
-                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={BarChart} description="Visitors to Sales" />
+                <StatCard title="Total Sales" value={totalOrders} icon={ShoppingCart} description={`${analyticsData.orders?.cod || 0} COD, ${analyticsData.orders?.prepaid || 0} Prepaid`}/>
+                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={Target} description="Visitors to Signed Copy Sales" />
                 <StatCard title="New Users" value={analyticsData.users?.signup || 0} icon={UserPlus} description={`${analyticsData.users?.login || 0} total logins`}/>
                 <StatCard title="Avg. Rating" value={analyticsData.reviews?.averageRating.toFixed(1) || 'N/A'} icon={Star} description={`${analyticsData.reviews?.total || 0} total reviews`}/>
+            </div>
+            
+             <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Sales Funnel (Signed Copies)</CardTitle>
+                        <CardDescription>How users progress from visit to a direct sale.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-around gap-2 md:gap-4 flex-wrap">
+                        <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users}/>
+                        <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block"/>
+                        <FunnelStep value={analyticsData.checkoutFunnel.reachedShipping} label="Checkout Page" icon={MousePointerClick}/>
+                         <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block"/>
+                        <FunnelStep value={totalOrders} label="Order Placed" icon={ShoppingCart}/>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Outbound Traffic</CardTitle>
+                        <CardDescription>Where users go after visiting the site.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-around gap-2 md:gap-4 flex-wrap">
+                       <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users}/>
+                       <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block"/>
+                       <div className="flex flex-col gap-4">
+                           <div className="flex items-center gap-4">
+                                <p className="font-bold text-2xl">{amazonClicks}</p>
+                                <p>clicks to Amazon</p>
+                           </div>
+                            <div className="flex items-center gap-4">
+                                <p className="font-bold text-2xl">{flipkartClicks}</p>
+                                <p>clicks to Flipkart</p>
+                           </div>
+                       </div>
+                    </CardContent>
+                </Card>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -114,44 +162,9 @@ export function AnalyticsDashboard() {
                     description="How many times each sample chapter was opened."
                 />
             </div>
-            
-            {analyticsData.checkoutFunnel && (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Sales Funnel (Signed Copies)</CardTitle>
-                    <CardDescription>How users progress from website visit to successful sale.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 text-center">
-                    <div className="flex items-center justify-center gap-2 md:gap-4 flex-wrap">
-                         <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{analyticsData.totalVisitors}</div>
-                            <p className="text-sm text-muted-foreground">Website Visits</p>
-                        </div>
-                        <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
-                        <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{signedCopyClicks}</div>
-                            <p className="text-sm text-muted-foreground">Clicked "Buy Signed"</p>
-                        </div>
-                        <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
-                        <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{analyticsData.checkoutFunnel.reachedShipping}</div>
-                            <p className="text-sm text-muted-foreground">Reached Address Page</p>
-                        </div>
-                         <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
-                         <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{analyticsData.checkoutFunnel.completedShipping}</div>
-                            <p className="text-sm text-muted-foreground">Reached Payment Page</p>
-                        </div>
-                         <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
-                          <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{totalSales}</div>
-                            <p className="text-sm text-muted-foreground">Sales Completed</p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-            )}
-
         </div>
     );
 }
+
+
+    
