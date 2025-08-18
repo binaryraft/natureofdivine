@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addLog } from '@/lib/log-store';
-import { updateOrderPaymentStatus } from '@/lib/order-store';
+import { updateOrderPaymentStatus, getOrderByTransactionId } from '@/lib/order-store';
 import { checkPhonePeStatus } from '@/lib/actions';
 import SHA256 from 'crypto-js/sha256';
 
@@ -27,21 +27,18 @@ export async function POST(req: NextRequest) {
         const decodedResponse = JSON.parse(Buffer.from(base64Response, 'base64').toString());
         await addLog('info', 'PhonePe callback decoded', { data: decodedResponse });
 
-        const { merchantTransactionId, code: paymentState } = decodedResponse;
+        const { merchantTransactionId, code: paymentState } = decodedResponse.data;
 
-        // The transaction ID from PhonePe might not be our internal order ID.
-        // We need a way to map merchantTransactionId back to our orderId.
-        // This is a gap in the current implementation. Assuming for now that the
-        // order ID can be retrieved from the transaction ID.
-        const orderIdMatch = merchantTransactionId.match(/MTID-([a-zA-Z0-9-]+)/);
+        // Use the merchantTransactionId to find our internal order.
+        const order = await getOrderByTransactionId(merchantTransactionId);
         
-        if (!orderIdMatch || !orderIdMatch[1]) {
-            // A more robust solution would be to store the mapping when the payment is initiated.
-            await addLog('error', 'Could not extract orderId from merchantTransactionId', { merchantTransactionId });
-            throw new Error('Could not determine order ID from callback.');
+        if (!order) {
+            await addLog('error', 'Could not find order for merchantTransactionId', { merchantTransactionId });
+            // Acknowledge the callback so PhonePe doesn't retry, but log an error.
+            return NextResponse.json({ success: true, message: "Order not found, but callback acknowledged." }, { status: 200 });
         }
         
-        const orderId = orderIdMatch[1];
+        const orderId = order.id;
         const statusCheck = await checkPhonePeStatus(merchantTransactionId);
 
         if (statusCheck.success && statusCheck.status === 'PAYMENT_SUCCESS') {
@@ -50,10 +47,29 @@ export async function POST(req: NextRequest) {
             await updateOrderPaymentStatus(orderId, 'FAILURE', statusCheck.data || { reason: statusCheck.message });
         }
         
-        return NextResponse.json({ success: true }, { status: 200 });
+        // Redirect user to the orders page.
+        const redirectUrl = new URL('/orders', req.url);
+        redirectUrl.searchParams.set('payment_status', paymentState);
+        redirectUrl.searchParams.set('orderId', orderId);
+
+        return NextResponse.redirect(redirectUrl);
 
     } catch (error: any) {
         await addLog('error', 'PhonePe callback processing failed', { message: error.message, stack: error.stack });
         return NextResponse.json({ error: 'Failed to process callback' }, { status: 500 });
     }
+}
+
+export async function GET(req: NextRequest) {
+  // This is a fallback handler in case PhonePe redirects with GET
+  const { searchParams } = new URL(req.url);
+  const orderId = searchParams.get('orderId');
+  
+  if (orderId) {
+    const redirectUrl = new URL('/orders', req.url);
+    redirectUrl.searchParams.set('orderId', orderId);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return NextResponse.redirect(new URL('/orders', req.url));
 }

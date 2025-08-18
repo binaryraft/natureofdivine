@@ -78,6 +78,9 @@ export function AnalyticsDashboard() {
     const totalOrders = (analyticsData.orders?.cod || 0) + (analyticsData.orders?.prepaid || 0);
     const conversionRate = analyticsData.totalVisitors > 0 ? (totalOrders / analyticsData.totalVisitors) * 100 : 0;
     
+    const signedCopyClicks = (analyticsData.clicks?.['click_buy_signed_hero'] || 0) + (analyticsData.clicks?.['click_buy_signed_sample_chapter'] || 0) + (analyticsData.clicks?.['click_buy_signed_gallery'] || 0) + (analyticsData.clicks?.['click_buy_signed_footer'] || 0);
+    const totalSales = analyticsData.orders.cod + analyticsData.orders.prepaid;
+
     return (
         <div className="space-y-6">
              <Card>
@@ -89,8 +92,8 @@ export function AnalyticsDashboard() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 <StatCard title="Total Visitors" value={analyticsData.totalVisitors || 0} icon={Users} description="Unique homepage sessions" />
-                <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} description={`${analyticsData.orders?.cod || 0} COD, ${analyticsData.orders?.prepaid || 0} Prepaid`}/>
-                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={BarChart} description="Visitors to Orders" />
+                <StatCard title="Total Sales" value={totalSales} icon={ShoppingCart} description={`${analyticsData.orders?.cod || 0} COD, ${analyticsData.orders?.prepaid || 0} Prepaid`}/>
+                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={BarChart} description="Visitors to Sales" />
                 <StatCard title="New Users" value={analyticsData.users?.signup || 0} icon={UserPlus} description={`${analyticsData.users?.login || 0} total logins`}/>
                 <StatCard title="Avg. Rating" value={analyticsData.reviews?.averageRating.toFixed(1) || 'N/A'} icon={Star} description={`${analyticsData.reviews?.total || 0} total reviews`}/>
             </div>
@@ -115,29 +118,34 @@ export function AnalyticsDashboard() {
             {analyticsData.checkoutFunnel && (
              <Card>
                 <CardHeader>
-                    <CardTitle>Checkout Funnel</CardTitle>
-                    <CardDescription>How users progress through the checkout process for signed copies.</CardDescription>
+                    <CardTitle>Sales Funnel (Signed Copies)</CardTitle>
+                    <CardDescription>How users progress from website visit to successful sale.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-center">
                     <div className="flex items-center justify-center gap-2 md:gap-4 flex-wrap">
                          <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{analyticsData.clicks?.['click_buy_signed_hero'] || 0}</div>
+                            <div className="text-3xl font-bold">{analyticsData.totalVisitors}</div>
+                            <p className="text-sm text-muted-foreground">Website Visits</p>
+                        </div>
+                        <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
+                        <div className="flex flex-col items-center">
+                            <div className="text-3xl font-bold">{signedCopyClicks}</div>
                             <p className="text-sm text-muted-foreground">Clicked "Buy Signed"</p>
                         </div>
                         <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
                         <div className="flex flex-col items-center">
                             <div className="text-3xl font-bold">{analyticsData.checkoutFunnel.reachedShipping}</div>
-                            <p className="text-sm text-muted-foreground">Reached Shipping</p>
+                            <p className="text-sm text-muted-foreground">Reached Address Page</p>
                         </div>
                          <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
                          <div className="flex flex-col items-center">
                             <div className="text-3xl font-bold">{analyticsData.checkoutFunnel.completedShipping}</div>
-                            <p className="text-sm text-muted-foreground">Reached Payment</p>
+                            <p className="text-sm text-muted-foreground">Reached Payment Page</p>
                         </div>
                          <ArrowRight className="h-6 w-6 text-muted-foreground shrink-0" />
                           <div className="flex flex-col items-center">
-                            <div className="text-3xl font-bold">{analyticsData.orders.cod + analyticsData.orders.prepaidInitiated}</div>
-                            <p className="text-sm text-muted-foreground">Placed Order</p>
+                            <div className="text-3xl font-bold">{totalSales}</div>
+                            <p className="text-sm text-muted-foreground">Sales Completed</p>
                         </div>
                     </div>
                 </CardContent>

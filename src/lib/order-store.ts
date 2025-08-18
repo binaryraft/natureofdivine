@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, updateDoc, query, orderBy, Timestamp, writeBatch, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, updateDoc, query, orderBy, Timestamp, writeBatch, getDoc, setDoc, where, limit } from 'firebase/firestore';
 import type { Order, OrderStatus } from './definitions';
 import { addLog } from './log-store';
 import { decreaseStock, checkStock } from './stock-store';
@@ -160,6 +160,20 @@ export async function getOrdersByUserId(userId: string): Promise<Order[]> {
   }
 };
 
+export async function getOrderByTransactionId(transactionId: string): Promise<Order | null> {
+    try {
+        const q = query(allOrdersCollection, where('paymentDetails.merchantTransactionId', '==', transactionId), limit(1));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            return null;
+        }
+        return docToOrder(snapshot.docs[0]);
+    } catch (error) {
+        await addLog('error', 'getOrderByTransactionId failed', { transactionId, error: { message: (error as Error).message } });
+        return null;
+    }
+}
+
 export async function updateOrderStatus(userId: string, orderId: string, status: OrderStatus, hasReview?: boolean): Promise<void> {
     if (!userId || !orderId) {
         throw new Error("User ID and Order ID are required to update status.");
@@ -221,14 +235,16 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         
         if (paymentStatus === 'SUCCESS') {
             newStatus = 'new';
-            await decreaseStock(order.variant, 1);
-            if (order.discountCode) {
-                 await incrementDiscountUsage(order.discountCode);
+            // Only decrease stock and increment discount if it's the first time success is recorded
+            if(order.status === 'pending') {
+                await decreaseStock(order.variant, 1);
+                if (order.discountCode) {
+                    await incrementDiscountUsage(order.discountCode);
+                }
             }
-            await addEvent('order_placed_prepaid_success');
         } else if(paymentStatus === 'FAILURE') {
             newStatus = 'cancelled';
-        } else {
+        } else { // PENDING
             newStatus = 'pending';
         }
 

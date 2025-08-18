@@ -1,7 +1,8 @@
+
 'use server';
 import { z } from 'zod';
 import axios from 'axios';
-import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById } from './order-store';
+import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById, updateOrderPaymentStatus } from './order-store';
 import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
@@ -138,7 +139,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
       await addEvent('order_placed_cod');
       return { success: true, message: 'Order created successfully!', orderId: newOrder.id };
     }
-
+    
     await addEvent('order_placed_prepaid_initiated');
     const paymentResponse = await initiatePhonePePayment(newOrder);
     if (paymentResponse.success && paymentResponse.redirectUrl) {
@@ -183,6 +184,8 @@ async function initiatePhonePePayment(order: Order) {
         message: 'Payment for book order',
         merchantUrls: {
           redirectUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/orders?orderId=${order.id}`,
+          // The callback URL should point to our API route.
+          callbackUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/api/payment/callback`
         },
         paymentModeConfig: {
           enabledPaymentModes: [
@@ -195,6 +198,9 @@ async function initiatePhonePePayment(order: Order) {
         },
       },
     };
+    
+    // Store the mapping from our order ID to PhonePe's transaction ID
+    await updateOrderPaymentStatus(order.id, 'PENDING', { merchantTransactionId });
 
     await addLog('info', 'Initiating PhonePe payment', { url: phonepeApiUrl, transactionId: merchantTransactionId });
 
@@ -219,12 +225,13 @@ async function initiatePhonePePayment(order: Order) {
   }
 }
 
-async function checkPhonePeStatus(merchantTransactionId: string) {
+export async function checkPhonePeStatus(merchantTransactionId: string) {
   try {
     const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
     const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
-    const saltKey = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SANDBOX_SALT_KEY;
-    const saltIndex = parseInt(isProd ? process.env.PHONEPE_PROD_SALT_INDEX || '1' : process.env.PHONEPE_SANDBOX_SALT_INDEX || '1');
+    const saltKey = process.env.PHONEPE_SALT_KEY;
+    const saltIndex = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
+    
     const statusApiUrl = isProd
       ? `https://api.phonepe.com/apis/pg/v1/status/${merchantId}/${merchantTransactionId}`
       : `https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/${merchantId}/${merchantTransactionId}`;
@@ -251,6 +258,9 @@ async function checkPhonePeStatus(merchantTransactionId: string) {
 
     if (response.data.success) {
       await addLog('info', 'PhonePe status check successful', { transactionId: merchantTransactionId, state: response.data.code });
+      if(response.data.code === 'PAYMENT_SUCCESS') {
+        await addEvent('order_placed_prepaid_success');
+      }
       return { success: true, status: response.data.code, data: response.data.data };
     }
 
