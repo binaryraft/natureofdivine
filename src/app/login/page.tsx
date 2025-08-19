@@ -4,7 +4,7 @@ import { LoginClient } from './LoginClient';
 
 export const metadata: Metadata = {
   title: 'Login to Your Account | Nature of the Divine',
-  description: 'Access your account for "Nature of the Divine." Log in to view your order history, track shipping status, and manage your saved profile information and address details securely.',
+  description: 'Access your account for "Nature of the Divine." Log in to view your order history for our spiritual book, track shipping status, and manage your saved profile information.',
   robots: { index: false, follow: true },
   alternates: {
     canonical: '/login',
