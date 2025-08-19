@@ -1,7 +1,7 @@
 
 export const synopsis = `This profound spiritual book delves into the core of human existence, explaining our complex struggles and revealing an elegant solution for how to be better and improve in life. It is a guide to understanding the true nature of reality, answering deep questions like "Is God real?" and teaching readers how to know God by unlocking the divine code within their own minds. By aligning with this divine nature, this book offers a genuine path to transformation, allowing one to ascend to a state of brilliance and radiate with the wisdom of the creator.`;
 
-export const authorBio = `Alfas B, a computer engineer with a vision of a world steeped in the divine, discovered that the most powerful personal transformation is a journey with God. Through years of disciplined self-monitoring, he uncovered a path that, while demanding, feels as light as a feather. Upon reading, one can move mountains with the effort of lifting a single quill.`;
+export const authorBio = `Alfas B, a computer engineer with a vision of a world steeped in the divine, discovered that the most powerful personal transformation is a journey with God. Through years of disciplined self-monitoring, he uncovered a path that, while demanding, feels as light as a feather. Upon reading, one can move mountains with the effort of lifting a single quill. After reading you will awaken into your higher being and learn how to keep at that state everyday.`;
 
 export const sampleChapters = [
   {
