@@ -90,8 +90,6 @@ export function HomeClient() {
 
   const showAuthorPhoto = false;
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
-  const flipkartLink = buyLinks.find(link => link.name === 'Flipkart');
-  const amazonLink = buyLinks.find(link => link.name === 'Amazon');
   
   const buttonStyles: Record<string, string> = {
     Amazon: 'bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105',
@@ -163,27 +161,13 @@ export function HomeClient() {
                  }>
                     <HomePrice />
                  </Suspense>
-                 <div className="grid grid-cols-2 gap-4">
-                    {flipkartLink?.visible && (
-                        <Button asChild size="lg" className="bg-[#2874F0] hover:bg-[#2874F0]/90 text-white shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_flipkart_hero')}>
-                            <a href={flipkartLink.url} target="_blank" rel="noopener noreferrer">
-                                Buy on Flipkart
-                            </a>
-                        </Button>
-                    )}
-                    {amazonLink?.visible && (
-                        <Button asChild size="lg" className="bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_amazon_hero')}>
-                            <a href={amazonLink.url} target="_blank" rel="noopener noreferrer">
-                                Buy on Amazon
-                            </a>
-                        </Button>
-                    )}
-                    <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_signed_hero')}>
+                 <div className="flex flex-col sm:flex-row gap-4">
+                    <Button asChild size="lg" className="w-full sm:w-auto flex-1 bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_signed_hero')}>
                         <Link href="/checkout">
                         Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
                         </Link>
                     </Button>
-                    <Button asChild size="lg" variant="outline" className="w-full shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
+                    <Button asChild size="lg" variant="outline" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
                         <a href="#sample-chapters">
                         Read a Sample <BookOpen className="ml-2 h-5 w-5" />
                         </a>
@@ -337,16 +321,10 @@ export function HomeClient() {
                 {visibleBuyLinks.map((link) => (
                   <Button key={link.name} asChild size="lg" className={buttonStyles[link.name]} onClick={() => trackEvent(`click_buy_${link.name.toLowerCase()}_footer`)}>
                     <a href={link.url} target="_blank" rel="noopener noreferrer">
-                      {link.name}
+                      Buy on {link.name}
                     </a>
                   </Button>
                 ))}
-                {visibleBuyLinks.length > 0 && <div className="text-sm font-medium mx-2">OR</div>}
-                <Button asChild size="lg" className="bg-background text-primary hover:bg-background/90 shadow-lg hover:shadow-xl transition-all" onClick={() => trackEvent('click_buy_signed_footer')}>
-                  <Link href="/checkout">
-                    Order a Signed Copy <Feather className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
               </div>
             </div>
           </div>

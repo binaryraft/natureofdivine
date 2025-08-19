@@ -44,8 +44,6 @@ export function SiteHeader() {
   };
   
   const activeLinks = user ? navLinks : navLinks.filter(link => link.href !== '/orders');
-  const flipkartLink = buyLinks.find(link => link.name === 'Flipkart')?.url;
-  const amazonLink = buyLinks.find(link => link.name === 'Amazon')?.url;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -108,22 +106,6 @@ export function SiteHeader() {
             <div className="text-2xl">{getCountryFlag(priceData.country)}</div>
            ) : null}
             
-            {amazonLink && (
-                 <Button asChild className="hidden sm:inline-flex bg-[#FF9900] hover:bg-[#FF9900]/90 text-black font-bold">
-                    <a href={amazonLink} target="_blank" rel="noopener noreferrer">
-                        Buy on Amazon
-                    </a>
-                </Button>
-            )}
-
-          {flipkartLink && (
-            <Button asChild className="hidden sm:inline-flex bg-[#2874F0] hover:bg-[#2874F0]/90 text-white">
-                <a href={flipkartLink} target="_blank" rel="noopener noreferrer">
-                    Buy on Flipkart
-                </a>
-            </Button>
-           )}
-
            {authLoading ? (
              <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
            ) : user ? (
