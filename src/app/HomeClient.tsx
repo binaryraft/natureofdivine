@@ -161,17 +161,13 @@ export function HomeClient() {
                  }>
                     <HomePrice />
                  </Suspense>
-                 <div className="flex flex-col sm:flex-row gap-4">
-                    <Button asChild size="lg" className="w-full sm:w-auto flex-1 bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all scale-100 hover:scale-105" onClick={() => trackEvent('click_buy_signed_hero')}>
-                        <Link href="/checkout">
-                        Buy Signed Copy <ShoppingCart className="ml-2 h-5 w-5" />
-                        </Link>
+                 <div className="flex flex-col gap-4 items-start">
+                    <Button asChild size="lg" className="w-full sm:w-auto cta-button" onClick={() => trackEvent('click_buy_hero')}>
+                        <Link href="/checkout">Buy</Link>
                     </Button>
-                    <Button asChild size="lg" variant="outline" className="w-full sm:w-auto flex-1 shadow-sm hover:shadow-md transition-shadow" onClick={() => trackEvent('click_read_sample_hero')}>
-                        <a href="#sample-chapters">
-                        Read a Sample <BookOpen className="ml-2 h-5 w-5" />
-                        </a>
-                    </Button>
+                    <a href="#sample-chapters" onClick={() => trackEvent('click_read_sample_hero')} className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4">
+                        Read a Sample <BookOpen className="inline-block ml-1 h-4 w-4" />
+                    </a>
                 </div>
               </div>
               <div className="flex items-center justify-center">
