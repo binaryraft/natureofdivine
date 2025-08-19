@@ -1,12 +1,9 @@
-# See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-
+# *
 User-agent: *
 Allow: /
-Disallow: /admin
-Disallow: /checkout
-Disallow: /login
-Disallow: /signup
-Disallow: /settings
-Disallow: /orders
 
-Sitemap: https://natureofthedivine.com/sitemap.xml
+# Host
+Host: https://www.natureofthedivine.com
+
+# Sitemaps
+Sitemap: https://www.natureofthedivine.com/sitemap.xml
