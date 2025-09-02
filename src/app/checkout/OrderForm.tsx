@@ -185,6 +185,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [isRateLoading, setIsRateLoading] = useState(false);
+  
+  const isTestMode = process.env.NEXT_PUBLIC_ENVIA_IS_TEST === 'true';
 
   useEffect(() => {
     async function loadCountries() {
@@ -197,14 +199,14 @@ export function OrderForm({ stock }: { stock: Stock }) {
   useEffect(() => {
     const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
     if (variantParam && physicalVariants.includes(variantParam)) {
-       if (stock[variantParam] > 0) {
+       if (isTestMode || stock[variantParam] > 0) {
             dispatch({ type: 'SET_VARIANT', payload: variantParam });
             dispatch({ type: 'NEXT_STEP' });
         } else {
             toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.'});
         }
     }
-  }, [searchParams, stock, toast]);
+  }, [searchParams, stock, toast, isTestMode]);
 
 
   useEffect(() => {
@@ -271,7 +273,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const handleVariantSelect = (variant: Exclude<BookVariant, 'ebook'>) => {
     const result = VariantSchema.safeParse({ variant });
     if (result.success) {
-      if (stock[variant] > 0) {
+      if (isTestMode || stock[variant] > 0) {
         dispatch({ type: 'SET_VARIANT', payload: variant });
         dispatch({ type: 'NEXT_STEP' });
       } else {
@@ -415,9 +417,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {physicalVariants.map(variant => {
                                 if (variant === 'ebook') return null;
-                                const isAvailable = stock[variant] > 0;
-                                const price = priceData[variant];
-                                const formattedPrice = new Intl.NumberFormat(priceData.country, { style: 'currency', currency: priceData.currencyCode }).format(price);
+                                const isAvailable = isTestMode || stock[variant] > 0;
                                 const { name, icon: Icon, description } = variantDetails[variant];
 
                                 return (
@@ -432,7 +432,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                     <Icon className="h-12 w-12 mb-3 text-primary transition-transform group-hover:scale-110" />
                                     <p className="font-bold text-xl font-headline">{name}</p>
                                     <p className="text-muted-foreground text-sm mb-3">{description}</p>
-                                    <p className="font-semibold text-2xl font-headline text-primary">{formattedPrice}</p>
                                     {!isAvailable && <p className="text-destructive font-medium mt-2 text-sm">Out of Stock</p>}
                                 </div>
                                 );
@@ -706,4 +705,3 @@ export function OrderForm({ stock }: { stock: Stock }) {
   );
 }
 
-    
