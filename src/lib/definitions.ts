@@ -26,6 +26,13 @@ export type Order = {
   createdAt: number; // Storing as timestamp for Firestore
   hasReview: boolean;
   paymentDetails: any | null;
+  shippingDetails: {
+    carrier: string;
+    service: string;
+    cost: number;
+    trackingNumber: string | null;
+    labelUrl: string | null;
+  } | null;
 };
 
 export type Stock = {

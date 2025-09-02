@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2, BookOpen, GalleryHorizontal, PlusCircle, ImagePlus, Upload } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2, BookOpen, GalleryHorizontal, PlusCircle, ImagePlus, Upload, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
@@ -59,7 +59,6 @@ const OrderTable = ({
     }
 
     const allSelected = orders.length > 0 && orders.every(order => selectedOrders.includes(order.id));
-    const isIndeterminate = !allSelected && orders.some(order => selectedOrders.includes(order.id));
 
     return (
         <div className="overflow-x-auto">
@@ -76,7 +75,7 @@ const OrderTable = ({
                         <TableHead>Order ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Address</TableHead>
-                        <TableHead>Variant & Price</TableHead>
+                        <TableHead>Variant, Price & Shipping</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead className="text-center">Status</TableHead>
@@ -101,6 +100,14 @@ const OrderTable = ({
                             </TableCell>
                             <TableCell className="text-xs">
                                 {order.address ? `${order.address}, ${order.street}, ${order.city}, ${order.state}, ${order.country} - ${order.pinCode}` : 'N/A (E-book)'}
+                                {order.shippingDetails?.trackingNumber && (
+                                    <div className="mt-2">
+                                        <a href={order.shippingDetails.labelUrl!} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-xs flex items-center gap-1">
+                                            <ExternalLink className="h-3 w-3"/>
+                                            View Label ({order.shippingDetails.trackingNumber})
+                                        </a>
+                                    </div>
+                                )}
                             </TableCell>
                              <TableCell>
                                 <Badge 
@@ -113,6 +120,11 @@ const OrderTable = ({
                                 {order.discountCode && (
                                      <div className="text-xs text-green-600">
                                         Applied: {order.discountCode} (-₹{order.discountAmount})
+                                    </div>
+                                )}
+                                {order.shippingDetails && (
+                                     <div className="text-xs text-muted-foreground mt-1">
+                                        Shipping: ₹{order.shippingDetails.cost} ({order.shippingDetails.carrier})
                                     </div>
                                 )}
                             </TableCell>
