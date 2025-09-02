@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Star, Maximize, X } from "lucide-react";
 import Link from "next/link";
 import { authorBio, quotes, buyLinks, synopsis } from "@/lib/data";
-import { HomePrice } from "@/components/HomePrice";
 import { Suspense, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Testimonials } from "@/components/Testimonials";
@@ -88,7 +87,7 @@ function FullscreenImageViewer({ isOpen, onOpenChange, image }: { isOpen: boolea
                     <p className="text-2xl font-semibold font-headline">Unlock This Chapter</p>
                     <p className="text-md text-muted-foreground mt-2 max-w-md">This is a premium preview. Purchase the book to read the full story and access all locked content.</p>
                     <Button asChild size="lg" className="mt-6 cta-button" onClick={() => trackEvent('click_buy_signed_gallery')}>
-                        <Link href="/checkout">Buy Signed Copy</Link>
+                        <Link href="/checkout?variant=paperback">Buy Signed Copy</Link>
                     </Button>
                 </div>
             ) : null}
@@ -201,7 +200,7 @@ export function HomeClient() {
                 </div>
                  <div className="flex flex-col gap-4 items-start">
                     <Button asChild size="lg" className="w-full sm:w-auto cta-button" onClick={() => trackEvent('click_buy_hero')}>
-                        <Link href="/checkout">Buy</Link>
+                        <Link href="/checkout?variant=paperback">Buy</Link>
                     </Button>
                     <a href="#sample-chapters" onClick={() => trackEvent('click_read_sample_hero')} className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4">
                         Read a Sample <BookOpen className="inline-block ml-1 h-4 w-4" />
@@ -292,7 +291,7 @@ export function HomeClient() {
                     {!chapter.locked ? chapter.content : (
                       <div className="p-8 text-center bg-secondary rounded-lg">
                             <Button asChild size="lg" className="cta-button" onClick={() => trackEvent('click_buy_signed_sample_chapter')}>
-                                <Link href="/checkout">Buy Signed Copy</Link>
+                                <Link href="/checkout?variant=paperback">Buy Signed Copy</Link>
                             </Button>
                       </div>
                     )}
@@ -340,7 +339,7 @@ export function HomeClient() {
                               <p className="text-lg font-semibold font-headline">Unlock This Chapter</p>
                               <p className="text-sm text-muted-foreground mt-1">Purchase the book to read the full story.</p>
                                 <Button asChild size="sm" className="mt-4 cta-button" onClick={() => trackEvent('click_buy_signed_gallery')}>
-                                  <Link href="/checkout">Buy Signed Copy</Link>
+                                  <Link href="/checkout?variant=paperback">Buy Signed Copy</Link>
                                 </Button>
                             </div>
                           )}
@@ -385,3 +384,5 @@ export function HomeClient() {
     </div>
   );
 }
+
+    

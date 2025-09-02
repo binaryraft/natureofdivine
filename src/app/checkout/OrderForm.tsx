@@ -307,7 +307,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         setIsRateLoading(true);
         const rateResult = await getShippingRatesAction({
             ...result.data,
-            variant: state.variant,
+            variant: state.variant!,
             price: priceData![state.variant!],
         });
 
@@ -363,7 +363,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         if (result.success) {
             if (result.paymentData?.redirectUrl) {
                 // This is a prepaid order, redirect to PhonePe
-                router.push(result.paymentData.redirectUrl);
+                window.location.href = result.paymentData.redirectUrl;
             } else {
                  // This is a COD order
                 toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
@@ -569,8 +569,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 onValueChange={(val) => dispatch({ type: 'SET_SHIPPING_METHOD', payload: JSON.parse(val) })}
                                 className="space-y-4"
                             >
-                                {shippingRates.map((rate) => (
-                                    <Label key={`${rate.carrier}-${rate.service}`} className="flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all">
+                                {shippingRates.map((rate, index) => (
+                                    <Label key={`${rate.carrier}-${rate.service}-${index}`} className="flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all">
                                         <RadioGroupItem value={JSON.stringify({ carrier: rate.carrier, service: rate.service, rate: rate.totalPrice })} id={`${rate.carrier}-${rate.service}`} />
                                         <Ship className="h-6 w-6 text-primary" />
                                         <div className="flex-grow">
@@ -705,3 +705,5 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
+
+    
