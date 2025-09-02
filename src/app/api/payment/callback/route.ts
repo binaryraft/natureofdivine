@@ -47,12 +47,9 @@ export async function POST(req: NextRequest) {
             await updateOrderPaymentStatus(orderId, 'FAILURE', statusCheck.data || { reason: statusCheck.message });
         }
         
-        // Redirect user to the orders page.
-        const redirectUrl = new URL('/orders', req.url);
-        redirectUrl.searchParams.set('payment_status', paymentState);
-        redirectUrl.searchParams.set('orderId', orderId);
-
-        return NextResponse.redirect(redirectUrl);
+        // Respond to PhonePe to acknowledge receipt. Do not redirect here.
+        // The client-side will handle the redirect based on the initial payment request.
+        return NextResponse.json({ success: true, message: "Callback processed successfully." });
 
     } catch (error: any) {
         await addLog('error', 'PhonePe callback processing failed', { message: error.message, stack: error.stack });
@@ -73,3 +70,5 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.redirect(new URL('/orders', req.url));
 }
+
+    

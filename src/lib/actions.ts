@@ -2,18 +2,22 @@
 'use server';
 import { z } from 'zod';
 import axios from 'axios';
-import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById, updateOrderPaymentStatus } from './order-store';
+import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById, updateOrderPaymentStatus, updateOrderShippingDetails } from './order-store';
 import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
-import { BookVariant, OrderStatus, Review, Order } from './definitions';
+import { BookVariant, OrderStatus, Review, Order, SampleChapter, GalleryImage } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
 import { v4 as uuidv4 } from 'uuid';
 import { v2 as cloudinary } from 'cloudinary';
 import { getAnalytics, addEvent } from './analytics-store';
 import { SHA256 } from 'crypto-js';
+import { updateChapter, getChapters } from './chapter-store';
+import { updateGalleryImage, addGalleryImage, deleteGalleryImage, getGalleryImages } from './gallery-store';
+import { generateLabel, getShippingRates as getEnviaShippingRates } from './envia-service';
+
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -36,6 +40,11 @@ const OrderFormSchema = z.object({
   userId: z.string().min(1, 'User ID is required.'),
   discountCode: z.string().optional(),
   paymentMethod: z.enum(['cod', 'prepaid']),
+  shippingMethod: z.object({
+    carrier: z.string(),
+    service: z.string(),
+    rate: z.number(),
+  }).optional(),
 });
 
 export type OrderPayload = z.infer<typeof OrderFormSchema>;
@@ -91,7 +100,11 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     return { success: false, message: 'Invalid data provided.' };
   }
 
-  const { variant, userId, discountCode, paymentMethod } = validatedFields.data;
+  const { variant, userId, discountCode, paymentMethod, shippingMethod } = validatedFields.data;
+  
+  if (!shippingMethod) {
+    return { success: false, message: 'Shipping method is required.' };
+  }
 
   try {
     const prices = await fetchLocationAndPrice();
@@ -106,6 +119,9 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
         finalPrice = originalPrice - discountAmount;
       }
     }
+    
+    const totalPrice = finalPrice + shippingMethod.rate;
+
 
     const newOrderData: Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview' | 'paymentDetails'> = {
       userId,
@@ -120,10 +136,17 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
       pinCode: validatedFields.data.pinCode,
       paymentMethod,
       variant,
-      price: finalPrice,
+      price: totalPrice,
       originalPrice,
       discountCode: discountCode || '',
       discountAmount,
+      shippingDetails: {
+        carrier: shippingMethod.carrier,
+        service: shippingMethod.service,
+        cost: shippingMethod.rate,
+        trackingNumber: null,
+        labelUrl: null
+      }
     };
 
     await addLog('info', 'Adding order to database', { userId, variant });
@@ -282,12 +305,27 @@ export async function fetchUserOrdersAction(userId: string) {
 }
 
 export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
+  if (status === 'dispatched') {
+    const order = await getOrderById(userId, orderId);
+    if (order && order.shippingDetails) {
+      const labelResult = await generateLabel(order, order.shippingDetails.carrier, order.shippingDetails.service);
+      if (labelResult.success) {
+        const trackingNumber = labelResult.data[0].trackingNumber;
+        const labelUrl = labelResult.data[0].label;
+        await updateOrderShippingDetails(userId, orderId, { ...order.shippingDetails, trackingNumber, labelUrl });
+        await addLog('info', 'Envia label generated and order updated', { orderId, trackingNumber });
+      } else {
+        await addLog('error', 'Failed to generate Envia label for dispatched order', { orderId, error: labelResult.message });
+        // Don't block status change, just log the error
+      }
+    }
+  }
   return await updateOrderStatus(userId, orderId, status);
 }
 
 export async function changeMultipleOrderStatusAction(orders: {orderId: string, userId: string}[], status: OrderStatus) {
   try {
-    await Promise.all(orders.map(order => updateOrderStatus(order.userId, order.orderId, status)));
+    await Promise.all(orders.map(order => changeOrderStatusAction(order.userId, order.orderId, status)));
     await addLog('info', `Bulk updated ${orders.length} orders to ${status}`);
     revalidatePath('/admin');
     return { success: true, message: `${orders.length} orders updated.` };
@@ -372,3 +410,45 @@ export async function trackEvent(type: string, metadata?: Record<string, any>): 
 export async function fetchAnalytics() {
   return await getAnalytics();
 }
+
+export async function fetchChaptersAction(): Promise<SampleChapter[]> {
+    return await getChapters();
+}
+
+export async function updateChapterAction(chapter: SampleChapter) {
+    await updateChapter(chapter);
+    revalidatePath('/admin');
+    revalidatePath('/');
+}
+
+export async function fetchGalleryImagesAction(): Promise<GalleryImage[]> {
+    return await getGalleryImages();
+}
+
+export async function updateGalleryImageAction(image: GalleryImage) {
+    await updateGalleryImage(image);
+    revalidatePath('/admin');
+    revalidatePath('/');
+}
+
+export async function addGalleryImageAction(imageData: Omit<GalleryImage, 'id' | 'createdAt'>) {
+    await addGalleryImage(imageData);
+    revalidatePath('/admin');
+    revalidatePath('/');
+}
+
+export async function deleteGalleryImageAction(id: string) {
+    await deleteGalleryImage(id);
+    revalidatePath('/admin');
+    revalidatePath('/');
+}
+
+export async function getShippingRatesAction(orderData: any) {
+  // This is a temporary structure. We'll build the full order object in the form.
+  const tempOrder: Order = {
+    id: 'temp-rate-check',
+    ...orderData,
+  }
+  return await getEnviaShippingRates(tempOrder);
+}
+

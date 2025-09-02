@@ -39,7 +39,8 @@ const docToOrder = (doc: any): Order => {
     status: data.status || 'new',
     createdAt: createdAtMillis,
     hasReview: data.hasReview || false,
-    paymentDetails: data.paymentDetails || null
+    paymentDetails: data.paymentDetails || null,
+    shippingDetails: data.shippingDetails || null,
   };
 };
 
@@ -84,7 +85,8 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
             status: 'pending', // Default to pending. Will be updated by the caller.
             createdAt: Timestamp.now(),
             hasReview: false,
-            paymentDetails: null
+            paymentDetails: null,
+            shippingDetails: orderData.shippingDetails,
         };
 
         batch.set(newOrderRef, newOrderDocumentData);
@@ -264,5 +266,29 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
         await addLog('error', 'updateOrderPaymentStatus failed', { orderId, paymentStatus, error: { message: (error as Error).message } });
         console.error(`Error updating payment status for order ${orderId}:`, error);
         throw new Error("Could not update the order's payment status.");
+    }
+}
+
+export async function updateOrderShippingDetails(userId: string, orderId: string, shippingDetails: any): Promise<void> {
+    if (!userId || !orderId) {
+        throw new Error("User ID and Order ID are required to update shipping details.");
+    }
+    try {
+        const batch = writeBatch(db);
+        const updateData = { shippingDetails };
+        
+        const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+        batch.update(userOrderRef, updateData);
+
+        const allOrdersRef = doc(allOrdersCollection, orderId);
+        batch.update(allOrdersRef, updateData);
+
+        await batch.commit();
+        await addLog('info', 'updateOrderShippingDetails success', { userId, orderId });
+
+    } catch (error) {
+        await addLog('error', 'updateOrderShippingDetails failed', { userId, orderId, error: { message: (error as Error).message } });
+        console.error(`Error updating shipping details for order ${orderId}:`, error);
+        throw new Error("Could not update the order shipping details.");
     }
 }

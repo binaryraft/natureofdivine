@@ -3,12 +3,13 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, validateDiscountCode, trackEvent } from '@/lib/actions';
+import { placeOrder, validateDiscountCode, trackEvent, getShippingRatesAction } from '@/lib/actions';
+import { getServiceableCountries, getStatesForCountry } from '@/lib/envia-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Tag, ArrowLeft, User, MapPin, BadgePercent } from 'lucide-react';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Tag, ArrowLeft, User, MapPin, BadgePercent, Ship } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,10 +18,10 @@ import type { Stock, BookVariant } from '@/lib/definitions';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLocation } from '@/hooks/useLocation';
-import { getLocaleFromCountry } from '@/lib/utils';
 import { z } from 'zod';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const isPrepaidEnabled = true;
 
@@ -43,10 +44,15 @@ const DetailsSchema = z.object({
   saveAddress: z.boolean().optional(),
 });
 
+type EnviaCountry = { country_code: string; country_name: string; };
+type EnviaState = { code: string; name: string; };
+type ShippingRate = { carrier: string; service: string; totalPrice: number; currency: string; };
+
 type FormState = {
-  step: 'variant' | 'details' | 'payment' | 'processing';
+  step: 'variant' | 'details' | 'shipping' | 'payment' | 'processing';
   variant: Exclude<BookVariant, 'ebook'> | null;
   details: z.infer<typeof DetailsSchema>;
+  shippingMethod: { carrier: string, service: string, rate: number } | null;
   paymentMethod: 'cod' | 'prepaid' | null;
   discount: {
     code: string;
@@ -60,6 +66,7 @@ type FormState = {
 type FormAction =
   | { type: 'SET_VARIANT'; payload: Exclude<BookVariant, 'ebook'> }
   | { type: 'SET_DETAILS'; payload: z.infer<typeof DetailsSchema> }
+  | { type: 'SET_SHIPPING_METHOD'; payload: { carrier: string, service: string, rate: number } }
   | { type: 'SET_PAYMENT_METHOD'; payload: 'cod' | 'prepaid' }
   | { type: 'SET_ERRORS'; payload: Record<string, string[]> | null }
   | { type: 'NEXT_STEP' }
@@ -87,6 +94,7 @@ const initialState: FormState = {
     pinCode: '',
     saveAddress: false,
   },
+  shippingMethod: null,
   paymentMethod: null,
   discount: {
     code: '',
@@ -103,6 +111,8 @@ function formReducer(state: FormState, action: FormAction): FormState {
       return { ...state, variant: action.payload, errors: null };
     case 'SET_DETAILS':
       return { ...state, details: action.payload, errors: null };
+    case 'SET_SHIPPING_METHOD':
+        return { ...state, shippingMethod: action.payload, errors: null };
     case 'SET_FORM_VALUE':
       return { ...state, details: { ...state.details!, [action.payload.field]: action.payload.value }, errors: { ...state.errors, [action.payload.field]: undefined } };
     case 'SET_PAYMENT_METHOD':
@@ -123,13 +133,17 @@ function formReducer(state: FormState, action: FormAction): FormState {
         return { ...state, step: 'details' };
       }
       if (state.step === 'details') {
+        return { ...state, step: 'shipping' };
+      }
+      if (state.step === 'shipping') {
         trackEvent('checkout_completed_shipping');
         return { ...state, step: 'payment' };
       }
       return state;
     }
     case 'PREVIOUS_STEP': {
-        if (state.step === 'payment') return { ...state, step: 'details', paymentMethod: null, errors: null };
+        if (state.step === 'payment') return { ...state, step: 'shipping', paymentMethod: null, errors: null };
+        if (state.step === 'shipping') return { ...state, step: 'details', shippingMethod: null, errors: null };
         if (state.step === 'details') return { ...state, step: 'variant', errors: null, discount: initialState.discount };
         return state;
     }
@@ -164,25 +178,39 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [pincodeError, setPincodeError] = useState<string | null>(null);
   const [isCheckingCode, setIsCheckingCode] = useState(false);
+
+  const [countries, setCountries] = useState<EnviaCountry[]>([]);
+  const [isCountryLoading, setIsCountryLoading] = useState(true);
+  const [states, setStates] = useState<EnviaState[]>([]);
+  const [isStateLoading, setIsStateLoading] = useState(false);
+
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [isRateLoading, setIsRateLoading] = useState(false);
   
+  const isTestMode = process.env.NEXT_PUBLIC_ENVIA_IS_TEST === 'true';
+
+  useEffect(() => {
+    async function loadCountries() {
+        setIsCountryLoading(true);
+        const enviaCountries = await getServiceableCountries();
+        setCountries(enviaCountries);
+        setIsCountryLoading(false);
+    }
+    loadCountries();
+  }, []);
+
   useEffect(() => {
     const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
     if (variantParam && physicalVariants.includes(variantParam)) {
-       if (stock[variantParam] > 0) {
+       if (isTestMode || (stock && stock[variantParam] > 0)) {
             dispatch({ type: 'SET_VARIANT', payload: variantParam });
             dispatch({ type: 'NEXT_STEP' });
-        } else {
+        } else if (stock && stock[variantParam] <= 0) {
             toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.'});
         }
     }
-  }, [searchParams, stock, toast]);
+  }, [searchParams, stock, toast, isTestMode]);
 
-
-  useEffect(() => {
-    if (priceData?.country && !state.details.country) {
-      dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: priceData.country }})
-    }
-  }, [priceData?.country, state.details.country]);
 
   useEffect(() => {
       if(user) {
@@ -198,9 +226,21 @@ export function OrderForm({ stock }: { stock: Stock }) {
       }
   }, [user, state.details.name, state.details.email, state.details.phone]);
 
+  const handleCountryChange = async (countryCode: string) => {
+    dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: countryCode } });
+    dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: '' } }); // Reset state
+    setStates([]);
+    if (!countryCode) return;
+
+    setIsStateLoading(true);
+    const enviaStates = await getStatesForCountry(countryCode);
+    setStates(enviaStates);
+    setIsStateLoading(false);
+  }
+
   const handlePincodeChange = async (pinCode: string) => {
     dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: pinCode } });
-    if (pinCode.length !== 6 || priceData?.country !== 'IN') {
+    if (pinCode.length !== 6 || state.details.country !== 'IN') {
         setPincodeError(null);
         if(state.details.city || state.details.state) {
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: '' } });
@@ -218,6 +258,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         if (data[0].Status === 'Success') {
             const postOffice = data[0].PostOffice[0];
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: postOffice.District } });
+            handleCountryChange('IN'); // This is already being done, but for safety
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: postOffice.State } });
         } else {
             setPincodeError(data[0].Message || "Invalid PIN code.");
@@ -235,7 +276,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const handleVariantSelect = (variant: Exclude<BookVariant, 'ebook'>) => {
     const result = VariantSchema.safeParse({ variant });
     if (result.success) {
-      if (stock[variant] > 0) {
+      if (isTestMode || stock[variant] > 0) {
         dispatch({ type: 'SET_VARIANT', payload: variant });
         dispatch({ type: 'NEXT_STEP' });
       } else {
@@ -246,7 +287,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     }
   };
 
-  const handleDetailsSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleDetailsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (authLoading) {
         toast({ variant: 'destructive', title: 'Please wait', description: 'Authentication is still loading.' });
@@ -266,10 +307,34 @@ export function OrderForm({ stock }: { stock: Stock }) {
     
     if (result.success) {
         dispatch({ type: 'SET_DETAILS', payload: result.data });
-        dispatch({ type: 'NEXT_STEP' });
+        
+        // Fetch shipping rates
+        setIsRateLoading(true);
+        const rateResult = await getShippingRatesAction({
+            ...result.data,
+            variant: state.variant!,
+            price: priceData![state.variant!],
+        });
+
+        if (rateResult.success) {
+            setShippingRates(rateResult.rates);
+            dispatch({ type: 'NEXT_STEP' });
+        } else {
+            toast({ variant: 'destructive', title: 'Shipping Error', description: rateResult.message });
+        }
+        setIsRateLoading(false);
+
     } else {
         dispatch({ type: 'SET_ERRORS', payload: result.error.flatten().fieldErrors });
     }
+  };
+
+  const handleShippingSubmit = () => {
+    if (!state.shippingMethod) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please select a shipping method.' });
+      return;
+    }
+    dispatch({ type: 'NEXT_STEP' });
   };
 
   const handleApplyDiscount = async () => {
@@ -284,7 +349,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   }
 
   const handlePaymentSubmit = async () => {
-    if (!state.variant || !state.details || !state.paymentMethod || !user) return;
+    if (!state.variant || !state.details || !state.paymentMethod || !state.shippingMethod || !user) return;
     
     setIsSubmitting(true);
     dispatch({ type: 'SET_PROCESSING' });
@@ -295,6 +360,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         userId: user.uid,
         discountCode: state.discount.applied ? state.discount.code : undefined,
         paymentMethod: state.paymentMethod,
+        shippingMethod: state.shippingMethod
     };
 
     try {
@@ -302,7 +368,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         if (result.success) {
             if (result.paymentData?.redirectUrl) {
                 // This is a prepaid order, redirect to PhonePe
-                router.push(result.paymentData.redirectUrl);
+                window.location.href = result.paymentData.redirectUrl;
             } else {
                  // This is a COD order
                 toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
@@ -354,10 +420,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {physicalVariants.map(variant => {
                                 if (variant === 'ebook') return null;
-                                const isAvailable = stock[variant] > 0;
-                                const price = priceData[variant];
-                                const locale = getLocaleFromCountry(priceData.country);
-                                const formattedPrice = new Intl.NumberFormat(locale, { style: 'currency', currency: priceData.currencyCode }).format(price);
+                                const isAvailable = isTestMode || stock[variant] > 0;
                                 const { name, icon: Icon, description } = variantDetails[variant];
 
                                 return (
@@ -372,7 +435,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                     <Icon className="h-12 w-12 mb-3 text-primary transition-transform group-hover:scale-110" />
                                     <p className="font-bold text-xl font-headline">{name}</p>
                                     <p className="text-muted-foreground text-sm mb-3">{description}</p>
-                                    <p className="font-semibold text-2xl font-headline text-primary">{formattedPrice}</p>
                                     {!isAvailable && <p className="text-destructive font-medium mt-2 text-sm">Out of Stock</p>}
                                 </div>
                                 );
@@ -433,33 +495,44 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 <Input id="street" name="street" value={state.details?.street} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'street', value: e.target.value}})} />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                     <Label htmlFor="pinCode">PIN Code</Label>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                      <Label htmlFor="country">Country</Label>
+                                      <Select onValueChange={handleCountryChange} value={state.details.country} disabled={isCountryLoading}>
+                                          <SelectTrigger><SelectValue placeholder={isCountryLoading ? "Loading countries..." : "Select a country"} /></SelectTrigger>
+                                          <SelectContent>
+                                              {countries.map(c => <SelectItem key={c.country_code} value={c.country_code}>{c.country_name}</SelectItem>)}
+                                          </SelectContent>
+                                      </Select>
+                                      {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor="pinCode">PIN/Postal Code</Label>
                                     <div className="relative flex items-center">
-                                        <Input id="pinCode" name="pinCode" required value={state.details?.pinCode} onChange={(e) => handlePincodeChange(e.target.value)} />
+                                        <Input id="pinCode" name="pinCode" required value={state.details?.pinCode} onChange={(e) => state.details.country === 'IN' ? handlePincodeChange(e.target.value) : dispatch({type: 'SET_FORM_VALUE', payload: {field: 'pinCode', value: e.target.value}})} />
                                         {isPincodeLoading && <Loader2 className="absolute right-2.5 h-4 w-4 animate-spin" />}
                                     </div>
                                     {pincodeError && <p className="text-sm text-destructive">{pincodeError}</p>}
                                     {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
                                 </div>
+                            </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="city">City / District</Label>
                                     <Input id="city" name="city" required value={state.details?.city} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'city', value: e.target.value}})} />
                                     {state.errors?.city && <p className="text-sm text-destructive">{state.errors.city[0]}</p>}
                                 </div>
-                            </div>
-
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                        <Label htmlFor="state">State</Label>
-                                        <Input id="state" name="state" required value={state.details?.state} onChange={e => dispatch({type: 'SET_FORM_VALUE', payload: {field: 'state', value: e.target.value}})} />
-                                        {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
-                                </div>
-                                 <div className="space-y-2">
-                                    <Label htmlFor="country">Country</Label>
-                                    <Input id="country" name="country" required value={state.details?.country || ''} readOnly />
-                                    {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
+                                    <Label htmlFor="state">State / Province</Label>
+                                    <Select onValueChange={(val) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: val } })} value={state.details.state} disabled={isStateLoading || states.length === 0}>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder={isStateLoading ? "Loading..." : "Select a state"} />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                              {states.map(s => <SelectItem key={s.code} value={s.code}>{s.name}</SelectItem>)}
+                                          </SelectContent>
+                                      </Select>
+                                    {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
                                 </div>
                             </div>
                             {user && (
@@ -470,25 +543,68 @@ export function OrderForm({ stock }: { stock: Stock }) {
                             )}
                         </div>
                     <div className="pt-4">
-                        <Button type="submit" className="w-full" size="lg" disabled={!user || authLoading}>Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/></Button>
+                        <Button type="submit" className="w-full" size="lg" disabled={!user || authLoading || isRateLoading}>
+                            {isRateLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Proceed to Shipping <ArrowRight className="ml-2 h-4 w-4"/>
+                        </Button>
                     </div>
                     </form>
                 </Card>
             );
 
+        case 'shipping':
+            return (
+                <Card className="border-none shadow-none">
+                     <CardHeader className="p-0 mb-6">
+                        <Button variant="ghost" size="sm" onClick={() => dispatch({type: 'PREVIOUS_STEP'})} className="self-start px-2 -ml-2 mb-2">
+                           <ArrowLeft className="mr-2 h-4 w-4"/> Back
+                        </Button>
+                        <CardTitle className="text-2xl">Select Shipping Method</CardTitle>
+                        <CardDescription>
+                            Choose your preferred shipping carrier.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 p-0">
+                        {isRateLoading ? <Loader2 className="mx-auto my-4 h-8 w-8 animate-spin" /> : (
+                            <RadioGroup
+                                value={state.shippingMethod ? JSON.stringify(state.shippingMethod) : ''}
+                                onValueChange={(val) => dispatch({ type: 'SET_SHIPPING_METHOD', payload: JSON.parse(val) })}
+                                className="space-y-4"
+                            >
+                                {shippingRates.length === 0 ? <p className='text-muted-foreground text-center py-4'>No shipping rates available for this address.</p> :
+                                shippingRates.map((rate, index) => (
+                                    <Label key={`${rate.carrier}-${rate.service}-${index}`} className="flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all">
+                                        <RadioGroupItem value={JSON.stringify({ carrier: rate.carrier, service: rate.service, rate: rate.totalPrice })} id={`${rate.carrier}-${rate.service}`} />
+                                        <Ship className="h-6 w-6 text-primary" />
+                                        <div className="flex-grow">
+                                            <p className="font-semibold capitalize">{rate.carrier} - {rate.service}</p>
+                                        </div>
+                                        <p className="font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: rate.currency }).format(rate.totalPrice)}</p>
+                                    </Label>
+                                ))}
+                            </RadioGroup>
+                        )}
+                        <div className="pt-4">
+                             <Button onClick={handleShippingSubmit} disabled={!state.shippingMethod} className="w-full" size="lg">
+                                Proceed to Payment <ArrowRight className="ml-2 h-4 w-4"/>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )
+        
         case 'payment':
-            if (priceLoading || !priceData || !state.variant) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin"/></div>
+            if (priceLoading || !priceData || !state.variant || !state.shippingMethod) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin"/></div>
             
             const originalPrice = priceData[state.variant];
             const discountAmount = state.discount.applied ? Math.round(originalPrice * (state.discount.percent / 100)) : 0;
-            const finalPrice = originalPrice - discountAmount;
-            
-            const locale = getLocaleFromCountry(priceData.country);
-            const currencyOptions = { style: 'currency', currency: priceData.currencyCode };
-            
-            const formattedOriginalPrice = new Intl.NumberFormat(locale, currencyOptions).format(originalPrice);
-            const formattedFinalPrice = new Intl.NumberFormat(locale, currencyOptions).format(finalPrice);
-            const formattedDiscount = new Intl.NumberFormat(locale, currencyOptions).format(discountAmount);
+            const priceAfterDiscount = originalPrice - discountAmount;
+            const finalPrice = priceAfterDiscount + state.shippingMethod.rate;
+
+            const formattedOriginalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(originalPrice);
+            const formattedShippingPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(state.shippingMethod.rate);
+            const formattedFinalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(finalPrice);
+            const formattedDiscount = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(discountAmount);
 
 
             return (
@@ -504,21 +620,21 @@ export function OrderForm({ stock }: { stock: Stock }) {
                     </CardHeader>
                     <CardContent className="space-y-6 p-0">
                          <Card className="bg-secondary/50">
-                            <CardContent className="p-6 space-y-4">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Item:</span>
-                                    <span className="font-medium capitalize">{state.variant}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Price:</span>
+                            <CardContent className="p-6 space-y-4 text-sm">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">Item ({state.variant}):</span>
                                     <span className={cn("font-medium", state.discount.applied && "line-through text-muted-foreground")}>{formattedOriginalPrice}</span>
                                 </div>
-                                {state.discount.applied && (
-                                    <div className="flex justify-between items-center text-sm text-green-600 font-medium">
+                                 {state.discount.applied && (
+                                    <div className="flex justify-between items-center text-green-600">
                                         <span>Discount ({state.discount.percent}%):</span>
-                                        <span>- {formattedDiscount}</span>
+                                        <span className="font-medium">- {formattedDiscount}</span>
                                     </div>
                                 )}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">Shipping ({state.shippingMethod.carrier}):</span>
+                                    <span className="font-medium">{formattedShippingPrice}</span>
+                                </div>
                                 <div className="flex justify-between items-center font-bold text-lg border-t pt-4 mt-4">
                                     <span>Total Amount:</span>
                                     <span>{formattedFinalPrice}</span>

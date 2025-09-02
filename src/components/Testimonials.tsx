@@ -96,7 +96,7 @@ export function Testimonials() {
                              <StarRating rating={review.rating} />
                            </div>
                            <h3 className="text-xl font-bold font-headline">{review.title}</h3>
-                          {review.reviewText && <p className="text-lg/relaxed text-muted-foreground">&ldquo;{review.reviewText}&rdquo;</p>}
+                          {review.reviewText && <p className="font-garamond italic text-lg/relaxed text-muted-foreground">&ldquo;{review.reviewText}&rdquo;</p>}
                           
                           {review.imageUrls && review.imageUrls.length > 0 && (
                             <ScrollArea className="w-full whitespace-nowrap rounded-md">
