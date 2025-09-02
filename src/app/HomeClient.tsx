@@ -185,8 +185,10 @@ export function HomeClient() {
                   <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none font-headline text-primary">
                     Nature of the Divine
                   </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
-                    A profound <i className="font-garamond">philosophical journey</i> into the <i className="font-garamond">nature of God</i>, the complex struggles of <i className="font-garamond">humanity</i>, and the simple, elegant <i className="font-garamond">path to aligning with divine existence</i>.
+                  <p 
+                    className="max-w-[600px] text-muted-foreground md:text-xl/relaxed"
+                    dangerouslySetInnerHTML={{ __html: "A profound <i class='font-garamond'>philosophical journey</i> into the <i class='font-garamond'>nature of God</i>, the complex struggles of <i class='font-garamond'>humanity</i>, and the simple, elegant <i class='font-garamond'>path to aligning with divine existence</i>." }}
+                  >
                   </p>
                   {analytics?.reviews ? (
                      <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />
@@ -197,17 +199,6 @@ export function HomeClient() {
                     </div>
                   )}
                 </div>
-                 <Suspense fallback={
-                    <div className="space-y-4">
-                        <Skeleton className="h-16 w-48" />
-                        <div className="flex gap-4">
-                            <Skeleton className="h-12 w-1/2" />
-                            <Skeleton className="h-12 w-1/2" />
-                        </div>
-                    </div>
-                 }>
-                    <HomePrice />
-                 </Suspense>
                  <div className="flex flex-col gap-4 items-start">
                     <Button asChild size="lg" className="w-full sm:w-auto cta-button" onClick={() => trackEvent('click_buy_hero')}>
                         <Link href="/checkout">Buy</Link>
