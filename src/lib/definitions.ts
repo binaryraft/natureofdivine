@@ -82,3 +82,20 @@ export type AnalyticsData = {
         averageRating: number;
     }
 }
+
+export type SampleChapter = {
+    id: string;
+    number: number;
+    title: string;
+    content: string;
+    locked: boolean;
+};
+
+export type GalleryImage = {
+    id: string;
+    src: string;
+    alt: string;
+    locked: boolean;
+    aiHint: string;
+    createdAt: number;
+};

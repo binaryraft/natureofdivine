@@ -7,13 +7,15 @@ import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
-import { BookVariant, OrderStatus, Review, Order } from './definitions';
+import { BookVariant, OrderStatus, Review, Order, SampleChapter, GalleryImage } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
 import { v4 as uuidv4 } from 'uuid';
 import { v2 as cloudinary } from 'cloudinary';
 import { getAnalytics, addEvent } from './analytics-store';
 import { SHA256 } from 'crypto-js';
+import { updateChapter, getChapters } from './chapter-store';
+import { updateGalleryImage, addGalleryImage, deleteGalleryImage, getGalleryImages } from './gallery-store';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -371,4 +373,36 @@ export async function trackEvent(type: string, metadata?: Record<string, any>): 
 
 export async function fetchAnalytics() {
   return await getAnalytics();
+}
+
+export async function fetchChaptersAction(): Promise<SampleChapter[]> {
+    return await getChapters();
+}
+
+export async function updateChapterAction(chapter: SampleChapter) {
+    await updateChapter(chapter);
+    revalidatePath('/admin');
+    revalidatePath('/');
+}
+
+export async function fetchGalleryImagesAction(): Promise<GalleryImage[]> {
+    return await getGalleryImages();
+}
+
+export async function updateGalleryImageAction(image: GalleryImage) {
+    await updateGalleryImage(image);
+    revalidatePath('/admin');
+    revalidatePath('/');
+}
+
+export async function addGalleryImageAction(imageData: Omit<GalleryImage, 'id' | 'createdAt'>) {
+    await addGalleryImage(imageData);
+    revalidatePath('/admin');
+    revalidatePath('/');
+}
+
+export async function deleteGalleryImageAction(id: string) {
+    await deleteGalleryImage(id);
+    revalidatePath('/admin');
+    revalidatePath('/');
 }

@@ -3,8 +3,8 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics } from '@/lib/actions';
-import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData } from '@/lib/definitions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, updateGalleryImageAction, addGalleryImageAction, deleteGalleryImageAction } from '@/lib/actions';
+import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData, SampleChapter, GalleryImage } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2 } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2, BookOpen, GalleryHorizontal, PlusCircle, ImagePlus, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
@@ -20,6 +20,14 @@ import { getAllDiscounts } from '@/lib/discount-store';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { getChapters, initializeChapters } from '@/lib/chapter-store';
+import { sampleChapters as defaultChapters } from '@/lib/data';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { getGalleryImages, initializeGalleryImages } from '@/lib/gallery-store';
+import Image from 'next/image';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -343,6 +351,301 @@ function DiscountManager() {
     )
 }
 
+function ChapterManager() {
+    const { toast } = useToast();
+    const [chapters, setChapters] = useState<SampleChapter[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, startTransition] = useTransition();
+
+    useEffect(() => {
+        async function loadChapters() {
+            setIsLoading(true);
+            try {
+                let fetchedChapters = await getChapters();
+                if (fetchedChapters.length === 0) {
+                    await initializeChapters();
+                    fetchedChapters = await getChapters();
+                }
+                setChapters(fetchedChapters);
+            } catch (e) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load chapters.' });
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadChapters();
+    }, [toast]);
+
+    const handleChapterChange = (id: string, field: keyof SampleChapter, value: string | boolean) => {
+        setChapters(prev => prev!.map(chap => chap.id === id ? { ...chap, [field]: value } : chap));
+    };
+
+    const handleSave = (chapter: SampleChapter) => {
+        startTransition(async () => {
+            try {
+                await updateChapterAction(chapter);
+                toast({ title: 'Success', description: `Chapter ${chapter.number} updated successfully.` });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: `Failed to update Chapter ${chapter.number}.` });
+            }
+        });
+    };
+
+    if (isLoading || !chapters) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><BookOpen/> Sample Chapter Management</CardTitle>
+                </CardHeader>
+                <CardContent><div className="flex justify-center items-center p-4"><Loader2 className="animate-spin" /></div></CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><BookOpen/> Sample Chapter Management</CardTitle>
+                <CardDescription>Edit the content for the sample chapters shown on the homepage.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {chapters.map((chapter) => (
+                    <Card key={chapter.id}>
+                        <CardHeader>
+                            <CardTitle>Chapter {chapter.number}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor={`title-${chapter.id}`}>Title</Label>
+                                <Input id={`title-${chapter.id}`} value={chapter.title} onChange={e => handleChapterChange(chapter.id, 'title', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor={`content-${chapter.id}`}>Content</Label>
+                                <Textarea id={`content-${chapter.id}`} value={chapter.content} onChange={e => handleChapterChange(chapter.id, 'content', e.target.value)} rows={5} />
+                            </div>
+                             <div className="flex items-center space-x-2">
+                                <Switch id={`locked-${chapter.id}`} checked={chapter.locked} onCheckedChange={checked => handleChapterChange(chapter.id, 'locked', checked)} />
+                                <Label htmlFor={`locked-${chapter.id}`}>{chapter.locked ? 'Locked' : 'Unlocked'}</Label>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                             <Button onClick={() => handleSave(chapter)} disabled={isSaving}>
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                Save Chapter {chapter.number}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </CardContent>
+        </Card>
+    );
+}
+
+function GalleryManager() {
+    const { toast } = useToast();
+    const [images, setImages] = useState<GalleryImage[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [newImage, setNewImage] = useState<{src: string, alt: string, aiHint: string}>({src: '', alt: '', aiHint: ''});
+
+
+    const loadImages = async () => {
+         setIsLoading(true);
+        try {
+            let fetchedImages = await getGalleryImages();
+            if (fetchedImages.length === 0) {
+                await initializeGalleryImages();
+                fetchedImages = await getGalleryImages();
+            }
+            setImages(fetchedImages);
+        } catch (e) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load gallery images.' });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    
+    useEffect(() => {
+        loadImages();
+    }, [toast]);
+
+    const handleImageChange = (id: string, field: keyof GalleryImage, value: string | boolean) => {
+        setImages(prev => prev!.map(img => img.id === id ? { ...img, [field]: value } : img));
+    };
+
+    const handleSave = async (image: GalleryImage) => {
+        setIsSaving(true);
+        try {
+            await updateGalleryImageAction(image);
+            toast({ title: 'Success', description: `Image updated.` });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: `Failed to update image.` });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    const handleDelete = async (id: string) => {
+        setIsSaving(true);
+        try {
+            await deleteGalleryImageAction(id);
+            toast({ title: 'Success', description: `Image deleted.` });
+            await loadImages();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: `Failed to delete image.` });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    const handleAddImage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newImage.src) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Image URL is required.' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const imageData: Omit<GalleryImage, 'id' | 'createdAt'> = {
+                src: newImage.src,
+                alt: newImage.alt || 'Book page',
+                locked: false,
+                aiHint: newImage.aiHint || 'book page',
+            }
+            await addGalleryImageAction(imageData);
+            toast({ title: 'Success', description: 'New image added.' });
+            setNewImage({src: '', alt: '', aiHint: ''});
+            await loadImages();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to add new image.' });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+    
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+        
+        try {
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await res.json();
+            if(data.secure_url) {
+                setNewImage(prev => ({...prev, src: data.secure_url}));
+                toast({title: 'Success', description: 'Image uploaded. Save to add to gallery.'});
+            } else {
+                throw new Error(data.error.message);
+            }
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+        } finally {
+            setIsUploading(false);
+        }
+    }
+
+    if (isLoading || !images) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><GalleryHorizontal /> Gallery Management</CardTitle>
+                </CardHeader>
+                <CardContent><div className="flex justify-center items-center p-4"><Loader2 className="animate-spin" /></div></CardContent>
+            </Card>
+        )
+    }
+    
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><GalleryHorizontal /> Gallery Management</CardTitle>
+                <CardDescription>Manage the images in the "A Look Inside" section.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button><PlusCircle className="mr-2 h-4 w-4"/> Add New Image</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add a New Gallery Image</DialogTitle>
+                            <DialogDescription>
+                                Upload an image or provide a URL.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleAddImage} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="new-image-src">Image URL</Label>
+                                <div className="flex gap-2">
+                                     <Input id="new-image-src" value={newImage.src} onChange={e => setNewImage(p => ({...p, src: e.target.value}))} placeholder="https://..." required/>
+                                     <Button asChild variant="outline" size="icon">
+                                        <Label htmlFor="image-upload">
+                                            {isUploading ? <Loader2 className="animate-spin" /> : <Upload className="h-4 w-4" />}
+                                            <Input id="image-upload" type="file" className="sr-only" onChange={handleFileUpload} accept="image/*"/>
+                                        </Label>
+                                     </Button>
+                                </div>
+                                {newImage.src && <Image src={newImage.src} alt="Preview" width={100} height={150} className="rounded-md object-contain border mt-2"/>}
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="new-image-alt">Alt Text</Label>
+                                <Input id="new-image-alt" value={newImage.alt} onChange={e => setNewImage(p => ({...p, alt: e.target.value}))} placeholder="Description for screen readers"/>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="new-image-hint">AI Hint</Label>
+                                <Input id="new-image-hint" value={newImage.aiHint} onChange={e => setNewImage(p => ({...p, aiHint: e.target.value}))} placeholder="e.g., book page"/>
+                            </div>
+                             <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="submit" disabled={isSaving}>Add Image</Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {images.map(image => (
+                        <Card key={image.id}>
+                            <CardContent className="p-4 space-y-4">
+                                <Image src={image.src} alt={image.alt} width={150} height={225} className="rounded-md object-contain mx-auto border"/>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`src-${image.id}`}>Image URL</Label>
+                                    <Input id={`src-${image.id}`} value={image.src} onChange={e => handleImageChange(image.id, 'src', e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`alt-${image.id}`}>Alt Text</Label>
+                                    <Input id={`alt-${image.id}`} value={image.alt} onChange={e => handleImageChange(image.id, 'alt', e.target.value)} />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Switch id={`locked-${image.id}`} checked={image.locked} onCheckedChange={checked => handleImageChange(image.id, 'locked', checked)} />
+                                    <Label htmlFor={`locked-${image.id}`}>{image.locked ? 'Locked' : 'Unlocked'}</Label>
+                                </div>
+                            </CardContent>
+                             <CardFooter className="flex justify-between">
+                                <Button size="sm" onClick={() => handleSave(image)} disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}
+                                </Button>
+                                 <Button size="sm" variant="destructive" onClick={() => handleDelete(image.id)} disabled={isSaving}>
+                                     <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 function BulkActions({ selectedCount, onAction }: { selectedCount: number; onAction: (status: OrderStatus) => void }) {
     if (selectedCount === 0) return null;
 
@@ -519,9 +822,11 @@ export function AdminDashboard() {
   return (
     <div className="container mx-auto py-12 md:py-16 space-y-8">
         <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="chapters">Chapters</TabsTrigger>
+                <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="stock">Stock</TabsTrigger>
                 <TabsTrigger value="discounts">Discounts</TabsTrigger>
             </TabsList>
@@ -576,6 +881,12 @@ export function AdminDashboard() {
             </TabsContent>
              <TabsContent value="analytics" className="mt-6">
                 <AnalyticsDashboard />
+            </TabsContent>
+            <TabsContent value="chapters" className="mt-6">
+                <ChapterManager />
+            </TabsContent>
+             <TabsContent value="gallery" className="mt-6">
+                <GalleryManager />
             </TabsContent>
             <TabsContent value="stock" className="mt-6">
                 <StockManager />

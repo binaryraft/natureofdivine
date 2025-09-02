@@ -20,27 +20,18 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Star, Alegreya, Alegreya_Sans } from "lucide-react";
+import { BookOpen, Feather, Lock, ShoppingCart, BookText, User, GalleryHorizontal, Quote, Star, Maximize, X } from "lucide-react";
 import Link from "next/link";
-import { authorBio, quotes, sampleChapters, buyLinks, synopsis, bookReviews } from "@/lib/data";
+import { authorBio, quotes, buyLinks, synopsis } from "@/lib/data";
 import { HomePrice } from "@/components/HomePrice";
 import { Suspense, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Testimonials } from "@/components/Testimonials";
-import { trackEvent, fetchAnalytics } from "@/lib/actions";
+import { trackEvent, fetchAnalytics, fetchChaptersAction, fetchGalleryImagesAction } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
-
-const bookGlimpseImages = [
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book Nature of the Divine", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from inside the book showing a chapter start", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "The preface page of the book Nature of the Divine", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the book's preface", locked: false },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents for the book", locked: false },
-  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, "data-ai-hint": "book page" },
-  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, "data-ai-hint": "book page" },
-  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, "data-ai-hint": "book page" },
-];
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { SampleChapter, GalleryImage } from "@/lib/definitions";
 
 const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').then(mod => mod.Testimonials), {
   loading: () => (
@@ -78,14 +69,70 @@ function StarRating({ rating, totalReviews }: { rating: number, totalReviews: nu
     );
 }
 
+
+function FullscreenImageViewer({ isOpen, onOpenChange, image }: { isOpen: boolean, onOpenChange: (open: boolean) => void, image: GalleryImage | null }) {
+  if (!image) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="p-0 border-0 max-w-none w-screen h-screen bg-black/80 backdrop-blur-md flex items-center justify-center">
+        <DialogClose className="absolute right-4 top-4 z-50">
+            <div className="bg-background/50 hover:bg-background/80 rounded-full p-2">
+                <X className="h-6 w-6" />
+            </div>
+        </DialogClose>
+        <div className="relative w-full h-full max-w-5xl max-h-[90vh]">
+            {image.locked ? (
+                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 text-foreground z-10">
+                    <Lock className="w-16 h-16 mb-4 text-accent" />
+                    <p className="text-2xl font-semibold font-headline">Unlock This Chapter</p>
+                    <p className="text-md text-muted-foreground mt-2 max-w-md">This is a premium preview. Purchase the book to read the full story and access all locked content.</p>
+                    <Button asChild size="lg" className="mt-6 cta-button" onClick={() => trackEvent('click_buy_signed_gallery')}>
+                        <Link href="/checkout">Buy Signed Copy</Link>
+                    </Button>
+                </div>
+            ) : null}
+            <Image
+                src={image.src}
+                fill
+                style={{objectFit: 'contain'}}
+                alt={image.alt}
+            />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export function HomeClient() {
   const [isClient, setIsClient] = useState(false);
   const [analytics, setAnalytics] = useState<any>(null);
-  
+  const [sampleChapters, setSampleChapters] = useState<SampleChapter[]>([]);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [loadingContent, setLoadingContent] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+
   useEffect(() => {
     trackEvent('page_view_home', { sessionId: crypto.randomUUID() });
     setIsClient(true);
     fetchAnalytics().then(setAnalytics);
+
+    async function loadContent() {
+        try {
+            const [chapters, images] = await Promise.all([
+                fetchChaptersAction(),
+                fetchGalleryImagesAction()
+            ]);
+            setSampleChapters(chapters);
+            setGalleryImages(images);
+        } catch (error) {
+            console.error("Failed to load dynamic content", error);
+        } finally {
+            setLoadingContent(false);
+        }
+    }
+    loadContent();
   }, [])
 
   const showAuthorPhoto = false;
@@ -234,6 +281,7 @@ export function HomeClient() {
                 <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">Preview</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookOpen/> Sample Chapters</h2>
               </div>
+            {loadingContent ? <Skeleton className="h-64 w-full max-w-4xl mx-auto" /> : (
             <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto" defaultValue="item-1">
               {sampleChapters.map((chapter) => (
                  <AccordionItem value={`item-${chapter.number}`} key={chapter.number} onClick={() => trackEvent('view_sample_chapter', { chapter: chapter.number })}>
@@ -255,6 +303,7 @@ export function HomeClient() {
                 </AccordionItem>
               ))}
             </Accordion>
+            )}
           </div>
         </section>
 
@@ -265,12 +314,13 @@ export function HomeClient() {
                 <div className="inline-block rounded-lg bg-background px-4 py-2 text-sm text-foreground font-medium tracking-wide">Gallery</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><GalleryHorizontal/> A Look Inside</h2>
               </div>
+            {loadingContent ? <Skeleton className="h-96 w-full max-w-6xl mx-auto" /> : (
             <Carousel className="w-full max-w-6xl mx-auto">
               <CarouselContent>
-                {bookGlimpseImages.map((image, index) => (
+                {galleryImages.map((image, index) => (
                   <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-1">
-                      <Card className="overflow-hidden">
+                      <Card className="overflow-hidden group">
                         <CardContent className="p-0 relative aspect-[3/4]">
                           <Image
                             src={image.src}
@@ -278,9 +328,15 @@ export function HomeClient() {
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             style={{objectFit: 'cover'}}
                             alt={image.alt}
-                            className="transition-transform duration-300 hover:scale-105"
-                            data-ai-hint={image['data-ai-hint']}
+                            className="transition-transform duration-300 group-hover:scale-105"
+                            data-ai-hint={image.aiHint}
                           />
+                          <div 
+                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            onClick={() => setSelectedImage(image)}
+                          >
+                                <Maximize className="h-12 w-12 text-white" />
+                          </div>
                           {image.locked && (
                             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 text-foreground">
                               <Lock className="w-12 h-12 mb-4 text-accent" />
@@ -300,8 +356,11 @@ export function HomeClient() {
               <CarouselPrevious />
               <CarouselNext />
             </Carousel>
+            )}
           </div>
         </section>
+        
+        <FullscreenImageViewer isOpen={!!selectedImage} onOpenChange={() => setSelectedImage(null)} image={selectedImage} />
         
         <DynamicTestimonials />
 
