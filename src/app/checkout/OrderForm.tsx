@@ -180,6 +180,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
   const [isCheckingCode, setIsCheckingCode] = useState(false);
 
   const [countries, setCountries] = useState<EnviaCountry[]>([]);
+  const [isCountryLoading, setIsCountryLoading] = useState(true);
   const [states, setStates] = useState<EnviaState[]>([]);
   const [isStateLoading, setIsStateLoading] = useState(false);
 
@@ -190,8 +191,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
   useEffect(() => {
     async function loadCountries() {
+        setIsCountryLoading(true);
         const enviaCountries = await getServiceableCountries();
         setCountries(enviaCountries);
+        setIsCountryLoading(false);
     }
     loadCountries();
   }, []);
@@ -199,10 +202,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
   useEffect(() => {
     const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
     if (variantParam && physicalVariants.includes(variantParam)) {
-       if (isTestMode || stock[variantParam] > 0) {
+       if (isTestMode || (stock && stock[variantParam] > 0)) {
             dispatch({ type: 'SET_VARIANT', payload: variantParam });
             dispatch({ type: 'NEXT_STEP' });
-        } else {
+        } else if (stock && stock[variantParam] <= 0) {
             toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.'});
         }
     }
@@ -255,7 +258,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
         if (data[0].Status === 'Success') {
             const postOffice = data[0].PostOffice[0];
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: postOffice.District } });
-            handleCountryChange('IN');
+            handleCountryChange('IN'); // This is already being done, but for safety
             dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: postOffice.State } });
         } else {
             setPincodeError(data[0].Message || "Invalid PIN code.");
@@ -495,8 +498,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-2">
                                       <Label htmlFor="country">Country</Label>
-                                      <Select onValueChange={handleCountryChange} value={state.details.country}>
-                                          <SelectTrigger><SelectValue placeholder="Select a country" /></SelectTrigger>
+                                      <Select onValueChange={handleCountryChange} value={state.details.country} disabled={isCountryLoading}>
+                                          <SelectTrigger><SelectValue placeholder={isCountryLoading ? "Loading countries..." : "Select a country"} /></SelectTrigger>
                                           <SelectContent>
                                               {countries.map(c => <SelectItem key={c.country_code} value={c.country_code}>{c.country_name}</SelectItem>)}
                                           </SelectContent>
@@ -521,8 +524,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="state">State / Province</Label>
-                                    <Select onValueChange={(val) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: val } })} value={state.details.state}>
-                                          <SelectTrigger disabled={isStateLoading || states.length === 0}>
+                                    <Select onValueChange={(val) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: val } })} value={state.details.state} disabled={isStateLoading || states.length === 0}>
+                                          <SelectTrigger>
                                             <SelectValue placeholder={isStateLoading ? "Loading..." : "Select a state"} />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -568,7 +571,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 onValueChange={(val) => dispatch({ type: 'SET_SHIPPING_METHOD', payload: JSON.parse(val) })}
                                 className="space-y-4"
                             >
-                                {shippingRates.map((rate, index) => (
+                                {shippingRates.length === 0 ? <p className='text-muted-foreground text-center py-4'>No shipping rates available for this address.</p> :
+                                shippingRates.map((rate, index) => (
                                     <Label key={`${rate.carrier}-${rate.service}-${index}`} className="flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all">
                                         <RadioGroupItem value={JSON.stringify({ carrier: rate.carrier, service: rate.service, rate: rate.totalPrice })} id={`${rate.carrier}-${rate.service}`} />
                                         <Ship className="h-6 w-6 text-primary" />
@@ -704,4 +708,3 @@ export function OrderForm({ stock }: { stock: Stock }) {
     </div>
   );
 }
-
