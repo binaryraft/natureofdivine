@@ -186,7 +186,7 @@ export function HomeClient() {
                     Nature of the Divine
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed">
-                    A profound philosophical journey into the nature of God, the complex struggles of humanity, and the simple, elegant path to aligning with divine existence.
+                    A profound <i className="font-garamond">philosophical journey</i> into the <i className="font-garamond">nature of God</i>, the complex struggles of <i className="font-garamond">humanity</i>, and the simple, elegant <i className="font-garamond">path to aligning with divine existence</i>.
                   </p>
                   {analytics?.reviews ? (
                      <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />
@@ -239,9 +239,12 @@ export function HomeClient() {
               <div className="space-y-4 max-w-4xl">
                 <div className="inline-block rounded-lg bg-secondary px-4 py-2 text-sm text-secondary-foreground font-medium tracking-wide">About the Book</div>
                 <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline flex items-center justify-center gap-3"><BookText /> Nature of the Divine</h2>
-                <div className="text-muted-foreground text-lg/relaxed md:text-xl/relaxed prose">
-                  <p>{synopsis} Learn more about the <a href="#author" className="underline hover:text-primary">author</a> or <a href="#sample-chapters" className="underline hover:text-primary">read a sample chapter</a>.</p>
+                <div 
+                    className="text-muted-foreground text-lg/relaxed md:text-xl/relaxed prose"
+                    dangerouslySetInnerHTML={{ __html: synopsis }}
+                >
                 </div>
+                 <p className="text-muted-foreground text-lg/relaxed md:text-xl/relaxed">Learn more about the <a href="#author" className="underline hover:text-primary">author</a> or <a href="#sample-chapters" className="underline hover:text-primary">read a sample chapter</a>.</p>
               </div>
             </div>
           </div>
@@ -267,9 +270,12 @@ export function HomeClient() {
                 <div className="inline-block rounded-lg bg-background px-4 py-2 text-sm text-foreground font-medium tracking-wide">The Author</div>
                 <h2 className={`text-4xl font-bold tracking-tighter md:text-5xl/tight font-headline flex items-center gap-3 ${showAuthorPhoto ? 'justify-center lg:justify-start' : 'justify-center'}`}><User/> Alfas B</h2>
               </div>
-              <div className={`max-w-[600px] text-muted-foreground text-lg/relaxed prose ${showAuthorPhoto ? 'mx-auto lg:mx-0' : 'mx-auto'}`}>
-                <p>{authorBio} Discover the author\'s work in the <a href="#synopsis" className="underline hover:text-primary">book synopsis</a>.</p>
+              <div 
+                className={`max-w-[600px] text-muted-foreground text-lg/relaxed prose ${showAuthorPhoto ? 'mx-auto lg:mx-0' : 'mx-auto'}`}
+                dangerouslySetInnerHTML={{ __html: authorBio }}
+              >
               </div>
+               <p className={`max-w-[600px] text-muted-foreground text-lg/relaxed prose ${showAuthorPhoto ? 'mx-auto lg:mx-0' : 'mx-auto'}`}>Discover the author's work in the <a href="#synopsis" className="underline hover:text-primary">book synopsis</a>.</p>
             </div>
           </div>
         </section>
