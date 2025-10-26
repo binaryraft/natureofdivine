@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import { Inter, EB_Garamond } from "next/font/google";
 import "./globals.css";
@@ -11,10 +10,14 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/hooks/useLocation";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const garamond = EB_Garamond({ subsets: ["latin"], style: ['normal', 'italic'], weight: ['400', '700'], variable: "--font-garamond" });
+const garamond = EB_Garamond({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["400", "700"],
+  variable: "--font-garamond",
+});
 
-
-const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.com';
+const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || "https://natureofthedivine.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -22,66 +25,69 @@ export const metadata: Metadata = {
     default: "Spiritual Books on How to Know God & Improve Your Life | Nature of the Divine",
     template: "%s | Nature of the Divine",
   },
-  description: "Is God real? Is religion true? This spiritual book explores the nature of God, consciousness, and our place in the universe. Learn how to be better, improve in life, and discover the divine path to existence with 'Nature of the Divine' by Alfas B.",
+  description:
+    "Is God real? Is religion true? This spiritual book explores the nature of God, consciousness, and our place in the universe. Learn how to be better, improve in life, and discover the divine path to existence with 'Nature of the Divine' by Alfas B.",
   keywords: [
-    "Nature of the Divine", 
+    "Nature of the Divine",
     "how to know God",
     "is God real",
     "is religion true",
     "how to improve in life",
     "how to be better",
     "spiritual book",
-    "nature of God", 
-    "spiritual books", 
-    "philosophy of nature", 
+    "nature of God",
+    "spiritual books",
+    "philosophy of nature",
     "divine nature",
-    "spiritual awakening", 
-    "philosophy of life", 
-    "consciousness explained", 
-    "divinity within", 
-    "Indian philosophy", 
-    "existentialism", 
-    "mindfulness and consciousness", 
-    "self discovery", 
+    "spiritual awakening",
+    "philosophy of life",
+    "consciousness explained",
+    "divinity within",
+    "Indian philosophy",
+    "existentialism",
+    "mindfulness and consciousness",
+    "self discovery",
     "metaphysical books",
     "Alfas B author",
     "divine nature of reality",
     "consciousness and the universe",
     "spiritual books about nature",
-    "new philosophical books"
+    "new philosophical books",
   ],
-  authors: [{ name: 'Alfas B', url: siteUrl }],
-  creator: 'Alfas B',
-  publisher: 'Notion Press',
-  
+  authors: [{ name: "Alfas B", url: siteUrl }],
+  creator: "Alfas B",
+  publisher: "Notion Press",
+
   alternates: {
-    canonical: '/',
+    canonical: "/",
   },
-  
+
   sitemap: `${siteUrl}/sitemap.xml`,
 
   openGraph: {
-    title: 'Nature of the Divine | A Spiritual Book by Alfas B on How to Know God',
-    description: "A profound spiritual book exploring the divine nature of God, existence, and consciousness. Learn how to improve your life by aligning with your own divine nature.",
+    title: "Nature of the Divine | A Spiritual Book by Alfas B on How to Know God",
+    description:
+      "A profound spiritual book exploring the divine nature of God, existence, and consciousness. Learn how to improve your life by aligning with your own divine nature.",
     url: siteUrl,
-    siteName: 'Nature of the Divine',
+    siteName: "Nature of the Divine",
     images: [
       {
-        url: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/og-image.png',
+        url: "https://res.cloudinary.com/dj2w2phri/image/upload/v1761454810/Screenshot_2025-10-12_000041_ji6pkk.png",
         width: 1200,
         height: 630,
-        alt: 'Cover of Nature of the Divine, a spiritual book by Alfas B.',
+        alt: "Cover of Nature of the Divine, a spiritual book by Alfas B.",
       },
     ],
-    locale: 'en_US',
-    type: 'website',
+    locale: "en_US",
+    type: "website",
   },
-  
+
   twitter: {
-    card: 'summary_large_image',
-    title: 'Nature of the Divine | Is God Real? A Spiritual Book by Alfas B',
-    description: 'A philosophical and spiritual book explaining humanity\'s complex struggles and the elegant path to aligning with our divine nature. Discover how to know God and improve your life.',
-    images: [`${siteUrl}/twitter-image.png`],
+    card: "summary_large_image",
+    title: "Nature of the Divine | Is God Real? A Spiritual Book by Alfas B",
+    description:
+      "A philosophical and spiritual book explaining humanity's complex struggles and the elegant path to aligning with our divine nature. Discover how to know God and improve your life.",
+    images: ["https://res.cloudinary.com/dj2w2phri/image/upload/v1761454810/Screenshot_2025-10-12_000041_ji6pkk.png"],
   },
 
   robots: {
@@ -90,14 +96,14 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
-  
+
   icons: {
-    icon: '/favicon.png',
+    icon: "/favicon.png",
   },
 };
 
@@ -109,52 +115,53 @@ export default function RootLayout({
   const bookSchema = {
     "@context": "https://schema.org",
     "@type": "Book",
-    "name": "Nature of the Divine",
-    "author": {
+    name: "Nature of the Divine",
+    author: {
       "@type": "Person",
-      "name": "Alfas B",
-       "url": siteUrl,
-      "address": {
+      name: "Alfas B",
+      url: siteUrl,
+      address: {
         "@type": "PostalAddress",
-        "addressCountry": "IN",
-        "addressRegion": "Kerala"
-      }
+        addressCountry: "IN",
+        addressRegion: "Kerala",
+      },
     },
-    "publisher": {
-        "@type": "Organization",
-        "name": "Notion Press"
+    publisher: {
+      "@type": "Organization",
+      name: "Notion Press",
     },
-    "inLanguage": "en",
-    "isbn": "978-9334306514",
-    "bookFormat": "http://schema.org/Paperback",
-    "url": "https://natureofthedivine.com",
-    "description": "A spiritual book by Alfas B that explores the mind, the divine, and how to improve in life by aligning with the nature of existence. This work answers questions like 'Is God real?' and explains humanity's complex struggles with an elegant solution.",
-    "datePublished": "2025-06-01",
-    "image": "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
-     "aggregateRating": {
+    inLanguage: "en",
+    isbn: "978-9334306514",
+    bookFormat: "http://schema.org/Paperback",
+    url: "https://natureofthedivine.com",
+    description:
+      "A spiritual book by Alfas B that explores the mind, the divine, and how to improve in life by aligning with the nature of existence. This work answers questions like 'Is God real?' and explains humanity's complex struggles with an elegant solution.",
+    datePublished: "2025-06-01",
+    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1761454810/Screenshot_2025-10-12_000041_ji6pkk.png",
+    aggregateRating: {
       "@type": "AggregateRating",
-      "ratingValue": "5",
-      "reviewCount": "1"
+      ratingValue: "5",
+      reviewCount: "1",
     },
-    "offers": {
-        "@type": "Offer",
-        "price": "299.00",
-        "priceCurrency": "INR",
-        "availability": "https://schema.org/InStock",
-        "seller": {
-            "@type": "Organization",
-            "name": "Flipkart"
-        }
-    }
+    offers: {
+      "@type": "Offer",
+      price: "299.00",
+      priceCurrency: "INR",
+      availability: "https://schema.org/InStock",
+      seller: {
+        "@type": "Organization",
+        name: "Flipkart",
+      },
+    },
   };
 
   return (
     <html lang="en" className="scroll-smooth">
       <head>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(bookSchema) }}
-          />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(bookSchema) }}
+        />
       </head>
       <body
         className={cn(
