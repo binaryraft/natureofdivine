@@ -57,6 +57,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Alfas B", url: siteUrl }],
   creator: "Alfas B",
   publisher: "Notion Press",
+  category: "Religion & Spirituality",
 
   alternates: {
     canonical: "/",
@@ -104,6 +105,11 @@ export const metadata: Metadata = {
 
   icons: {
     icon: "/favicon.png",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
   },
 };
 
