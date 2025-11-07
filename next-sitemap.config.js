@@ -5,6 +5,7 @@ module.exports = {
   changefreq: 'weekly',
   priority: 0.8,
   sitemapSize: 5000,
+
   robotsTxtOptions: {
     additionalSitemaps: [
       'https://www.natureofthedivine.com/sitemap.xml',
