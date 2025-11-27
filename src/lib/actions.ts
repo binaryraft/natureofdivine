@@ -101,7 +101,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
   }
 
   const { variant, userId, discountCode, paymentMethod, shippingMethod } = validatedFields.data;
-  
+
   if (!shippingMethod) {
     return { success: false, message: 'Shipping method is required.' };
   }
@@ -119,7 +119,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
         finalPrice = originalPrice - discountAmount;
       }
     }
-    
+
     const totalPrice = finalPrice + shippingMethod.rate;
 
 
@@ -162,7 +162,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
       await addEvent('order_placed_cod');
       return { success: true, message: 'Order created successfully!', orderId: newOrder.id };
     }
-    
+
     await addEvent('order_placed_prepaid_initiated');
     const paymentResponse = await initiatePhonePePayment(newOrder);
     if (paymentResponse.success && paymentResponse.redirectUrl) {
@@ -221,7 +221,7 @@ async function initiatePhonePePayment(order: Order) {
         },
       },
     };
-    
+
     // Store the mapping from our order ID to PhonePe's transaction ID
     await updateOrderPaymentStatus(order.id, 'PENDING', { merchantTransactionId });
 
@@ -254,7 +254,7 @@ export async function checkPhonePeStatus(merchantTransactionId: string) {
     const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
     const saltKey = process.env.PHONEPE_SALT_KEY;
     const saltIndex = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
-    
+
     const statusApiUrl = isProd
       ? `https://api.phonepe.com/apis/pg/v1/status/${merchantId}/${merchantTransactionId}`
       : `https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/${merchantId}/${merchantTransactionId}`;
@@ -281,7 +281,7 @@ export async function checkPhonePeStatus(merchantTransactionId: string) {
 
     if (response.data.success) {
       await addLog('info', 'PhonePe status check successful', { transactionId: merchantTransactionId, state: response.data.code });
-      if(response.data.code === 'PAYMENT_SUCCESS') {
+      if (response.data.code === 'PAYMENT_SUCCESS') {
         await addEvent('order_placed_prepaid_success');
       }
       return { success: true, status: response.data.code, data: response.data.data };
@@ -323,7 +323,7 @@ export async function changeOrderStatusAction(userId: string, orderId: string, s
   return await updateOrderStatus(userId, orderId, status);
 }
 
-export async function changeMultipleOrderStatusAction(orders: {orderId: string, userId: string}[], status: OrderStatus) {
+export async function changeMultipleOrderStatusAction(orders: { orderId: string, userId: string }[], status: OrderStatus) {
   try {
     await Promise.all(orders.map(order => changeOrderStatusAction(order.userId, order.orderId, status)));
     await addLog('info', `Bulk updated ${orders.length} orders to ${status}`);
@@ -397,9 +397,12 @@ export async function createDiscount(code: string, percent: number): Promise<{ s
   return result;
 }
 
+
 export async function trackEvent(type: string, metadata?: Record<string, any>): Promise<{ success: boolean }> {
   try {
-    await addEvent(type, metadata);
+    // Sanitize metadata to remove undefined values, which Firestore rejects
+    const sanitizedMetadata = metadata ? JSON.parse(JSON.stringify(metadata)) : undefined;
+    await addEvent(type, sanitizedMetadata);
     return { success: true };
   } catch (e) {
     await addLog('error', 'trackEvent failed', { type, error: (e as Error).message });
@@ -412,35 +415,35 @@ export async function fetchAnalytics() {
 }
 
 export async function fetchChaptersAction(): Promise<SampleChapter[]> {
-    return await getChapters();
+  return await getChapters();
 }
 
 export async function updateChapterAction(chapter: SampleChapter) {
-    await updateChapter(chapter);
-    revalidatePath('/admin');
-    revalidatePath('/');
+  await updateChapter(chapter);
+  revalidatePath('/admin');
+  revalidatePath('/');
 }
 
 export async function fetchGalleryImagesAction(): Promise<GalleryImage[]> {
-    return await getGalleryImages();
+  return await getGalleryImages();
 }
 
 export async function updateGalleryImageAction(image: GalleryImage) {
-    await updateGalleryImage(image);
-    revalidatePath('/admin');
-    revalidatePath('/');
+  await updateGalleryImage(image);
+  revalidatePath('/admin');
+  revalidatePath('/');
 }
 
 export async function addGalleryImageAction(imageData: Omit<GalleryImage, 'id' | 'createdAt'>) {
-    await addGalleryImage(imageData);
-    revalidatePath('/admin');
-    revalidatePath('/');
+  await addGalleryImage(imageData);
+  revalidatePath('/admin');
+  revalidatePath('/');
 }
 
 export async function deleteGalleryImageAction(id: string) {
-    await deleteGalleryImage(id);
-    revalidatePath('/admin');
-    revalidatePath('/');
+  await deleteGalleryImage(id);
+  revalidatePath('/admin');
+  revalidatePath('/');
 }
 
 export async function getShippingRatesAction(orderData: any) {
