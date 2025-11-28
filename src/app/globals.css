@@ -4,65 +4,76 @@
 
 @layer base {
   :root {
-    --background: 25 35% 96%; /* Warm Off-White */
-    --foreground: 25 50% 20%; /* Dark Brown */
-    
-    --card: 25 35% 94%;
-    --card-foreground: 25 50% 20%;
-    
-    --popover: 25 35% 94%;
-    --popover-foreground: 25 50% 20%;
-    
-    --primary: 25 50% 30%; /* Deep Brown */
-    --primary-foreground: 35 80% 95%; /* Light Cream */
+    /* Divine Light Mode */
+    --background: 40 33% 98%;
+    /* Creamy White (Paper-like) */
+    --foreground: 220 30% 15%;
+    /* Deep Ink Blue */
 
-    --secondary: 35 40% 92%; /* Light Beige */
-    --secondary-foreground: 25 50% 20%;
-    
-    --muted: 35 30% 90%;
-    --muted-foreground: 25 40% 45%;
+    --card: 40 33% 96%;
+    --card-foreground: 220 30% 15%;
 
-    --accent: 25 90% 55%; /* Bright Orange */
-    --accent-foreground: 25 50% 10%; /* Darkest Brown for contrast */
+    --popover: 40 33% 98%;
+    --popover-foreground: 220 30% 15%;
+
+    --primary: 45 90% 35%;
+    /* Antique Gold */
+    --primary-foreground: 40 33% 98%;
+
+    --secondary: 220 15% 92%;
+    /* Soft Blue-Grey */
+    --secondary-foreground: 220 30% 15%;
+
+    --muted: 40 20% 90%;
+    --muted-foreground: 220 15% 40%;
+
+    --accent: 35 90% 50%;
+    /* Radiant Amber */
+    --accent-foreground: 40 33% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    
-    --border: 25 20% 85%;
-    --input: 25 20% 90%;
-    --ring: 25 90% 60%;
-    
-    --radius: 0.5rem;
+
+    --border: 40 20% 88%;
+    --input: 40 20% 92%;
+    --ring: 45 90% 35%;
+
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 25 15% 8%; /* Darkest Brown */
-    --foreground: 35 30% 92%; /* Off-white */
+    /* Divine Dark Mode (Deep Cosmic) */
+    --background: 220 40% 8%;
+    /* Deepest Midnight */
+    --foreground: 40 20% 94%;
+    /* Soft Parchment */
 
-    --card: 25 15% 12%;
-    --card-foreground: 35 30% 92%;
+    --card: 220 35% 11%;
+    --card-foreground: 40 20% 94%;
 
-    --popover: 25 15% 10%;
-    --popover-foreground: 35 30% 92%;
-    
-    --primary: 35 80% 80%; /* Light Beige/Orange */
-    --primary-foreground: 25 50% 10%;
+    --popover: 220 40% 8%;
+    --popover-foreground: 40 20% 94%;
 
-    --secondary: 25 15% 15%;
-    --secondary-foreground: 35 30% 92%;
+    --primary: 45 80% 60%;
+    /* Luminous Gold */
+    --primary-foreground: 220 40% 8%;
 
-    --muted: 25 15% 20%;
-    --muted-foreground: 35 20% 65%;
-    
-    --accent: 25 90% 60%; /* Vibrant Orange */
-    --accent-foreground: 25 50% 10%;
-    
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 40 20% 94%;
+
+    --muted: 220 25% 16%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 35 90% 60%;
+    /* Glowing Amber */
+    --accent-foreground: 220 40% 8%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    
-    --border: 25 15% 25%;
-    --input: 25 15% 25%;
-    --ring: 25 90% 60%;
+
+    --border: 220 25% 20%;
+    --input: 220 25% 20%;
+    --ring: 45 80% 60%;
   }
 }
 
@@ -70,13 +81,80 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground selection:bg-primary/20 selection:text-primary;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-garamond tracking-tight;
   }
 }
 
 @layer components {
-    .cta-button {
-        @apply bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_15px_hsl(var(--accent)/0.3)] hover:shadow-[0_0_25px_hsl(var(--accent)/0.5)] transition-all scale-100 hover:scale-105;
-    }
+  .container {
+    @apply mx-auto px-4 md:px-6 max-w-7xl;
+  }
+
+  .cta-button {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-cta hover:shadow-cta-hover transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:shadow-none font-medium tracking-wide rounded-full px-8;
+  }
+
+  .glass-panel {
+    @apply bg-background/60 backdrop-blur-xl border border-white/10 shadow-xl;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient;
+  }
+}
+
+
+@layer utilities {
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animate-delay-500 {
+    animation-delay: 500ms;
+  }
+
+  .animate-delay-700 {
+    animation-delay: 700ms;
+  }
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
 }

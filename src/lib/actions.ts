@@ -252,8 +252,8 @@ export async function checkPhonePeStatus(merchantTransactionId: string) {
   try {
     const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
     const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
-    const saltKey = process.env.PHONEPE_SALT_KEY;
-    const saltIndex = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
+    const saltKey = isProd ? process.env.PHONEPE_PROD_SALT_KEY : process.env.PHONEPE_SALT_KEY;
+    const saltIndex = parseInt((isProd ? process.env.PHONEPE_PROD_SALT_INDEX : process.env.PHONEPE_SALT_INDEX) || '1');
 
     const statusApiUrl = isProd
       ? `https://api.phonepe.com/apis/pg/v1/status/${merchantId}/${merchantTransactionId}`

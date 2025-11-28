@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HomeClient } from "./HomeClient";
+import { fetchChaptersAction, fetchGalleryImagesAction } from "@/lib/actions";
 
 export const metadata: Metadata = {
   title: "Nature of the Divine | Spiritual Book on How to Know God & Improve Your Life",
@@ -33,6 +34,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
-  return <HomeClient />;
+export default async function Home() {
+  // Fetch data on the server for instant loading
+  const [chapters, galleryImages] = await Promise.all([
+    fetchChaptersAction(),
+    fetchGalleryImagesAction(),
+  ]);
+
+  return <HomeClient initialChapters={chapters} initialGalleryImages={galleryImages} />;
 }

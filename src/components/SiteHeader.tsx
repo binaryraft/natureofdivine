@@ -42,11 +42,11 @@ export function SiteHeader() {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
-  
+
   const activeLinks = user ? navLinks : navLinks.filter(link => link.href !== '/orders');
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full glass-panel border-b-0">
       <div className="container flex h-14 max-w-screen-2xl items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -82,7 +82,7 @@ export function SiteHeader() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
-               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium">
                 <Link
                   href="/"
@@ -92,7 +92,7 @@ export function SiteHeader() {
                   <span className="sr-only">Nature of the Divine</span>
                 </Link>
                 {activeLinks.map(link => (
-                    <Link href={link.href} key={link.href} className="hover:text-foreground">{link.label}</Link>
+                  <Link href={link.href} key={link.href} className="hover:text-foreground">{link.label}</Link>
                 ))}
               </nav>
             </SheetContent>
@@ -100,32 +100,32 @@ export function SiteHeader() {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
-           {locationLoading ? (
+          {locationLoading ? (
             <div className="h-6 w-6 animate-pulse rounded-full bg-muted" />
-           ) : priceData?.country ? (
+          ) : priceData?.country ? (
             <div className="text-2xl">{getCountryFlag(priceData.country)}</div>
-           ) : null}
-            
-           {authLoading ? (
-             <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
-           ) : user ? (
+          ) : null}
+
+          {authLoading ? (
+            <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
+          ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar>
-                        <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                        <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-                    </Avatar>
+                  <Avatar>
+                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                    <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                    <Link href="/orders"><BookHeart className="mr-2 h-4 w-4" /> My Orders</Link>
+                  <Link href="/orders"><BookHeart className="mr-2 h-4 w-4" /> My Orders</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                   <Link href="/settings"><Settings className="mr-2 h-4 w-4" /> Settings</Link>
+                  <Link href="/settings"><Settings className="mr-2 h-4 w-4" /> Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
@@ -134,16 +134,16 @@ export function SiteHeader() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-           ) : (
+          ) : (
             <div className="hidden md:flex items-center gap-2">
-                 <Button variant="ghost" asChild>
-                    <Link href="/login">Login</Link>
-                </Button>
-                <Button asChild>
-                    <Link href="/signup">Sign Up</Link>
-                </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/signup">Sign Up</Link>
+              </Button>
             </div>
-           )}
+          )}
         </div>
       </div>
     </header>

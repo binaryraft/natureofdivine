@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/hooks/useLocation";
+import SmoothScroll from "@/components/SmoothScroll";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const garamond = EB_Garamond({
@@ -63,7 +64,6 @@ export const metadata: Metadata = {
     canonical: "/",
   },
 
-  sitemap: `${siteUrl}/sitemap.xml`,
 
   openGraph: {
     title: "Nature of the Divine | A Spiritual Book by Alfas B on How to Know God",
@@ -164,7 +164,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en">
       <head>
         <script
           type="application/ld+json"
@@ -178,6 +178,7 @@ export default function RootLayout({
           garamond.variable
         )}
       >
+        <SmoothScroll />
         <AuthProvider>
           <LocationProvider>
             <div className="relative flex min-h-screen flex-col">
@@ -185,7 +186,9 @@ export default function RootLayout({
               <main className="flex-1 pb-24 md:pb-0">{children}</main>
               <SiteFooter />
             </div>
-            <MobileBottomNav />
+            <div className="md:hidden">
+              <MobileBottomNav />
+            </div>
             <Toaster />
           </LocationProvider>
         </AuthProvider>
