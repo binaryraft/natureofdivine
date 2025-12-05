@@ -219,6 +219,27 @@ export async function getStatesForCountry(countryCode: string): Promise<EnviaSta
 }
 
 
+/**
+ * Get serviceable carriers for a country
+ */
+export async function getServiceableCarriers(countryCode: string): Promise<string[]> {
+    return enviaCache.get(`carriers:${countryCode}`, async () => {
+        try {
+            const response = await axios.get(`${QUERIES_BASE_URL}/carrier?country_code=${countryCode}`, {
+                headers: getHeaders(true),
+                timeout: 5000,
+            } as any);
+
+            const carriers = (response.data as any).data;
+            if (!Array.isArray(carriers)) return [];
+            return carriers.map((c: any) => c.name);
+        } catch (error: any) {
+            addLog('error', 'Envia: Failed to get carriers', { error: error.message });
+            return [];
+        }
+    }, 24 * 60 * 60 * 1000); // 24 hour cache
+}
+
 export async function getShippingRates(order: Order) {
     // Create cache key based on destination details
     const cacheKey = `${order.country}-${order.state}-${order.pinCode}-${order.variant}`;
@@ -230,22 +251,14 @@ export async function getShippingRates(order: Order) {
                 throw new Error('Envia API Key is missing. Please configure ENVIA_API_KEY in .env');
             }
 
-            // Test the token with a protected endpoint
-            try {
-                const testResponse = await axios.get(`${getApiBaseUrl()}/ship/carriers/?country_code=MX`, {
-                    headers: getHeaders(false),
-                    timeout: 5000,
-                });
-                console.log('[ENVIA] Token validated successfully with carriers endpoint');
-            } catch (testError: any) {
-                console.error('[ENVIA] Token validation failed:', {
-                    status: testError.response?.status,
-                    message: testError.response?.data,
-                    headers: testError.config?.headers
-                });
-                throw new Error(`Token validation failed: ${testError.response?.data?.message || testError.message}`);
+            // 1. Get available carriers for the destination country
+            const carriers = await getServiceableCarriers(order.country);
+            if (carriers.length === 0) {
+                // Fallback if no carriers found (shouldn't happen for major countries)
+                addLog('warn', 'Envia: No carriers found for country', { country: order.country });
             }
 
+            // 2. Prepare addresses
             const originAddress = {
                 name: "Alfas B",
                 company: "Nature of the Divine",
@@ -257,7 +270,7 @@ export async function getShippingRates(order: Order) {
                 city: "Kottayam",
                 state: "KL",
                 country: "IN",
-                postal_code: "686001",
+                postalCode: "686001", // CamelCase for specific carrier request
             };
 
             // Try to map full state name to code if provided
@@ -267,12 +280,9 @@ export async function getShippingRates(order: Order) {
                     const states = await getStatesForCountry(order.country);
                     const match = states.find(s => s.name.toLowerCase() === destinationState.toLowerCase());
                     if (match) {
-                        addLog('info', 'Envia: Mapped full state name to code', { original: destinationState, code: match.code });
                         destinationState = match.code;
                     }
-                } catch (e) {
-                    // Ignore mapping errors
-                }
+                } catch (e) { }
             }
 
             const destinationAddress = {
@@ -286,9 +296,9 @@ export async function getShippingRates(order: Order) {
                 city: order.city,
                 state: destinationState,
                 country: order.country,
-                postal_code: order.pinCode,
+                postalCode: order.pinCode, // CamelCase
                 reference: order.street || '',
-            }
+            };
 
             const createPackage = (weight: number, length: number, width: number, height: number) => ({
                 content: "Book",
@@ -296,9 +306,9 @@ export async function getShippingRates(order: Order) {
                 type: "box" as "box",
                 weight: weight,
                 insurance: 0,
-                declared_value: order.originalPrice,
-                weight_unit: "KG" as "KG",
-                dimension_unit: "CM" as "CM",
+                declaredValue: order.originalPrice, // CamelCase
+                weightUnit: "KG" as "KG", // CamelCase
+                dimensionUnit: "CM" as "CM", // CamelCase
                 dimensions: {
                     length: length,
                     width: width,
@@ -308,37 +318,44 @@ export async function getShippingRates(order: Order) {
 
             const paperbackPackage = createPackage(0.3, 22, 15, 2);
             const hardcoverPackage = createPackage(0.5, 23, 16, 3);
+            const packageData = order.variant === 'paperback' ? paperbackPackage : hardcoverPackage;
 
-            const payload: RatePayload = {
-                origin: originAddress,
-                destination: destinationAddress,
-                packages: [order.variant === 'paperback' ? paperbackPackage : hardcoverPackage]
-            };
+            // 3. Fetch rates for each carrier individually (to avoid 500 error on bulk fetch)
+            const ratePromises = carriers.map(async (carrier) => {
+                const payload = {
+                    origin: originAddress,
+                    destination: destinationAddress,
+                    packages: [packageData],
+                    shipment: {
+                        carrier: carrier,
+                        type: 1
+                    },
+                    settings: {
+                        currency: "INR"
+                    }
+                };
 
+                try {
+                    const response = await axios.post(`${getApiBaseUrl()}/ship/rate/`, payload, {
+                        headers: getHeaders(false),
+                        timeout: 8000, // Short timeout per carrier
+                    } as any);
 
-            addLog('info', 'Envia: Fetching shipping rates', { cacheKey });
-            console.log('[ENVIA] Full payload being sent:', JSON.stringify(payload, null, 2));
+                    const data = (response.data as any).data;
+                    return Array.isArray(data) ? data : [];
+                } catch (error: any) {
+                    // Log but don't fail the whole request
+                    // console.error(`Failed to get rate for ${carrier}:`, error.message);
+                    return [];
+                }
+            });
 
+            const results = await Promise.all(ratePromises);
+            const allRates = results.flat();
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for rates
+            addLog('info', 'Envia: Received shipping rates', { count: allRates.length, carriersChecked: carriers.length });
 
-            const response = await axios.post(`${getApiBaseUrl()}/ship/rate/`, payload, {
-                headers: getHeaders(false),
-                timeout: 15000,
-            } as any);
-
-            clearTimeout(timeoutId);
-
-            addLog('info', 'Envia: Received shipping rates', { ratesCount: (response.data as any).data?.length || 0 });
-
-            const responseData = (response.data as any).data;
-            if (!Array.isArray(responseData)) {
-                addLog('warn', 'Envia: No rates array returned', { response: response.data });
-                return { success: true, rates: [] };
-            }
-
-            const rates = responseData.map((rate: any) => {
+            const rates = allRates.map((rate: any) => {
                 // Add 15% margin to the shipping rate
                 const originalPrice = rate.total_price || rate.totalPrice;
                 const priceWithMargin = originalPrice * 1.15;
@@ -363,7 +380,6 @@ export async function getShippingRates(order: Order) {
                 error: error.message,
                 code: error.code,
                 response: error.response?.data,
-                payload: 'REDACTED'
             });
 
             return { success: false, message: errorMessage };
@@ -389,7 +405,7 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             city: "Kottayam",
             state: "KL",
             country: "IN",
-            postal_code: "686001",
+            postalCode: "686001",
             reference: ""
         };
 
@@ -420,7 +436,7 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             city: order.city,
             state: destinationState,
             country: order.country,
-            postal_code: order.pinCode,
+            postalCode: order.pinCode,
             reference: order.street || ''
         };
 
@@ -430,9 +446,9 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             type: "box" as "box",
             weight: weight,
             insurance: 0,
-            declared_value: order.originalPrice,
-            weight_unit: "KG" as "KG",
-            dimension_unit: "CM" as "CM",
+            declaredValue: order.originalPrice,
+            weightUnit: "KG" as "KG",
+            dimensionUnit: "CM" as "CM",
             dimensions: {
                 length: length,
                 width: width,

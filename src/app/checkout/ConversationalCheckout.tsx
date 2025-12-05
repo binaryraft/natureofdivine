@@ -365,12 +365,13 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                         <AlertCircle className="h-4 w-4" />
                         <span>{result.message || "Couldn't fetch shipping rates."}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        This is likely due to an Envia API authentication issue.
-                        Please ensure your .env file has valid ENVIA_API_KEY or ENVIA_TEST_API_KEY without quotes or spaces.
-                    </p>
+                    {(result.message?.includes('401') || result.message?.includes('403') || result.message?.toLowerCase().includes('token') || result.message?.toLowerCase().includes('key')) && (
+                        <p className="text-sm text-muted-foreground">
+                            This looks like an authentication issue. Please check your API Key configuration.
+                        </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
-                        After updating .env, restart the dev server with: npm run dev
+                        If this persists, please try again later or contact support.
                     </p>
                 </div>
             );
