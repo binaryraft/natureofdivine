@@ -6,7 +6,13 @@ import { addLog } from './log-store';
 import { Order } from './definitions';
 import { enviaCache } from './envia-cache';
 
-const API_BASE_URL = 'https://api.envia.com';
+// Use test or production URL based on environment
+const getApiBaseUrl = () => {
+    const isTest = process.env.ENVIA_IS_TEST === 'true';
+    return isTest ? 'https://api-test.envia.com' : 'https://api.envia.com';
+};
+
+const QUERIES_BASE_URL = 'https://queries.envia.com';
 
 
 interface EnviaCountry {
@@ -33,7 +39,7 @@ interface RatePayload {
         city: string;
         state: string;
         country: string;
-        postalCode: string;
+        postal_code: string;
         reference?: string;
     };
     destination: {
@@ -47,7 +53,7 @@ interface RatePayload {
         city: string;
         state: string;
         country: string;
-        postalCode: string;
+        postal_code: string;
         reference?: string;
     };
     packages: {
@@ -56,36 +62,56 @@ interface RatePayload {
         type: 'box';
         weight: number;
         insurance: number;
-        declaredValue: number;
-        weightUnit: 'KG';
-        lengthUnit: 'CM';
+        declared_value: number;
+        weight_unit: 'KG';
+        dimension_unit: 'CM';
         dimensions: {
             length: number;
             width: number;
             height: number;
         };
     }[];
-    shipment: {
+    shipment?: {
         carrier?: string;
         type: number; // 0 for document, 1 for package
     };
-    settings: {
+    settings?: {
         currency: string;
-        printFormat: 'PDF';
-        printSize: 'STOCK_4X6';
+        print_format: 'PDF';
+        print_size: 'STOCK_4X6';
     };
 }
 
 
 const getEnviaToken = () => {
     const isTest = process.env.ENVIA_IS_TEST === 'true';
-    return isTest ? process.env.ENVIA_TEST_API_KEY : process.env.ENVIA_API_KEY;
+    const token = isTest ? process.env.ENVIA_TEST_API_KEY : process.env.ENVIA_API_KEY;
+
+    // Debug logging
+    console.log('[ENVIA DEBUG]', {
+        isTest,
+        hasTestKey: !!process.env.ENVIA_TEST_API_KEY,
+        hasProdKey: !!process.env.ENVIA_API_KEY,
+        testKeyLength: process.env.ENVIA_TEST_API_KEY?.length || 0,
+        prodKeyLength: process.env.ENVIA_API_KEY?.length || 0,
+        selectedKeyLength: token?.length || 0,
+        tokenPreview: token ? `${token.substring(0, 10)}...` : 'EMPTY'
+    });
+
+    return token;
 };
 
-const getHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getEnviaToken()}`
-});
+const getHeaders = (isQuery: boolean = false) => {
+    const headers: any = {
+        'Content-Type': 'application/json',
+    };
+
+    if (!isQuery) {
+        headers['Authorization'] = `Bearer ${getEnviaToken()}`;
+    }
+
+    return headers;
+};
 
 
 
@@ -96,18 +122,29 @@ const getHeaders = () => ({
 export async function getServiceableCountries(): Promise<EnviaCountry[]> {
     return enviaCache.getCountries(async () => {
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const token = getEnviaToken();
+            if (!token) {
+                console.warn('Envia API Key is missing. Returning default countries.');
+                return [
+                    { country_code: 'IN', country_name: 'India', currency: 'INR' },
+                    { country_code: 'US', country_name: 'United States', currency: 'USD' },
+                    { country_code: 'GB', country_name: 'United Kingdom', currency: 'GBP' },
+                    { country_code: 'CA', country_name: 'Canada', currency: 'CAD' },
+                    { country_code: 'AU', country_name: 'Australia', currency: 'AUD' },
+                ];
+            }
 
-            const response = await axios.get('https://queries.envia.com/country', {
-                headers: getHeaders(),
-                signal: controller.signal,
-                timeout: 10000,
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // Reduced to 5s
+
+            const response = await axios.get(`${QUERIES_BASE_URL}/country`, {
+                headers: getHeaders(true),
+                timeout: 5000,
+            } as any);
 
             clearTimeout(timeoutId);
 
-            const countries = response.data.data;
+            const countries = (response.data as any).data;
             if (!Array.isArray(countries)) {
                 throw new Error('Invalid response format from Envia countries API');
             }
@@ -150,17 +187,16 @@ export async function getStatesForCountry(countryCode: string): Promise<EnviaSta
             const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
             const response = await axios.get(
-                `https://queries.envia.com/state?country_code=${countryCode}`,
+                `${QUERIES_BASE_URL}/state?country_code=${countryCode}`,
                 {
-                    headers: getHeaders(),
-                    signal: controller.signal,
+                    headers: getHeaders(true),
                     timeout: 8000,
-                }
+                } as any
             );
 
             clearTimeout(timeoutId);
 
-            const states = response.data.data;
+            const states = (response.data as any).data;
             if (!Array.isArray(states)) {
                 throw new Error('Invalid response format from Envia states API');
             }
@@ -189,6 +225,27 @@ export async function getShippingRates(order: Order) {
 
     return enviaCache.getRates(cacheKey, async () => {
         try {
+            const token = getEnviaToken();
+            if (!token) {
+                throw new Error('Envia API Key is missing. Please configure ENVIA_API_KEY in .env');
+            }
+
+            // Test the token with a protected endpoint
+            try {
+                const testResponse = await axios.get(`${getApiBaseUrl()}/ship/carriers/?country_code=MX`, {
+                    headers: getHeaders(false),
+                    timeout: 5000,
+                });
+                console.log('[ENVIA] Token validated successfully with carriers endpoint');
+            } catch (testError: any) {
+                console.error('[ENVIA] Token validation failed:', {
+                    status: testError.response?.status,
+                    message: testError.response?.data,
+                    headers: testError.config?.headers
+                });
+                throw new Error(`Token validation failed: ${testError.response?.data?.message || testError.message}`);
+            }
+
             const originAddress = {
                 name: "Alfas B",
                 company: "Nature of the Divine",
@@ -200,8 +257,23 @@ export async function getShippingRates(order: Order) {
                 city: "Kottayam",
                 state: "KL",
                 country: "IN",
-                postalCode: "686001",
+                postal_code: "686001",
             };
+
+            // Try to map full state name to code if provided
+            let destinationState = order.state;
+            if (destinationState && destinationState.length > 3) {
+                try {
+                    const states = await getStatesForCountry(order.country);
+                    const match = states.find(s => s.name.toLowerCase() === destinationState.toLowerCase());
+                    if (match) {
+                        addLog('info', 'Envia: Mapped full state name to code', { original: destinationState, code: match.code });
+                        destinationState = match.code;
+                    }
+                } catch (e) {
+                    // Ignore mapping errors
+                }
+            }
 
             const destinationAddress = {
                 name: order.name,
@@ -212,82 +284,86 @@ export async function getShippingRates(order: Order) {
                 number: '1',
                 district: order.street || order.city,
                 city: order.city,
-                state: order.state,
+                state: destinationState,
                 country: order.country,
-                postalCode: order.pinCode,
-                reference: order.street,
+                postal_code: order.pinCode,
+                reference: order.street || '',
             }
 
-            const paperbackPackage = {
+            const createPackage = (weight: number, length: number, width: number, height: number) => ({
                 content: "Book",
                 amount: 1,
                 type: "box" as "box",
-                weight: 0.3,
+                weight: weight,
                 insurance: 0,
-                declaredValue: order.originalPrice,
-                weightUnit: "KG" as "KG",
-                lengthUnit: "CM" as "CM",
+                declared_value: order.originalPrice,
+                weight_unit: "KG" as "KG",
+                dimension_unit: "CM" as "CM",
                 dimensions: {
-                    length: 22,
-                    width: 15,
-                    height: 2
+                    length: length,
+                    width: width,
+                    height: height
                 }
-            };
+            });
 
-            const hardcoverPackage = {
-                content: "Book",
-                amount: 1,
-                type: "box" as "box",
-                weight: 0.5,
-                insurance: 0,
-                declaredValue: order.originalPrice,
-                weightUnit: "KG" as "KG",
-                lengthUnit: "CM" as "CM",
-                dimensions: {
-                    length: 23,
-                    width: 16,
-                    height: 3
-                }
-            };
+            const paperbackPackage = createPackage(0.3, 22, 15, 2);
+            const hardcoverPackage = createPackage(0.5, 23, 16, 3);
 
             const payload: RatePayload = {
                 origin: originAddress,
                 destination: destinationAddress,
-                packages: [order.variant === 'paperback' ? paperbackPackage : hardcoverPackage],
-                shipment: { type: 1 },
-                settings: {
-                    currency: "INR",
-                    printFormat: 'PDF',
-                    printSize: 'STOCK_4X6',
-                },
+                packages: [order.variant === 'paperback' ? paperbackPackage : hardcoverPackage]
             };
 
+
             addLog('info', 'Envia: Fetching shipping rates', { cacheKey });
+            console.log('[ENVIA] Full payload being sent:', JSON.stringify(payload, null, 2));
+
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for rates
 
-            const response = await axios.post(`${API_BASE_URL}/ship/rate/`, payload, {
-                headers: getHeaders(),
-                signal: controller.signal,
+            const response = await axios.post(`${getApiBaseUrl()}/ship/rate/`, payload, {
+                headers: getHeaders(false),
                 timeout: 15000,
-            });
+            } as any);
 
             clearTimeout(timeoutId);
 
-            addLog('info', 'Envia: Received shipping rates', { ratesCount: response.data.data?.length || 0 });
+            addLog('info', 'Envia: Received shipping rates', { ratesCount: (response.data as any).data?.length || 0 });
 
-            return { success: true, rates: response.data.data };
+            const responseData = (response.data as any).data;
+            if (!Array.isArray(responseData)) {
+                addLog('warn', 'Envia: No rates array returned', { response: response.data });
+                return { success: true, rates: [] };
+            }
+
+            const rates = responseData.map((rate: any) => {
+                // Add 15% margin to the shipping rate
+                const originalPrice = rate.total_price || rate.totalPrice;
+                const priceWithMargin = originalPrice * 1.15;
+
+                return {
+                    carrier: rate.carrier,
+                    service: rate.service,
+                    totalPrice: Math.ceil(priceWithMargin), // Round up to nearest integer
+                    currency: rate.currency,
+                    deliveryDate: rate.delivery_date || rate.deliveryDate,
+                };
+            });
+
+            return { success: true, rates };
 
         } catch (error: any) {
             const errorMessage = error.code === 'ECONNABORTED' || error.message?.includes('timeout')
                 ? 'Shipping service timed out. Please try again.'
-                : error.response?.data?.message || 'Could not fetch shipping rates.';
+                : error.response?.data?.meta?.message || error.response?.data?.message || error.message || 'Could not fetch shipping rates.';
 
             addLog('error', 'Envia: Failed to get shipping rates', {
                 error: error.message,
                 code: error.code,
-                response: error.response?.data
+                response: error.response?.data,
+                payload: 'REDACTED'
             });
 
             return { success: false, message: errorMessage };
@@ -297,6 +373,11 @@ export async function getShippingRates(order: Order) {
 
 export async function generateLabel(order: Order, carrier: string, service: string) {
     try {
+        const token = getEnviaToken();
+        if (!token) {
+            throw new Error('Envia API Key is missing.');
+        }
+
         const originAddress = {
             name: "Alfas B",
             company: "Nature of the Divine",
@@ -308,9 +389,25 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             city: "Kottayam",
             state: "KL",
             country: "IN",
-            postalCode: "686001",
+            postal_code: "686001",
             reference: ""
         };
+
+
+        // Try to map full state name to code if provided
+        let destinationState = order.state;
+        if (destinationState && destinationState.length > 3) {
+            try {
+                const states = await getStatesForCountry(order.country);
+                const match = states.find(s => s.name.toLowerCase() === destinationState.toLowerCase());
+                if (match) {
+                    addLog('info', 'Envia: Mapped full state name to code in generateLabel', { original: destinationState, code: match.code });
+                    destinationState = match.code;
+                }
+            } catch (e) {
+                // Ignore mapping errors
+            }
+        }
 
         const destinationAddress = {
             name: order.name,
@@ -321,44 +418,49 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             number: '1', // Envia requires a number
             district: order.street || order.city,
             city: order.city,
-            state: order.state,
+            state: destinationState,
             country: order.country,
-            postalCode: order.pinCode,
-            reference: order.street
+            postal_code: order.pinCode,
+            reference: order.street || ''
         };
 
-        const paperbackPackage = {
-            content: "Book", amount: 1, type: "box" as "box",
-            weight: 0.3, insurance: 0, declaredValue: order.originalPrice,
-            weightUnit: "KG" as "KG", lengthUnit: "CM" as "CM",
-            dimensions: { length: 22, width: 15, height: 2 }
-        };
+        const createPackage = (weight: number, length: number, width: number, height: number) => ({
+            content: "Book",
+            amount: 1,
+            type: "box" as "box",
+            weight: weight,
+            insurance: 0,
+            declared_value: order.originalPrice,
+            weight_unit: "KG" as "KG",
+            dimension_unit: "CM" as "CM",
+            dimensions: {
+                length: length,
+                width: width,
+                height: height
+            }
+        });
 
-        const hardcoverPackage = {
-            content: "Book", amount: 1, type: "box" as "box",
-            weight: 0.5, insurance: 0, declaredValue: order.originalPrice,
-            weightUnit: "KG" as "KG", lengthUnit: "CM" as "CM",
-            dimensions: { length: 23, width: 16, height: 3 }
-        };
+        const paperbackPackage = createPackage(0.3, 22, 15, 2);
+        const hardcoverPackage = createPackage(0.5, 23, 16, 3);
 
         const payload = {
             origin: originAddress,
             destination: destinationAddress,
             packages: [order.variant === 'paperback' ? paperbackPackage : hardcoverPackage],
             shipment: { carrier, service, type: 1 },
-            settings: { printFormat: "PDF", printSize: "STOCK_4X6", comments: `Order ID: ${order.id}` }
+            settings: { print_format: "PDF", print_size: "STOCK_4X6", comments: `Order ID: ${order.id}` }
         };
 
         addLog('info', 'Envia: Generating shipping label', { payload });
-        const response = await axios.post(`${API_BASE_URL}/ship/generate/`, payload, { headers: getHeaders() });
-        addLog('info', 'Envia: Label generated successfully', { response: response.data.data });
+        const response = await axios.post(`${getApiBaseUrl()}/ship/generate/`, payload, { headers: getHeaders(false) });
+        addLog('info', 'Envia: Label generated successfully', { response: (response.data as any).data });
 
-        return { success: true, data: response.data.data };
+        return { success: true, data: (response.data as any).data };
 
     } catch (error: any) {
         addLog('error', 'Envia: Failed to generate label', {
             error: error.response ? error.response.data : error.message
         });
-        return { success: false, message: error.response?.data?.message || 'Could not generate shipping label.' };
+        return { success: false, message: error.response?.data?.meta?.message || error.response?.data?.message || 'Could not generate shipping label.' };
     }
 }

@@ -187,9 +187,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
     const [isCheckingCode, setIsCheckingCode] = useState(false);
 
     const [countries, setCountries] = useState<EnviaCountry[]>([]);
-    const [isCountryLoading, setIsCountryLoading] = useState(false); // Start as false - countries are preloaded
+    const [isCountryLoading, setIsCountryLoading] = useState(true);
     const [states, setStates] = useState<EnviaState[]>([]);
     const [isStateLoading, setIsStateLoading] = useState(false);
+
 
     const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
     const [isRateLoading, setIsRateLoading] = useState(false);
@@ -197,11 +198,13 @@ export function OrderForm({ stock }: { stock: Stock }) {
     const isTestMode = process.env.NEXT_PUBLIC_ENVIA_IS_TEST === 'true';
 
     // Load countries - instant from cache since CheckoutClient preloaded them
+    // Load countries - instant from cache since CheckoutClient preloaded them
     useEffect(() => {
         async function loadCountries() {
             // Don't show loading state - countries should be cached
             const enviaCountries = await getServiceableCountries();
             setCountries(enviaCountries);
+            setIsCountryLoading(false);
         }
         loadCountries();
     }, []);

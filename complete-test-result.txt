@@ -1,0 +1,75 @@
+=== STEP 1: Testing Envia API (Get Shipping Rates) ===
+
+Request URL: https://api-test.envia.com/ship/rate/
+Payload:
+{
+  "origin": {
+    "name": "Alfas B",
+    "company": "Nature of the Divine",
+    "email": "natureofthedivine@gmail.com",
+    "phone": "8606281125",
+    "street": "Myplamootil",
+    "number": "1",
+    "district": "Kottayam",
+    "city": "Kottayam",
+    "state": "KL",
+    "country": "IN",
+    "postal_code": "686001"
+  },
+  "destination": {
+    "name": "Test User",
+    "company": "",
+    "email": "test@example.com",
+    "phone": "9876543210",
+    "street": "MG Road",
+    "number": "123",
+    "district": "Bangalore Urban",
+    "city": "Bangalore",
+    "state": "KA",
+    "country": "IN",
+    "postal_code": "560001",
+    "reference": ""
+  },
+  "packages": [
+    {
+      "content": "Book",
+      "amount": 1,
+      "type": "box",
+      "weight": 0.3,
+      "insurance": 0,
+      "declared_value": 500,
+      "weight_unit": "KG",
+      "dimension_unit": "CM",
+      "dimensions": {
+        "length": 22,
+        "width": 15,
+        "height": 2
+      }
+    }
+  ],
+  "shipment": {
+    "type": 1
+  }
+}
+
+✅ SUCCESS! Envia API responded
+
+Full Response:
+{
+  "meta": "error",
+  "error": {
+    "code": 400,
+    "description": "Invalid Option",
+    "message": "Required property missing: postalCode, data: {\"name\":\"Alfas B\",\"company\":\"Nature of the Divine\",\"email\":\"natureofthedivine@gmail.com\",\"phone\":\"8606281125\",\"street\":\"Myplamootil\",\"number\":\"1\",\"district\":\"Kottayam\",\"city\":\"Kottayam\",\"state\":\"KL\",\"country\":\"IN\",\"postal_code\":\"686001\"} at #->properties:origin->$ref[#/definitions/address]"
+  }
+}
+
+⚠️  No shipping rates returned
+Response: {
+  "meta": "error",
+  "error": {
+    "code": 400,
+    "description": "Invalid Option",
+    "message": "Required property missing: postalCode, data: {\"name\":\"Alfas B\",\"company\":\"Nature of the Divine\",\"email\":\"natureofthedivine@gmail.com\",\"phone\":\"8606281125\",\"street\":\"Myplamootil\",\"number\":\"1\",\"district\":\"Kottayam\",\"city\":\"Kottayam\",\"state\":\"KL\",\"country\":\"IN\",\"postal_code\":\"686001\"} at #->properties:origin->$ref[#/definitions/address]"
+  }
+}

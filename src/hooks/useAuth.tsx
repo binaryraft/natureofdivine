@@ -25,19 +25,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     return () => unsubscribe();
   }, []);
-  
+
   const signOut = async () => {
     await firebaseSignOut(auth);
     setUser(null);
   }
 
-  if (loading) {
-    return (
-        <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    )
-  }
+  // Removed blocking loader to allow app to render immediately
+  // if (loading) {
+  //   return (
+  //       <div className="flex justify-center items-center h-screen">
+  //           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  //       </div>
+  //   )
+  // }
 
   return (
     <AuthContext.Provider value={{ user, loading, signOut }}>
