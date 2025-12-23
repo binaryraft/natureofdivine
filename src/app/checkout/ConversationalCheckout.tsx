@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useLocation } from '@/hooks/useLocation';
 
 type Step = 'name' | 'email' | 'phone' | 'country' | 'postal' | 'state_city' | 'address' | 'variant' | 'shipping' | 'payment' | 'processing';
 
@@ -40,6 +41,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     const { user } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
+    const { priceData } = useLocation();
     const scrollRef = useRef<HTMLDivElement>(null);
     const messageIdCounter = useRef(0);
 
@@ -342,7 +344,8 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
         setCurrentStep('shipping');
         addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Checking shipping...</span></div>);
 
-        const result = await getShippingRatesAction({ ...formData, price: 0 });
+        const currentPrice = priceData && formData.variant ? priceData[formData.variant] : 1;
+        const result = await getShippingRatesAction({ ...formData, price: currentPrice });
 
         if (result.success && (result.rates?.length || 0) > 0) {
             addBotMessage(
