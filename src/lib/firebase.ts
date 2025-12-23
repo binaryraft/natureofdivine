@@ -19,7 +19,11 @@ if (
   !firebaseConfig.authDomain ||
   !firebaseConfig.projectId
 ) {
-  throw new Error("Firebase config environment variables are not set. Please check your .env file. The app may not function correctly.");
+  console.warn("Firebase config environment variables are not set. Using dummy config. The app will not function correctly.");
+  firebaseConfig.apiKey = "dummy";
+  firebaseConfig.authDomain = "dummy.firebaseapp.com";
+  firebaseConfig.projectId = "dummy";
+  firebaseConfig.storageBucket = "dummy.appspot.com";
 }
 
 
