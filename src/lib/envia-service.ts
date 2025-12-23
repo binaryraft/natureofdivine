@@ -270,7 +270,7 @@ export async function getShippingRates(order: Order) {
                 city: "Kottayam",
                 state: "KL",
                 country: "IN",
-                postalCode: "686001", // CamelCase for specific carrier request
+                postal_code: "686001",
             };
 
             // Try to map full state name to code if provided
@@ -296,7 +296,7 @@ export async function getShippingRates(order: Order) {
                 city: order.city,
                 state: destinationState,
                 country: order.country,
-                postalCode: order.pinCode, // CamelCase
+                postal_code: order.pinCode,
                 reference: order.street || '',
             };
 
@@ -306,9 +306,9 @@ export async function getShippingRates(order: Order) {
                 type: "box" as "box",
                 weight: weight,
                 insurance: 0,
-                declaredValue: order.originalPrice, // CamelCase
-                weightUnit: "KG" as "KG", // CamelCase
-                dimensionUnit: "CM" as "CM", // CamelCase
+                declared_value: order.originalPrice,
+                weight_unit: "KG" as "KG",
+                dimension_unit: "CM" as "CM",
                 dimensions: {
                     length: length,
                     width: width,
@@ -405,7 +405,7 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             city: "Kottayam",
             state: "KL",
             country: "IN",
-            postalCode: "686001",
+            postal_code: "686001",
             reference: ""
         };
 
@@ -436,7 +436,7 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             city: order.city,
             state: destinationState,
             country: order.country,
-            postalCode: order.pinCode,
+            postal_code: order.pinCode,
             reference: order.street || ''
         };
 
@@ -446,9 +446,9 @@ export async function generateLabel(order: Order, carrier: string, service: stri
             type: "box" as "box",
             weight: weight,
             insurance: 0,
-            declaredValue: order.originalPrice,
-            weightUnit: "KG" as "KG",
-            dimensionUnit: "CM" as "CM",
+            declared_value: order.originalPrice,
+            weight_unit: "KG" as "KG",
+            dimension_unit: "CM" as "CM",
             dimensions: {
                 length: length,
                 width: width,
