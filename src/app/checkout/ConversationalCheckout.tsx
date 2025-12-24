@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useLocation } from '@/hooks/useLocation';
 import { countries as countryList } from '@/lib/countries';
 
-type Step = 'name' | 'email' | 'phone' | 'country' | 'postal' | 'state_city' | 'address' | 'variant' | 'shipping' | 'payment' | 'processing';
+type Step = 'name' | 'email' | 'phone' | 'country' | 'postal' | 'state' | 'city' | 'address' | 'landmark' | 'variant' | 'payment' | 'processing';
 
 interface Message {
     id: string;
@@ -33,7 +33,7 @@ interface FormData {
     city: string;
     pinCode: string;
     address: string;
-    // Shipping method is implied/included now
+    street: string; // Used for landmark
     paymentMethod?: 'cod' | 'prepaid';
     totalPrice?: number;
 }
@@ -56,7 +56,6 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    // Merge with defaults to ensure all fields exist
                     return {
                         variant: 'paperback',
                         name: '',
@@ -67,6 +66,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                         city: '',
                         pinCode: '',
                         address: '',
+                        street: '',
                         ...parsed
                     };
                 } catch (e) { }
@@ -82,6 +82,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             city: '',
             pinCode: '',
             address: '',
+            street: '',
         };
     });
 
@@ -114,9 +115,6 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     }, [messages]);
 
     useEffect(() => {
-        // Check if we have saved data
-        const hasSavedData = formData.name || formData.email || formData.phone;
-
         addBotMessage(
             <div className="space-y-2">
                 <p className="text-lg font-medium">Welcome to Nature of the Divine.</p>
@@ -134,7 +132,6 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     }, []);
 
     const handleVariantSelect = (variant: 'paperback' | 'hardcover') => {
-        // Check stock - FIXED: Check the actual stock value
         const variantStock = variant === 'paperback' ? stock.paperback : stock.hardcover;
 
         if (variantStock <= 0) {
@@ -161,7 +158,6 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
         setFormData(prev => ({ ...prev, variant }));
         addUserMessage(`I'd like the ${variant} edition.`);
 
-        // Check for saved data (localStorage or user profile)
         const savedName = formData.name || user?.displayName;
         const savedEmail = formData.email || user?.email;
         const savedPhone = formData.phone || user?.phoneNumber;
@@ -206,7 +202,6 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     };
 
     const checkSavedAddress = () => {
-        // Check if we have a complete address
         if (formData.country && formData.state && formData.city && formData.pinCode && formData.address) {
             addBotMessage(
                 <div className="space-y-3">
@@ -226,8 +221,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => {
                             addUserMessage("No, change address");
-                            // Clear address fields
-                            setFormData(prev => ({ ...prev, country: '', state: '', city: '', pinCode: '', address: '', shippingMethod: undefined }));
+                            setFormData(prev => ({ ...prev, country: '', state: '', city: '', pinCode: '', address: '', street: '' }));
                             askCountry();
                         }}>
                             No, change
@@ -242,17 +236,32 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
 
     const askCountry = () => {
         setCurrentStep('country');
-        addBotMessage("Where should we ship? Type your country name.");
+        addBotMessage("Got it. Which country should I ship your book to?");
     };
 
     const askPostalCode = () => {
         setCurrentStep('postal');
-        addBotMessage("What's your Postal/ZIP Code?");
+        addBotMessage("And what's the Postal or ZIP Code for that location?");
     };
 
-    const askAddress = (autoFilled = false) => {
+    const askState = () => {
+        setCurrentStep('state');
+        addBotMessage("Which State or Province is that in?");
+    };
+
+    const askCity = () => {
+        setCurrentStep('city');
+        addBotMessage("In which City or District?");
+    };
+
+    const askAddress = () => {
         setCurrentStep('address');
-        addBotMessage(autoFilled ? `Found ${formData.city}, ${formData.state}. What's your street address?` : "What's your full street address?");
+        addBotMessage("Please provide your street address (House No, Building, Street).");
+    };
+
+    const askLandmark = () => {
+        setCurrentStep('landmark');
+        addBotMessage("Any nearby landmark to help the delivery partner find you?");
     };
 
     const handleSubmit = async () => {
@@ -269,7 +278,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             addUserMessage(inputValue);
             setInputValue('');
             setCurrentStep('phone');
-            addBotMessage("What's your phone number?");
+            addBotMessage("Great. Could you share your phone number for delivery updates?");
         } else if (currentStep === 'phone') {
             if (inputValue.length < 10) return toast({ title: "Phone too short" });
             setFormData(prev => ({ ...prev, phone: inputValue }));
@@ -281,23 +290,21 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                 c.name.toLowerCase().includes(inputValue.toLowerCase()) ||
                 c.iso2.toLowerCase() === inputValue.toLowerCase()
             );
-            if (!match) return toast({ title: "Country not found", description: "Try 'India' or 'United States'" });
+            if (!match) return toast({ title: "Country not found", description: "Try typing the full name, like 'India'." });
 
             setFormData(prev => ({ ...prev, country: match.iso2 }));
             addUserMessage(match.name);
             setInputValue('');
-
-            // No need to fetch states API anymore, user types it
             askPostalCode();
         } else if (currentStep === 'postal') {
-            if (inputValue.length < 3) return toast({ title: "Invalid PIN" });
+            if (inputValue.length < 3) return toast({ title: "Invalid code" });
             setFormData(prev => ({ ...prev, pinCode: inputValue }));
             addUserMessage(inputValue);
 
             const pin = inputValue;
             setInputValue('');
 
-            if (formData.country === 'IN') {
+            if (formData.country === 'IN' && pin.length === 6) {
                 setLoading(true);
                 try {
                     const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
@@ -305,37 +312,43 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                     if (data[0].Status === 'Success') {
                         const po = data[0].PostOffice[0];
                         setFormData(prev => ({ ...prev, city: po.District, state: po.State }));
-                        askAddress(true);
+                        addBotMessage(`I've automatically found ${po.District}, ${po.State}.`);
+                        askAddress();
                         setLoading(false);
                         return;
                     }
                 } catch (e) { }
                 setLoading(false);
             }
-
-            setCurrentStep('state_city');
-            addBotMessage("Please type your State and City (e.g., 'Karnataka, Bangalore')");
-        } else if (currentStep === 'state_city') {
-            const parts = inputValue.split(',').map(p => p.trim());
-            if (parts.length < 2) return toast({ title: "Format: State, City" });
-
-            setFormData(prev => ({ ...prev, state: parts[0], city: parts[1] }));
+            askState();
+        } else if (currentStep === 'state') {
+            if (inputValue.length < 2) return toast({ title: "Please enter a valid state" });
+            setFormData(prev => ({ ...prev, state: inputValue }));
+            addUserMessage(inputValue);
+            setInputValue('');
+            askCity();
+        } else if (currentStep === 'city') {
+            if (inputValue.length < 2) return toast({ title: "Please enter a valid city" });
+            setFormData(prev => ({ ...prev, city: inputValue }));
             addUserMessage(inputValue);
             setInputValue('');
             askAddress();
         } else if (currentStep === 'address') {
-            if (inputValue.length < 5) return toast({ title: "Address too short" });
+            if (inputValue.length < 5) return toast({ title: "Address seems too short" });
             setFormData(prev => ({ ...prev, address: inputValue }));
             addUserMessage(inputValue);
             setInputValue('');
-
+            askLandmark();
+        } else if (currentStep === 'landmark') {
+            setFormData(prev => ({ ...prev, street: inputValue }));
+            addUserMessage(inputValue || "None");
+            setInputValue('');
             await calculateTotal();
         }
     };
 
     const calculateTotal = async () => {
-        // Skip setting currentStep to 'shipping', go directly to summary/payment
-        addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Calculating total...</span></div>);
+        addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Just a moment, calculating your total...</span></div>);
 
         const result = await calculateOrderTotalAction(formData.country, formData.variant);
 
@@ -348,15 +361,15 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                     <p className="text-lg font-medium">Order Summary</p>
                     <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-2">
                         <div className="flex justify-between">
-                            <span>Item ({formData.variant}):</span>
+                            <span>{formData.variant.charAt(0).toUpperCase() + formData.variant.slice(1)} Edition:</span>
                             <span>{formattedTotal}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">
                             <span>Shipping:</span>
                             <span>Included</span>
                         </div>
-                        <div className="flex justify-between font-bold border-t pt-2 mt-2">
-                            <span>Total:</span>
+                        <div className="flex justify-between font-bold border-t pt-2 mt-2 text-base">
+                            <span>Total Amount:</span>
                             <span>{formattedTotal}</span>
                         </div>
                     </div>
@@ -368,10 +381,10 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                 <div className="space-y-3">
                     <div className="text-destructive flex gap-2">
                         <AlertCircle className="h-4 w-4" />
-                        <span>{result.message || "Couldn't calculate price."}</span>
+                        <span>{result.message || "I'm having trouble calculating the price right now."}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Please try again later.
+                        Could you try again in a minute?
                     </p>
                 </div>
             );
@@ -382,15 +395,15 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
         setCurrentStep('payment');
         addBotMessage(
             <div className="space-y-3">
-                <p>How would you like to pay?</p>
+                <p>How would you like to complete the payment?</p>
                 <div className="grid gap-2">
                     <Button variant="outline" className="justify-start h-auto py-4" onClick={() => handlePaymentSelect('prepaid')}>
-                        <CreditCard className="mr-3 h-5 w-5" />
-                        <div className="text-left"><p className="font-semibold">Pay Online</p><p className="text-xs text-muted-foreground">UPI, Cards</p></div>
+                        <CreditCard className="mr-3 h-5 w-5 text-primary" />
+                        <div className="text-left"><p className="font-semibold">Pay Online</p><p className="text-xs text-muted-foreground">UPI, Cards, Net Banking</p></div>
                     </Button>
                     <Button variant="outline" className="justify-start h-auto py-4" onClick={() => handlePaymentSelect('cod')}>
-                        <Truck className="mr-3 h-5 w-5" />
-                        <div className="text-left"><p className="font-semibold">Cash on Delivery</p><p className="text-xs text-muted-foreground">Pay when delivered</p></div>
+                        <Truck className="mr-3 h-5 w-5 text-primary" />
+                        <div className="text-left"><p className="font-semibold">Cash on Delivery</p><p className="text-xs text-muted-foreground">Pay when your book arrives</p></div>
                     </Button>
                 </div>
             </div>
@@ -402,7 +415,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
         addUserMessage(method === 'cod' ? 'Cash on Delivery' : 'Pay Online');
 
         setCurrentStep('processing');
-        addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Placing order...</span></div>);
+        addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Processing your order...</span></div>);
 
         if (!user) {
             toast({ title: "Please login to complete order" });
@@ -414,24 +427,20 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                 ...formData,
                 userId: user.uid,
                 paymentMethod: method,
-                // Pass dummy shipping method to satisfy server schema (it ignores it anyway)
                 shippingMethod: { carrier: 'Standard', service: 'Standard', rate: 0 }
             });
 
             if (result.success) {
-                // Clear saved data after successful order
-                // localStorage.removeItem('checkout_form_data'); // Keep data for next time
-
                 if (result.paymentData?.redirectUrl) {
                     window.location.href = result.paymentData.redirectUrl;
                 } else {
                     router.push(`/orders?success=true&orderId=${result.orderId}`);
                 }
             } else {
-                addBotMessage(`Error: ${result.message}`);
+                addBotMessage(`Oops! ${result.message}`);
             }
         } catch (e: any) {
-            addBotMessage(`Error: ${e.message}`);
+            addBotMessage(`I encountered an error: ${e.message}`);
         }
     };
 
@@ -440,7 +449,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
                 {messages.map((msg) => (
                     <div key={msg.id} className={cn("flex w-full animate-in fade-in slide-in-from-bottom-2 duration-300", msg.role === 'user' ? "justify-end" : "justify-start")}>
-                        <div className={cn("max-w-[85%] rounded-2xl px-4 py-3 text-sm md:text-base", msg.role === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none")}>
+                        <div className={cn("max-w-[85%] rounded-2xl px-4 py-3 text-sm md:text-base", msg.role === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none shadow-sm")}>
                             {msg.content}
                         </div>
                     </div>
@@ -455,20 +464,22 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             </div>
 
             <div className="p-4 border-t bg-background">
-                {['name', 'email', 'phone', 'country', 'postal', 'state_city', 'address'].includes(currentStep) && (
+                {['name', 'email', 'phone', 'country', 'postal', 'state', 'city', 'address', 'landmark'].includes(currentStep) && (
                     <div className="flex gap-2">
                         <Input
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                             placeholder={
-                                currentStep === 'name' ? "Type your name..." :
-                                    currentStep === 'email' ? "Type your email..." :
-                                        currentStep === 'phone' ? "Type your phone..." :
-                                            currentStep === 'country' ? "Type country name..." :
-                                                currentStep === 'postal' ? "Type PIN/ZIP..." :
-                                                    currentStep === 'state_city' ? "State, City" :
-                                                        "Type your address..."
+                                currentStep === 'name' ? "Enter your name..." :
+                                    currentStep === 'email' ? "Enter your email..." :
+                                        currentStep === 'phone' ? "Enter your phone number..." :
+                                            currentStep === 'country' ? "Which country?" :
+                                                currentStep === 'postal' ? "PIN/ZIP Code" :
+                                                    currentStep === 'state' ? "State/Province" :
+                                                        currentStep === 'city' ? "City/District" :
+                                                            currentStep === 'address' ? "Street Address..." :
+                                                                "Landmark (optional)..."
                             }
                             className="flex-1"
                             autoFocus
