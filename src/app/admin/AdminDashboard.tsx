@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -28,6 +27,7 @@ import { getGalleryImages, initializeGalleryImages } from '@/lib/gallery-store';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
+import { PricingManager } from './PricingManager';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -38,9 +38,9 @@ const statusColors: Record<OrderStatus, string> = {
     pending: 'bg-gray-500'
 }
 
-const OrderTable = ({ 
-    orders, 
-    onStatusChange, 
+const OrderTable = ({
+    orders,
+    onStatusChange,
     selectedOrders,
     onSelectionChange
 }: { 
@@ -111,7 +111,7 @@ const OrderTable = ({
                             </TableCell>
                              <TableCell>
                                 <Badge 
-                                    variant={order.variant === 'hardcover' ? 'default' : (order.variant === 'paperback' ? 'secondary' : 'outline')} 
+                                    variant={order.variant === 'hardcover' ? 'default' : (order.variant === 'paperback' ? 'secondary' : 'outline')}
                                     className="capitalize"
                                 >
                                     {order.variant}
@@ -665,11 +665,11 @@ function BulkActions({ selectedCount, onAction }: { selectedCount: number; onAct
         <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border my-4">
             <p className="text-sm font-medium">{selectedCount} order{selectedCount > 1 ? 's' : ''} selected</p>
             <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => onAction('dispatched')}>
+                <Button size="sm" onClick={() => onAction('dispatched')}> 
                     <Send className="mr-2 h-4 w-4" />
                     Mark as Dispatched
                 </Button>
-                <Button size="sm" variant="destructive" onClick={() => onAction('cancelled')}>
+                <Button size="sm" variant="destructive" onClick={() => onAction('cancelled')}> 
                      <Trash2 className="mr-2 h-4 w-4" />
                     Cancel Selected
                 </Button>
@@ -709,7 +709,7 @@ export function AdminDashboard() {
             if (e.message && e.message.includes("indexes?create_composite")) {
                  const urlMatch = e.message.match(/(https?:\/\/[^\s]+)/);
                  if (urlMatch) {
-                    const firebaseUrl = urlMatch[0].replace(/\\"/g, '');
+                    const firebaseUrl = urlMatch[0].replace(/\\\"/g, '');
                     toast({
                         variant: 'destructive',
                         title: 'Database Index Required',
@@ -834,14 +834,16 @@ export function AdminDashboard() {
   return (
     <div className="container mx-auto py-12 md:py-16 space-y-8">
         <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="chapters">Chapters</TabsTrigger>
                 <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="stock">Stock</TabsTrigger>
                 <TabsTrigger value="discounts">Discounts</TabsTrigger>
+                <TabsTrigger value="pricing">Pricing</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="orders" className="mt-6">
                 <Card>
                   <CardHeader>
@@ -905,6 +907,9 @@ export function AdminDashboard() {
             </TabsContent>
              <TabsContent value="discounts" className="mt-6">
                 <DiscountManager />
+            </TabsContent>
+            <TabsContent value="pricing" className="mt-6">
+                <PricingManager />
             </TabsContent>
         </Tabs>
     </div>

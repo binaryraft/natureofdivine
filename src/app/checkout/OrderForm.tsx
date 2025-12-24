@@ -3,8 +3,7 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, validateDiscountCode, trackEvent, getShippingRatesAction } from '@/lib/actions';
-import { getServiceableCountries, getStatesForCountry } from '@/lib/envia-service';
+import { placeOrder, validateDiscountCode, trackEvent, calculateOrderTotalAction } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +21,7 @@ import { z } from 'zod';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { countries } from '@/lib/countries';
 
 const isPrepaidEnabled = true;
 
@@ -39,20 +39,16 @@ const DetailsSchema = z.object({
     street: z.string().optional(),
     city: z.string().min(2, 'Please enter a valid city.'),
     country: z.string().min(2, 'Please select a country.'),
-    state: z.string().min(2, 'Please select a state.'),
+    state: z.string().min(2, 'Please enter a valid state.'),
     pinCode: z.string().min(3, 'Please enter a valid PIN code.'),
     saveAddress: z.boolean().optional(),
 });
 
-type EnviaCountry = { country_code: string; country_name: string; };
-type EnviaState = { code: string; name: string; };
-type ShippingRate = { carrier: string; service: string; totalPrice: number; currency: string; };
-
 type FormState = {
-    step: 'variant' | 'details' | 'shipping' | 'payment' | 'processing';
+    step: 'variant' | 'details' | 'payment' | 'processing';
     variant: Exclude<BookVariant, 'ebook'> | null;
     details: z.infer<typeof DetailsSchema>;
-    shippingMethod: { carrier: string, service: string, rate: number } | null;
+    orderSummary: { productPrice: number, shippingCost: number, totalPrice: number } | null;
     paymentMethod: 'cod' | 'prepaid' | null;
     discount: {
         code: string;
@@ -66,7 +62,7 @@ type FormState = {
 type FormAction =
     | { type: 'SET_VARIANT'; payload: Exclude<BookVariant, 'ebook'> }
     | { type: 'SET_DETAILS'; payload: z.infer<typeof DetailsSchema> }
-    | { type: 'SET_SHIPPING_METHOD'; payload: { carrier: string, service: string, rate: number } }
+    | { type: 'SET_ORDER_SUMMARY'; payload: { productPrice: number, shippingCost: number, totalPrice: number } }
     | { type: 'SET_PAYMENT_METHOD'; payload: 'cod' | 'prepaid' }
     | { type: 'SET_ERRORS'; payload: Record<string, string[]> | null }
     | { type: 'NEXT_STEP' }
@@ -89,12 +85,12 @@ const initialState: FormState = {
         address: '',
         street: '',
         city: '',
-        country: '',
+        country: 'IN', // Default to India
         state: '',
         pinCode: '',
         saveAddress: false,
     },
-    shippingMethod: null,
+    orderSummary: null,
     paymentMethod: null,
     discount: {
         code: '',
@@ -111,8 +107,8 @@ function formReducer(state: FormState, action: FormAction): FormState {
             return { ...state, variant: action.payload, errors: null };
         case 'SET_DETAILS':
             return { ...state, details: action.payload, errors: null };
-        case 'SET_SHIPPING_METHOD':
-            return { ...state, shippingMethod: action.payload, errors: null };
+        case 'SET_ORDER_SUMMARY':
+            return { ...state, orderSummary: action.payload, errors: null };
         case 'SET_FORM_VALUE': {
             const newErrors = state.errors ? { ...state.errors } : null;
             if (newErrors && action.payload.field in newErrors) {
@@ -141,16 +137,13 @@ function formReducer(state: FormState, action: FormAction): FormState {
                 return { ...state, step: 'details' };
             }
             if (state.step === 'details') {
-                return { ...state, step: 'shipping' };
-            }
-            if (state.step === 'shipping') {
+                // Skip shipping step
                 return { ...state, step: 'payment' };
             }
             return state;
         }
         case 'PREVIOUS_STEP': {
-            if (state.step === 'payment') return { ...state, step: 'shipping', paymentMethod: null, errors: null };
-            if (state.step === 'shipping') return { ...state, step: 'details', shippingMethod: null, errors: null };
+            if (state.step === 'payment') return { ...state, step: 'details', paymentMethod: null, errors: null };
             if (state.step === 'details') return { ...state, step: 'variant', errors: null, discount: initialState.discount };
             return state;
         }
@@ -185,29 +178,9 @@ export function OrderForm({ stock }: { stock: Stock }) {
     const [isPincodeLoading, setIsPincodeLoading] = useState(false);
     const [pincodeError, setPincodeError] = useState<string | null>(null);
     const [isCheckingCode, setIsCheckingCode] = useState(false);
-
-    const [countries, setCountries] = useState<EnviaCountry[]>([]);
-    const [isCountryLoading, setIsCountryLoading] = useState(true);
-    const [states, setStates] = useState<EnviaState[]>([]);
-    const [isStateLoading, setIsStateLoading] = useState(false);
-
-
-    const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
-    const [isRateLoading, setIsRateLoading] = useState(false);
+    const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
 
     const isTestMode = process.env.NEXT_PUBLIC_ENVIA_IS_TEST === 'true';
-
-    // Load countries - instant from cache since CheckoutClient preloaded them
-    // Load countries - instant from cache since CheckoutClient preloaded them
-    useEffect(() => {
-        async function loadCountries() {
-            // Don't show loading state - countries should be cached
-            const enviaCountries = await getServiceableCountries();
-            setCountries(enviaCountries);
-            setIsCountryLoading(false);
-        }
-        loadCountries();
-    }, []);
 
     useEffect(() => {
         const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
@@ -223,10 +196,8 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
     // Track analytics events when step changes
     useEffect(() => {
-        if (state.step === 'details') {
-            trackEvent('checkout_reached_shipping');
-        } else if (state.step === 'payment') {
-            trackEvent('checkout_completed_shipping');
+        if (state.step === 'payment') {
+            trackEvent('checkout_reached_payment');
         }
     }, [state.step]);
 
@@ -245,26 +216,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
         }
     }, [user, state.details.name, state.details.email, state.details.phone]);
 
-    const handleCountryChange = async (countryCode: string) => {
-        dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: countryCode } });
-        dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: '' } }); // Reset state
-        setStates([]);
-        if (!countryCode) return;
-
-        setIsStateLoading(true);
-        const enviaStates = await getStatesForCountry(countryCode);
-        setStates(enviaStates);
-        setIsStateLoading(false);
-    }
-
     const handlePincodeChange = async (pinCode: string) => {
         dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: pinCode } });
         if (pinCode.length !== 6 || state.details.country !== 'IN') {
             setPincodeError(null);
-            if (state.details.city || state.details.state) {
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: '' } });
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: '' } });
-            }
             return;
         };
 
@@ -277,7 +232,6 @@ export function OrderForm({ stock }: { stock: Stock }) {
             if (data[0].Status === 'Success') {
                 const postOffice = data[0].PostOffice[0];
                 dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: postOffice.District } });
-                handleCountryChange('IN'); // This is already being done, but for safety
                 dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: postOffice.State } });
             } else {
                 setPincodeError(data[0].Message || "Invalid PIN code.");
@@ -327,33 +281,25 @@ export function OrderForm({ stock }: { stock: Stock }) {
         if (result.success) {
             dispatch({ type: 'SET_DETAILS', payload: result.data });
 
-            // Fetch shipping rates
-            setIsRateLoading(true);
-            const rateResult = await getShippingRatesAction({
-                ...result.data,
-                variant: state.variant!,
-                price: priceData![state.variant!],
-            });
+            // Calculate final price based on location
+            setIsCalculatingPrice(true);
+            const priceResult = await calculateOrderTotalAction(result.data.country, state.variant!);
 
-            if (rateResult.success) {
-                setShippingRates(rateResult.rates);
+            if (priceResult.success) {
+                dispatch({ type: 'SET_ORDER_SUMMARY', payload: {
+                    productPrice: priceResult.productPrice,
+                    shippingCost: priceResult.shippingCost,
+                    totalPrice: priceResult.totalPrice
+                }});
                 dispatch({ type: 'NEXT_STEP' });
             } else {
-                toast({ variant: 'destructive', title: 'Shipping Error', description: rateResult.message });
+                toast({ variant: 'destructive', title: 'Pricing Error', description: priceResult.message });
             }
-            setIsRateLoading(false);
+            setIsCalculatingPrice(false);
 
         } else {
             dispatch({ type: 'SET_ERRORS', payload: result.error.flatten().fieldErrors });
         }
-    };
-
-    const handleShippingSubmit = () => {
-        if (!state.shippingMethod) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please select a shipping method.' });
-            return;
-        }
-        dispatch({ type: 'NEXT_STEP' });
     };
 
     const handleApplyDiscount = async () => {
@@ -368,7 +314,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
     }
 
     const handlePaymentSubmit = async () => {
-        if (!state.variant || !state.details || !state.paymentMethod || !state.shippingMethod || !user) return;
+        if (!state.variant || !state.details || !state.paymentMethod || !state.orderSummary || !user) return;
 
         setIsSubmitting(true);
         dispatch({ type: 'SET_PROCESSING' });
@@ -379,17 +325,20 @@ export function OrderForm({ stock }: { stock: Stock }) {
             userId: user.uid,
             discountCode: state.discount.applied ? state.discount.code : undefined,
             paymentMethod: state.paymentMethod,
-            shippingMethod: state.shippingMethod
+            // Pass a dummy shipping method to satisfy schema validation on server, though server ignores it for calculation
+            shippingMethod: {
+                carrier: 'Standard',
+                service: 'Standard Shipping',
+                rate: 0
+            }
         };
 
         try {
             const result = await placeOrder(orderPayload);
             if (result.success) {
                 if (result.paymentData?.redirectUrl) {
-                    // This is a prepaid order, redirect to PhonePe
                     window.location.href = result.paymentData.redirectUrl;
                 } else {
-                    // This is a COD order
                     toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
                     router.push(`/orders?success=true&orderId=${result.orderId}`);
                 }
@@ -517,10 +466,10 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="country">Country</Label>
-                                        <Select onValueChange={handleCountryChange} value={state.details.country} disabled={isCountryLoading}>
+                                        <Select onValueChange={(val) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: val } })} value={state.details.country}>
                                             <SelectTrigger><SelectValue placeholder="Select a country" /></SelectTrigger>
                                             <SelectContent>
-                                                {countries.map(c => <SelectItem key={c.country_code} value={c.country_code}>{c.country_name}</SelectItem>)}
+                                                {countries.map(c => <SelectItem key={c.iso2} value={c.iso2}>{c.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                         {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
@@ -543,14 +492,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="state">State / Province</Label>
-                                        <Select onValueChange={(val) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: val } })} value={state.details.state} disabled={isStateLoading || states.length === 0}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={isStateLoading ? "Loading..." : "Select a state"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {states.map(s => <SelectItem key={s.code} value={s.code}>{s.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <Input id="state" name="state" required value={state.details?.state} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: e.target.value } })} />
                                         {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
                                     </div>
                                 </div>
@@ -562,69 +504,27 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 )}
                             </div>
                             <div className="pt-4">
-                                <Button type="submit" className="w-full" size="lg" disabled={!user || authLoading || isRateLoading}>
-                                    {isRateLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Proceed to Shipping <ArrowRight className="ml-2 h-4 w-4" />
+                                <Button type="submit" className="w-full" size="lg" disabled={!user || authLoading || isCalculatingPrice}>
+                                    {isCalculatingPrice && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             </div>
                         </form>
                     </Card>
                 );
 
-            case 'shipping':
-                return (
-                    <Card className="border-none shadow-none">
-                        <CardHeader className="p-0 mb-6">
-                            <Button variant="ghost" size="sm" onClick={() => dispatch({ type: 'PREVIOUS_STEP' })} className="self-start px-2 -ml-2 mb-2">
-                                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                            </Button>
-                            <CardTitle className="text-2xl">Select Shipping Method</CardTitle>
-                            <CardDescription>
-                                Choose your preferred shipping carrier.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4 p-0">
-                            {isRateLoading ? <Loader2 className="mx-auto my-4 h-8 w-8 animate-spin" /> : (
-                                <RadioGroup
-                                    value={state.shippingMethod ? JSON.stringify(state.shippingMethod) : ''}
-                                    onValueChange={(val) => dispatch({ type: 'SET_SHIPPING_METHOD', payload: JSON.parse(val) })}
-                                    className="space-y-4"
-                                >
-                                    {shippingRates.length === 0 ? <p className='text-muted-foreground text-center py-4'>No shipping rates available for this address.</p> :
-                                        shippingRates.map((rate, index) => (
-                                            <Label key={`${rate.carrier}-${rate.service}-${index}`} className="flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all">
-                                                <RadioGroupItem value={JSON.stringify({ carrier: rate.carrier, service: rate.service, rate: rate.totalPrice })} id={`${rate.carrier}-${rate.service}`} />
-                                                <Ship className="h-6 w-6 text-primary" />
-                                                <div className="flex-grow">
-                                                    <p className="font-semibold capitalize">{rate.carrier} - {rate.service}</p>
-                                                </div>
-                                                <p className="font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: rate.currency }).format(rate.totalPrice)}</p>
-                                            </Label>
-                                        ))}
-                                </RadioGroup>
-                            )}
-                            <div className="pt-4">
-                                <Button onClick={handleShippingSubmit} disabled={!state.shippingMethod} className="w-full" size="lg">
-                                    Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )
-
             case 'payment':
-                if (priceLoading || !priceData || !state.variant || !state.shippingMethod) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin" /></div>
+                if (priceLoading || !priceData || !state.variant || !state.orderSummary) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin" /></div>
 
-                const originalPrice = priceData[state.variant];
-                const discountAmount = state.discount.applied ? Math.round(originalPrice * (state.discount.percent / 100)) : 0;
-                const priceAfterDiscount = originalPrice - discountAmount;
-                const finalPrice = priceAfterDiscount + state.shippingMethod.rate;
+                const { productPrice, shippingCost, totalPrice } = state.orderSummary;
+                
+                const discountAmount = state.discount.applied ? Math.round(productPrice * (state.discount.percent / 100)) : 0;
+                const finalPrice = totalPrice - discountAmount;
 
-                const formattedOriginalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(originalPrice);
-                const formattedShippingPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(state.shippingMethod.rate);
+                const formattedOriginalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(productPrice);
+                const formattedShippingPrice = shippingCost === 0 ? "Included" : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(shippingCost);
                 const formattedFinalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(finalPrice);
                 const formattedDiscount = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(discountAmount);
-
 
                 return (
                     <Card className="border-none shadow-none">
@@ -651,7 +551,7 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Shipping ({state.shippingMethod.carrier}):</span>
+                                        <span className="text-muted-foreground">Shipping:</span>
                                         <span className="font-medium">{formattedShippingPrice}</span>
                                     </div>
                                     <div className="flex justify-between items-center font-bold text-lg border-t pt-4 mt-4">

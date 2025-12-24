@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Send, Truck, CreditCard, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
-import { getServiceableCountries, getStatesForCountry } from '@/lib/envia-service';
-import { getShippingRatesAction, placeOrder } from '@/lib/actions';
+import { calculateOrderTotalAction, placeOrder } from '@/lib/actions';
 import { Stock } from '@/lib/definitions';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useLocation } from '@/hooks/useLocation';
+import { countries as countryList } from '@/lib/countries';
 
 type Step = 'name' | 'email' | 'phone' | 'country' | 'postal' | 'state_city' | 'address' | 'variant' | 'shipping' | 'payment' | 'processing';
 
@@ -33,8 +33,9 @@ interface FormData {
     city: string;
     pinCode: string;
     address: string;
-    shippingMethod?: { carrier: string, service: string, rate: number };
+    // Shipping method is implied/included now
     paymentMethod?: 'cod' | 'prepaid';
+    totalPrice?: number;
 }
 
 export function ConversationalCheckout({ stock }: { stock: Stock }) {
@@ -86,9 +87,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
 
     const [inputValue, setInputValue] = useState('');
     const [loading, setLoading] = useState(false);
-    const [countries, setCountries] = useState<{ country_code: string, country_name: string }[]>([]);
-    const [states, setStates] = useState<{ code: string, name: string }[]>([]);
-
+    
     // Save to localStorage whenever formData changes
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -132,8 +131,6 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                 </div>
             </div>
         );
-
-        getServiceableCountries().then(setCountries);
     }, []);
 
     const handleVariantSelect = (variant: 'paperback' | 'hardcover') => {
@@ -223,7 +220,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                     <div className="flex gap-2">
                         <Button size="sm" onClick={() => {
                             addUserMessage("Yes, ship here");
-                            fetchShippingRates();
+                            calculateTotal();
                         }}>
                             Yes
                         </Button>
@@ -280,21 +277,17 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             setInputValue('');
             checkSavedAddress();
         } else if (currentStep === 'country') {
-            const match = countries.find(c =>
-                c.country_name.toLowerCase().includes(inputValue.toLowerCase()) ||
-                c.country_code.toLowerCase() === inputValue.toLowerCase()
+            const match = countryList.find(c =>
+                c.name.toLowerCase().includes(inputValue.toLowerCase()) ||
+                c.iso2.toLowerCase() === inputValue.toLowerCase()
             );
             if (!match) return toast({ title: "Country not found", description: "Try 'India' or 'United States'" });
 
-            setFormData(prev => ({ ...prev, country: match.country_code }));
-            addUserMessage(match.country_name);
+            setFormData(prev => ({ ...prev, country: match.iso2 }));
+            addUserMessage(match.name);
             setInputValue('');
 
-            setLoading(true);
-            const fetchedStates = await getStatesForCountry(match.country_code);
-            setStates(fetchedStates);
-            setLoading(false);
-
+            // No need to fetch states API anymore, user types it
             askPostalCode();
         } else if (currentStep === 'postal') {
             if (inputValue.length < 3) return toast({ title: "Invalid PIN" });
@@ -336,55 +329,53 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             addUserMessage(inputValue);
             setInputValue('');
 
-            await fetchShippingRates();
+            await calculateTotal();
         }
     };
 
-    const fetchShippingRates = async () => {
-        setCurrentStep('shipping');
-        addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Checking shipping...</span></div>);
+    const calculateTotal = async () => {
+        // Skip setting currentStep to 'shipping', go directly to summary/payment
+        addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Calculating total...</span></div>);
 
-        const currentPrice = priceData && formData.variant ? priceData[formData.variant] : 1;
-        const result = await getShippingRatesAction({ ...formData, price: currentPrice });
+        const result = await calculateOrderTotalAction(formData.country, formData.variant);
 
-        if (result.success && (result.rates?.length || 0) > 0) {
+        if (result.success) {
+            const formattedTotal = new Intl.NumberFormat('en-IN', { style: 'currency', currency: result.currency }).format(result.totalPrice);
+            setFormData(prev => ({ ...prev, totalPrice: result.totalPrice }));
+            
             addBotMessage(
                 <div className="space-y-3">
-                    <p>Available shipping methods:</p>
-                    <div className="grid gap-2">
-                        {result.rates?.map((rate: any, idx: number) => (
-                            <div key={idx} onClick={() => handleShippingSelect(rate)} className="p-3 border rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 flex justify-between">
-                                <div className="flex gap-2"><Truck className="h-5 w-5" /><span className="capitalize">{rate.carrier} - {rate.service}</span></div>
-                                <span className="font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: rate.currency }).format(rate.totalPrice)}</span>
-                            </div>
-                        ))}
+                    <p className="text-lg font-medium">Order Summary</p>
+                    <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-2">
+                        <div className="flex justify-between">
+                            <span>Item ({formData.variant}):</span>
+                            <span>{formattedTotal}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                            <span>Shipping:</span>
+                            <span>Included</span>
+                        </div>
+                        <div className="flex justify-between font-bold border-t pt-2 mt-2">
+                            <span>Total:</span>
+                            <span>{formattedTotal}</span>
+                        </div>
                     </div>
                 </div>
             );
+            askPayment();
         } else {
             addBotMessage(
                 <div className="space-y-3">
                     <div className="text-destructive flex gap-2">
                         <AlertCircle className="h-4 w-4" />
-                        <span>{result.message || "Couldn't fetch shipping rates."}</span>
+                        <span>{result.message || "Couldn't calculate price."}</span>
                     </div>
-                    {(result.message?.includes('401') || result.message?.includes('403') || result.message?.toLowerCase().includes('token') || result.message?.toLowerCase().includes('key')) && (
-                        <p className="text-sm text-muted-foreground">
-                            This looks like an authentication issue. Please check your API Key configuration.
-                        </p>
-                    )}
                     <p className="text-xs text-muted-foreground">
-                        If this persists, please try again later or contact support.
+                        Please try again later.
                     </p>
                 </div>
             );
         }
-    };
-
-    const handleShippingSelect = (rate: any) => {
-        setFormData(prev => ({ ...prev, shippingMethod: { carrier: rate.carrier, service: rate.service, rate: rate.totalPrice } }));
-        addUserMessage(`${rate.carrier} (${rate.service})`);
-        askPayment();
     };
 
     const askPayment = () => {
@@ -423,7 +414,8 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                 ...formData,
                 userId: user.uid,
                 paymentMethod: method,
-                shippingMethod: formData.shippingMethod!
+                // Pass dummy shipping method to satisfy server schema (it ignores it anyway)
+                shippingMethod: { carrier: 'Standard', service: 'Standard', rate: 0 }
             });
 
             if (result.success) {

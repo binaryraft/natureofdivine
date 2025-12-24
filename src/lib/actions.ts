@@ -1,4 +1,3 @@
-
 'use server';
 import { z } from 'zod';
 import axios from 'axios';
@@ -16,7 +15,8 @@ import { getAnalytics, addEvent } from './analytics-store';
 import { SHA256 } from 'crypto-js';
 import { updateChapter, getChapters } from './chapter-store';
 import { updateGalleryImage, addGalleryImage, deleteGalleryImage, getGalleryImages } from './gallery-store';
-import { generateLabel, getShippingRates as getEnviaShippingRates } from './envia-service';
+import { getPriceForCountry } from './pricing-store';
+import { getShippingRates as getEnviaShippingRates } from './envia-service';
 
 
 cloudinary.config({
@@ -40,6 +40,7 @@ const OrderFormSchema = z.object({
   userId: z.string().min(1, 'User ID is required.'),
   discountCode: z.string().optional(),
   paymentMethod: z.enum(['cod', 'prepaid']),
+  // Shipping method is now simplified / hidden
   shippingMethod: z.object({
     carrier: z.string(),
     service: z.string(),
@@ -100,27 +101,31 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     return { success: false, message: 'Invalid data provided.' };
   }
 
-  const { variant, userId, discountCode, paymentMethod, shippingMethod } = validatedFields.data;
-
-  if (!shippingMethod) {
-    return { success: false, message: 'Shipping method is required.' };
-  }
+  const { variant, userId, discountCode, paymentMethod } = validatedFields.data;
+  // Note: We ignore client-sent shippingMethod and recalculate price server-side for security.
 
   try {
-    const prices = await fetchLocationAndPrice();
-    const originalPrice = prices[variant as Exclude<BookVariant, 'ebook'>];
-    let finalPrice = originalPrice;
+    const countryCode = validatedFields.data.country;
+    
+    // Fetch the canonical price for this country
+    const basePrice = await getPriceForCountry(countryCode);
+    const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice; // Apply hardcover markup logic consistently
+
+    let finalPrice = variantPrice;
     let discountAmount = 0;
 
     if (discountCode) {
       const discount = await getDiscount(discountCode);
       if (discount) {
-        discountAmount = Math.round(originalPrice * (discount.percent / 100));
-        finalPrice = originalPrice - discountAmount;
+        discountAmount = Math.round(variantPrice * (discount.percent / 100));
+        finalPrice = variantPrice - discountAmount;
       }
     }
 
-    const totalPrice = finalPrice + shippingMethod.rate;
+    // Shipping is now included in the base price for international orders, or managed via the pricing store.
+    // We treat shipping cost as 0 here because the "product price" covers it.
+    const shippingCost = 0;
+    const totalPrice = finalPrice + shippingCost;
 
 
     const newOrderData: Omit<Order, 'id' | 'status' | 'createdAt' | 'hasReview' | 'paymentDetails'> = {
@@ -137,13 +142,13 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
       paymentMethod,
       variant,
       price: totalPrice,
-      originalPrice,
+      originalPrice: variantPrice,
       discountCode: discountCode || '',
       discountAmount,
       shippingDetails: {
-        carrier: shippingMethod.carrier,
-        service: shippingMethod.service,
-        cost: shippingMethod.rate,
+        carrier: 'Standard', // Default
+        service: 'Standard Shipping',
+        cost: shippingCost,
         trackingNumber: null,
         labelUrl: null
       }
@@ -305,21 +310,7 @@ export async function fetchUserOrdersAction(userId: string) {
 }
 
 export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
-  if (status === 'dispatched') {
-    const order = await getOrderById(userId, orderId);
-    if (order && order.shippingDetails) {
-      const labelResult = await generateLabel(order, order.shippingDetails.carrier, order.shippingDetails.service);
-      if (labelResult.success) {
-        const trackingNumber = labelResult.data[0].trackingNumber;
-        const labelUrl = labelResult.data[0].label;
-        await updateOrderShippingDetails(userId, orderId, { ...order.shippingDetails, trackingNumber, labelUrl });
-        await addLog('info', 'Envia label generated and order updated', { orderId, trackingNumber });
-      } else {
-        await addLog('error', 'Failed to generate Envia label for dispatched order', { orderId, error: labelResult.message });
-        // Don't block status change, just log the error
-      }
-    }
-  }
+  // Removed Envia label generation logic as per new requirement
   return await updateOrderStatus(userId, orderId, status);
 }
 
@@ -455,3 +446,20 @@ export async function getShippingRatesAction(orderData: any) {
   return await getEnviaShippingRates(tempOrder);
 }
 
+// Replaced getShippingRatesAction with a new calculate total action
+export async function calculateOrderTotalAction(countryCode: string, variant: string) {
+    try {
+        const basePrice = await getPriceForCountry(countryCode);
+        const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice;
+        
+        return {
+            success: true,
+            productPrice: variantPrice,
+            shippingCost: 0,
+            totalPrice: variantPrice,
+            currency: 'INR'
+        };
+    } catch (e: any) {
+        return { success: false, message: e.message };
+    }
+}
