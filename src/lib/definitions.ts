@@ -98,11 +98,21 @@ export type SampleChapter = {
     locked: boolean;
 };
 
+export type GalleryItemType = 'image' | 'text';
+
 export type GalleryImage = {
     id: string;
-    src: string;
-    alt: string;
+    type: GalleryItemType;
+    src?: string;
+    alt?: string;
+    content?: string;
+    styles?: {
+        textAlign?: 'left' | 'center' | 'right' | 'justify';
+        fontStyle?: 'normal' | 'italic';
+        fontWeight?: 'normal' | 'bold';
+        fontSize?: string;
+    };
     locked: boolean;
-    aiHint: string;
+    aiHint?: string;
     createdAt: number;
 };

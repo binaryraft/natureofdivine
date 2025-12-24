@@ -53,7 +53,7 @@ function FullscreenImageViewer({ isOpen, onOpenChange, image }: { isOpen: boolea
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 border-0 max-w-none w-screen h-screen bg-black/95 backdrop-blur-xl flex items-center justify-center overflow-hidden">
-        <DialogTitle className="sr-only">Image Preview</DialogTitle>
+        <DialogTitle className="sr-only">Content Preview</DialogTitle>
         <DialogClose className="absolute right-6 top-6 z-50 focus:outline-none">
           <div className="bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full p-3 transition-colors group">
             <X className="h-6 w-6 text-white group-hover:rotate-90 transition-transform duration-300" />
@@ -75,14 +75,30 @@ function FullscreenImageViewer({ isOpen, onOpenChange, image }: { isOpen: boolea
               </Button>
             </div>
           ) : null}
-          <div className="relative w-full h-full">
-             <Image
-                src={image.src}
-                fill
-                style={{ objectFit: 'contain' }}
-                alt={image.alt}
-                className={cn("rounded-lg shadow-2xl", image.locked && "blur-md scale-105")}
-              />
+          
+          <div className="relative w-full h-full flex items-center justify-center">
+             {image.type === 'text' ? (
+                 <div className="w-full max-w-2xl aspect-[3/4] bg-[#FDFBF7] rounded-lg shadow-2xl p-12 md:p-16 flex flex-col justify-center text-slate-900 overflow-y-auto">
+                    <div className="h-full border-2 border-transparent flex flex-col justify-center">
+                        <p style={{
+                            textAlign: image.styles?.textAlign || 'left',
+                            fontStyle: image.styles?.fontStyle || 'normal',
+                            fontWeight: image.styles?.fontWeight || 'normal',
+                            fontSize: 'clamp(1.2rem, 4vw, 2rem)',
+                        }} className="font-garamond leading-loose">
+                            {image.content}
+                        </p>
+                    </div>
+                 </div>
+             ) : (
+                <Image
+                    src={image.src || ''}
+                    fill
+                    style={{ objectFit: 'contain' }}
+                    alt={image.alt || 'Gallery Image'}
+                    className={cn("rounded-lg shadow-2xl", image.locked && "blur-md scale-105")}
+                />
+             )}
           </div>
         </motion.div>
       </DialogContent>
@@ -369,13 +385,29 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                      onClick={() => setSelectedImage(image)}
                    >
                       <div className="absolute inset-0 bg-gray-900 rounded-xl overflow-hidden border border-white/10 shadow-2xl transition-transform duration-500 group-hover:-translate-y-2">
-                         <Image
-                           src={image.src}
-                           fill
-                           alt={image.alt}
-                           className={cn("object-cover transition-all duration-700 group-hover:scale-110", image.locked && "blur-sm opacity-50")}
-                         />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                         {image.type === 'text' ? (
+                            <div className="w-full h-full bg-[#FDFBF7] p-8 flex flex-col justify-center text-slate-900">
+                                <div className="h-full border-2 border-transparent flex flex-col justify-center overflow-hidden">
+                                     <p style={{
+                                        textAlign: image.styles?.textAlign || 'left',
+                                        fontStyle: image.styles?.fontStyle || 'normal',
+                                        fontWeight: image.styles?.fontWeight || 'normal',
+                                        fontSize: image.styles?.fontSize || '1.1rem',
+                                    }} className="font-garamond leading-relaxed">
+                                        {image.content}
+                                    </p>
+                                </div>
+                            </div>
+                         ) : (
+                             <Image
+                               src={image.src || ''}
+                               fill
+                               alt={image.alt || 'Gallery Image'}
+                               className={cn("object-cover transition-all duration-700 group-hover:scale-110", image.locked && "blur-sm opacity-50")}
+                             />
+                         )}
+
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity pointer-events-none" />
                          
                          <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                             {image.locked ? (

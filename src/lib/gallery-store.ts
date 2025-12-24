@@ -10,14 +10,23 @@ import { v4 as uuidv4 } from 'uuid';
 const galleryCollection = collection(db, 'gallery');
 
 const defaultGalleryImages = [
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", alt: "First page of the book Nature of the Divine", locked: false, aiHint: "book page" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", alt: "A page from inside the book showing a chapter start", locked: false, aiHint: "book page" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", alt: "The preface page of the book Nature of the Divine", locked: false, aiHint: "book page" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", alt: "Second page of the book's preface", locked: false, aiHint: "book page" },
-  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", alt: "Table of contents for the book", locked: false, aiHint: "book page" },
-  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, aiHint: "book page" },
-  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, aiHint: "book page" },
-  { src: "https://placehold.co/600x800.png", alt: "A locked chapter page from the book", locked: true, aiHint: "book page" },
+  { 
+      type: 'text',
+      content: "The essence of existence is intelligence.",
+      styles: {
+          textAlign: 'center',
+          fontStyle: 'italic',
+          fontSize: '1.5rem'
+      },
+      locked: false,
+      aiHint: "text page"
+  },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279803/Screenshot_2025-06-24_123010_afcftz.png", type: 'image', alt: "First page of the book Nature of the Divine", locked: false, aiHint: "book page" },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_130046_fhaq93.png", type: 'image', alt: "A page from inside the book showing a chapter start", locked: false, aiHint: "book page" },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123033_pp3uex.png", type: 'image', alt: "The preface page of the book Nature of the Divine", locked: false, aiHint: "book page" },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123037_nohtck.png", type: 'image', alt: "Second page of the book's preface", locked: false, aiHint: "book page" },
+  { src: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279805/Screenshot_2025-06-24_123046_suwpld.png", type: 'image', alt: "Table of contents for the book", locked: false, aiHint: "book page" },
+  { src: "https://placehold.co/600x800.png", type: 'image', alt: "A locked chapter page from the book", locked: true, aiHint: "book page" },
 ];
 
 
@@ -26,8 +35,11 @@ const docToImage = (doc: any): GalleryImage => {
     const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now();
     return {
         id: doc.id,
+        type: data.type || 'image',
         src: data.src,
         alt: data.alt,
+        content: data.content,
+        styles: data.styles,
         locked: data.locked,
         aiHint: data.aiHint,
         createdAt: createdAt,
