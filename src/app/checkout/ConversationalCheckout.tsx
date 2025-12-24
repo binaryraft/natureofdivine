@@ -286,11 +286,25 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             setInputValue('');
             checkSavedAddress();
         } else if (currentStep === 'country') {
-            const match = countryList.find(c =>
-                c.name.toLowerCase().includes(inputValue.toLowerCase()) ||
-                c.iso2.toLowerCase() === inputValue.toLowerCase()
+            const normalizedInput = inputValue.trim().toLowerCase();
+            
+            // 1. Try exact match on name or code
+            let match = countryList.find(c => 
+                c.name.toLowerCase() === normalizedInput || 
+                c.iso2.toLowerCase() === normalizedInput
             );
-            if (!match) return toast({ title: "Country not found", description: "Try typing the full name, like 'India'." });
+
+            // 2. If no exact match, try "starts with"
+            if (!match) {
+                match = countryList.find(c => c.name.toLowerCase().startsWith(normalizedInput));
+            }
+
+            // 3. Fallback to "includes" but only if not too ambiguous
+            if (!match) {
+                match = countryList.find(c => c.name.toLowerCase().includes(normalizedInput));
+            }
+
+            if (!match) return toast({ title: "Country not found", description: "Try typing the full name, like 'India' or 'United Arab Emirates'." });
 
             setFormData(prev => ({ ...prev, country: match.iso2 }));
             addUserMessage(match.name);
@@ -340,17 +354,20 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             setInputValue('');
             askLandmark();
         } else if (currentStep === 'landmark') {
-            setFormData(prev => ({ ...prev, street: inputValue }));
-            addUserMessage(inputValue || "None");
+            const landmark = inputValue.trim();
+            setFormData(prev => ({ ...prev, street: landmark }));
+            addUserMessage(landmark || "None");
             setInputValue('');
-            await calculateTotal();
+            
+            // Use local variables to avoid stale state in calculateTotal
+            await calculateTotal(formData.country, formData.variant);
         }
     };
 
-    const calculateTotal = async () => {
+    const calculateTotal = async (countryCode: string, variant: string) => {
         addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Just a moment, calculating your total...</span></div>);
 
-        const result = await calculateOrderTotalAction(formData.country, formData.variant);
+        const result = await calculateOrderTotalAction(countryCode, variant);
 
         if (result.success) {
             const formattedTotal = new Intl.NumberFormat('en-IN', { style: 'currency', currency: result.currency }).format(result.totalPrice || 0);
@@ -361,7 +378,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                     <p className="text-lg font-medium">Order Summary</p>
                     <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-2">
                         <div className="flex justify-between">
-                            <span>{formData.variant.charAt(0).toUpperCase() + formData.variant.slice(1)} Edition:</span>
+                            <span>{variant.charAt(0).toUpperCase() + variant.slice(1)} Edition:</span>
                             <span>{formattedTotal}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">

@@ -96,6 +96,7 @@ async function fetchPhonePeAccessToken(): Promise<{ success: boolean; accessToke
 
 export async function placeOrder(payload: OrderPayload): Promise<{ success: boolean; message: string; orderId?: string; paymentData?: any }> {
   await addLog('info', 'placeOrder initiated', { paymentMethod: payload.paymentMethod });
+  console.log('[DEBUG] placeOrder Payload:', JSON.stringify(payload, null, 2));
 
   const validatedFields = OrderFormSchema.safeParse(payload);
   if (!validatedFields.success) {
@@ -104,6 +105,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
       .map(([field, errors]) => `${field}: ${errors?.join(', ')}`)
       .join(' | ');
     
+    console.log('[DEBUG] Validation Failed:', errorMessages);
     await addLog('error', 'Order validation failed', { errors: errorMap });
     return { success: false, message: `Invalid data provided: ${errorMessages}` };
   }
