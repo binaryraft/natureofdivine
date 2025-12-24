@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Settings, LogOut, BookHeart, ShoppingCart } from 'lucide-react';
+import { Menu, Settings, LogOut, BookHeart, ShoppingCart, User } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useLocation } from '@/hooks/useLocation';
 import { getCountryFlag } from '@/lib/countries';
-import { buyLinks } from '@/lib/data';
+import { useEffect, useState } from 'react';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -32,6 +32,15 @@ export function SiteHeader() {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
   const { priceData, loading: locationLoading } = useLocation();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -46,21 +55,26 @@ export function SiteHeader() {
   const activeLinks = user ? navLinks : navLinks.filter(link => link.href !== '/orders');
 
   return (
-    <header className="sticky top-0 z-50 w-full glass-panel border-b-0">
-      <div className="container flex h-14 max-w-screen-2xl items-center">
-        <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <BookHeart className="h-6 w-6 text-accent" />
-            <span className="font-bold font-headline whitespace-nowrap">Nature of the Divine</span>
+    <header 
+      className={cn(
+        "sticky top-0 z-50 w-full border-b border-transparent transition-all duration-300",
+        scrolled ? "bg-background/80 backdrop-blur-md border-border shadow-sm" : "bg-transparent"
+      )}
+    >
+      <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center space-x-2 group">
+            <BookHeart className="h-7 w-7 text-primary group-hover:scale-110 transition-transform duration-300" />
+            <span className="font-bold font-headline text-lg tracking-tight group-hover:text-primary transition-colors">Nature of the Divine</span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             {activeLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'transition-colors hover:text-foreground/80',
-                  pathname === link.href ? 'text-foreground' : 'text-foreground/60'
+                  'transition-all hover:text-primary relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all hover:after:w-full',
+                  pathname === link.href ? 'text-primary after:w-full' : 'text-foreground/70'
                 )}
               >
                 {link.label}
@@ -73,74 +87,95 @@ export function SiteHeader() {
           <Sheet>
             <SheetTrigger asChild>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 className="shrink-0"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left">
+            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-              <nav className="grid gap-6 text-lg font-medium">
+              <nav className="flex flex-col gap-6 mt-8">
                 <Link
                   href="/"
-                  className="flex items-center gap-2 text-lg font-semibold"
+                  className="flex items-center gap-2 text-xl font-bold font-headline text-primary"
                 >
-                  <BookHeart className="h-6 w-6 text-accent" />
-                  <span className="sr-only">Nature of the Divine</span>
+                  <BookHeart className="h-6 w-6" />
+                  <span>Nature of the Divine</span>
                 </Link>
-                {activeLinks.map(link => (
-                  <Link href={link.href} key={link.href} className="hover:text-foreground">{link.label}</Link>
-                ))}
+                <div className="flex flex-col gap-4">
+                  {activeLinks.map(link => (
+                    <Link 
+                      href={link.href} 
+                      key={link.href} 
+                      className={cn(
+                        "text-lg font-medium hover:text-primary transition-colors",
+                         pathname === link.href ? "text-primary" : "text-foreground/80"
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+                {!user && (
+                   <Button asChild className="cta-button w-full mt-4">
+                     <Link href="/checkout?variant=paperback">Buy Now</Link>
+                   </Button>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2">
+        <div className="flex items-center gap-4">
           {locationLoading ? (
-            <div className="h-6 w-6 animate-pulse rounded-full bg-muted" />
+            <div className="h-6 w-6 animate-pulse rounded-full bg-muted/50" />
           ) : priceData?.country ? (
-            <div className="text-2xl">{getCountryFlag(priceData.country)}</div>
+            <div className="text-xl opacity-80 hover:opacity-100 transition-opacity cursor-help" title={`Detected Country: ${priceData.country}`}>{getCountryFlag(priceData.country)}</div>
           ) : null}
 
           {authLoading ? (
-            <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
+            <div className="h-9 w-24 animate-pulse rounded-md bg-muted/50" />
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar>
+                <Button variant="ghost" size="icon" className="rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all">
+                  <Avatar className="h-9 w-9 border border-border">
                     <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                    <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary">{getInitials(user.displayName)}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl shadow-xl border-border/50 bg-background/95 backdrop-blur-sm">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName || 'Reader'}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="cursor-pointer rounded-lg focus:bg-primary/10 focus:text-primary">
                   <Link href="/orders"><BookHeart className="mr-2 h-4 w-4" /> My Orders</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="cursor-pointer rounded-lg focus:bg-primary/10 focus:text-primary">
                   <Link href="/settings"><Settings className="mr-2 h-4 w-4" /> Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive rounded-lg">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="hidden md:flex items-center gap-2">
-              <Button variant="ghost" asChild>
-                <Link href="/login">Login</Link>
+            <div className="hidden md:flex items-center gap-3">
+              <Button variant="ghost" asChild className="hover:bg-primary/5 hover:text-primary">
+                <Link href="/login">Log in</Link>
               </Button>
-              <Button asChild>
-                <Link href="/signup">Sign Up</Link>
+              <Button asChild className="cta-button h-9 px-6 text-sm">
+                <Link href="/checkout?variant=paperback">Buy Now</Link>
               </Button>
             </div>
           )}

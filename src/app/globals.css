@@ -4,76 +4,67 @@
 
 @layer base {
   :root {
-    /* Divine Light Mode */
-    --background: 40 33% 98%;
-    /* Creamy White (Paper-like) */
-    --foreground: 220 30% 15%;
-    /* Deep Ink Blue */
+    /* Divine Light Mode - Modern & Sophisticated */
+    --background: 40 20% 99%; /* #FFFCF9 - Very subtle warm white */
+    --foreground: 220 15% 10%; /* #16191D - Deep Charcoal */
 
-    --card: 40 33% 96%;
-    --card-foreground: 220 30% 15%;
+    --card: 40 20% 99%;
+    --card-foreground: 220 15% 10%;
 
-    --popover: 40 33% 98%;
-    --popover-foreground: 220 30% 15%;
+    --popover: 40 20% 99%;
+    --popover-foreground: 220 15% 10%;
 
-    --primary: 45 90% 35%;
-    /* Antique Gold */
-    --primary-foreground: 40 33% 98%;
+    --primary: 43 50% 45%; /* #AD8B39 - Muted Metallic Gold */
+    --primary-foreground: 40 20% 99%;
 
-    --secondary: 220 15% 92%;
-    /* Soft Blue-Grey */
-    --secondary-foreground: 220 30% 15%;
+    --secondary: 40 10% 94%; /* #F2F0ED - Soft Stone */
+    --secondary-foreground: 220 15% 10%;
 
-    --muted: 40 20% 90%;
-    --muted-foreground: 220 15% 40%;
+    --muted: 40 10% 92%;
+    --muted-foreground: 220 5% 45%;
 
-    --accent: 35 90% 50%;
-    /* Radiant Amber */
-    --accent-foreground: 40 33% 98%;
+    --accent: 35 60% 60%; /* #D9A066 - Warm Amber */
+    --accent-foreground: 220 15% 10%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 40 20% 88%;
-    --input: 40 20% 92%;
-    --ring: 45 90% 35%;
+    --border: 40 10% 90%;
+    --input: 40 10% 90%;
+    --ring: 43 50% 45%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem; /* Slightly sharper corners for modern feel */
   }
 
   .dark {
-    /* Divine Dark Mode (Deep Cosmic) */
-    --background: 220 40% 8%;
-    /* Deepest Midnight */
-    --foreground: 40 20% 94%;
-    /* Soft Parchment */
+    /* Divine Dark Mode - Deep Cosmic/Midnight */
+    --background: 222 47% 6%; /* #080D17 - Deepest Navy */
+    --foreground: 40 15% 90%; /* #EBE9E4 - Parchment */
 
-    --card: 220 35% 11%;
-    --card-foreground: 40 20% 94%;
+    --card: 222 47% 8%;
+    --card-foreground: 40 15% 90%;
 
-    --popover: 220 40% 8%;
-    --popover-foreground: 40 20% 94%;
+    --popover: 222 47% 6%;
+    --popover-foreground: 40 15% 90%;
 
-    --primary: 45 80% 60%;
-    /* Luminous Gold */
-    --primary-foreground: 220 40% 8%;
+    --primary: 43 60% 65%; /* #DBC07C - Luminous Gold */
+    --primary-foreground: 222 47% 6%;
 
-    --secondary: 220 25% 16%;
-    --secondary-foreground: 40 20% 94%;
+    --secondary: 222 30% 12%; /* #151A26 - Dark Navy */
+    --secondary-foreground: 40 15% 90%;
 
-    --muted: 220 25% 16%;
-    --muted-foreground: 220 10% 65%;
+    --muted: 222 30% 12%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 35 90% 60%;
-    /* Glowing Amber */
-    --accent-foreground: 220 40% 8%;
+    --accent: 35 70% 65%; /* #E6B57E - Glowing Amber */
+    --accent-foreground: 222 47% 6%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 25% 20%;
-    --input: 220 25% 20%;
-    --ring: 45 80% 60%;
+    --border: 222 30% 12%;
+    --input: 222 30% 12%;
+    --ring: 43 60% 65%;
   }
 }
 
@@ -103,11 +94,12 @@
   }
 
   .cta-button {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-cta hover:shadow-cta-hover transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:shadow-none font-medium tracking-wide rounded-full px-8;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-500 ease-out hover:-translate-y-1 active:translate-y-0 active:shadow-md font-medium tracking-wide rounded-full px-8 py-3;
   }
-
-  .glass-panel {
-    @apply bg-background/60 backdrop-blur-xl border border-white/10 shadow-xl;
+  
+  /* Modern glass effect */
+  .glass {
+    @apply bg-background/70 backdrop-blur-md border border-white/10 shadow-lg;
   }
 
   .text-gradient {
@@ -115,29 +107,17 @@
   }
 }
 
-
 @layer utilities {
-  .animate-delay-100 {
-    animation-delay: 100ms;
+  .text-balance {
+    text-wrap: balance;
   }
-
-  .animate-delay-200 {
-    animation-delay: 200ms;
-  }
-
-  .animate-delay-300 {
-    animation-delay: 300ms;
-  }
-
-  .animate-delay-500 {
-    animation-delay: 500ms;
-  }
-
-  .animate-delay-700 {
-    animation-delay: 700ms;
+  
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.5'/%3E%3C/svg%3E");
   }
 }
 
+/* Lenis Recommended Styles */
 html.lenis,
 html.lenis body {
   height: auto;
