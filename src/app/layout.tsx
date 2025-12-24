@@ -25,15 +25,22 @@ const siteUrl = process.env.NEXT_PUBLIC_HOST_URL || "https://natureofthedivine.c
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Spiritual Books on How to Know God & Improve Your Life | Nature of the Divine",
+    default: "Nature of the Divine | Eye-Opening Spiritual Book on Awakening & Consciousness",
     template: "%s | Nature of the Divine",
   },
   description:
-    "Is God real? Is religion true? This spiritual book explores the nature of God, consciousness, and our place in the universe. Learn how to be better, improve in life, and discover the divine path to existence with 'Nature of the Divine' by Alfas B.",
+    "Discover 'Nature of the Divine', a new eye-opening spiritual book by Alfas B. Explore the nature of God, consciousness, and spiritual awakening. Learn how to know God, improve your life, and align with the divine nature of existence.",
   keywords: [
     "Nature of the Divine",
     "how to know God",
     "is God real",
+    "eye opening books",
+    "spiritual awakening books",
+    "new spiritual books",
+    "books on consciousness",
+    "best spiritual books 2025",
+    "transformational books",
+    "spiritual enlightenment",
     "is religion true",
     "how to improve in life",
     "how to be better",

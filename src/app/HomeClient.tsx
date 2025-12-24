@@ -141,7 +141,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                   </h1>
                   <p
                     className="max-w-[600px] text-muted-foreground md:text-xl/relaxed leading-loose"
-                    dangerouslySetInnerHTML={{ __html: "A profound <i class='font-garamond text-foreground font-semibold'>philosophical journey</i> into the <i class='font-garamond text-foreground font-semibold'>nature of God</i>, the complex struggles of <i class='font-garamond text-foreground font-semibold'>humanity</i>, and the simple, elegant <i class='font-garamond text-foreground font-semibold'>path to aligning with divine existence</i>." }}
+                    dangerouslySetInnerHTML={{ __html: "An <i class='font-garamond text-foreground font-semibold'>eye-opening</i> philosophical journey into the <i class='font-garamond text-foreground font-semibold'>nature of God</i> and <i class='font-garamond text-foreground font-semibold'>spiritual awakening</i>. Discover the complex struggles of humanity and the simple, elegant <i class='font-garamond text-foreground font-semibold'>path to aligning with divine existence</i>." }}
                   >
                   </p>
                   {analytics?.reviews ? (

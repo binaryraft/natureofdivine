@@ -3,9 +3,9 @@ import { HomeClient } from "./HomeClient";
 import { fetchChaptersAction, fetchGalleryImagesAction } from "@/lib/actions";
 
 export const metadata: Metadata = {
-  title: "Nature of the Divine | Spiritual Book on How to Know God & Improve Your Life",
+  title: "Nature of the Divine | New Eye-Opening Spiritual Book for Awakening",
   description:
-    "Explore 'Nature of the Divine' by Alfas B — a spiritual and philosophical book that helps you understand God, consciousness, and the purpose of existence. Learn the habits that align you with the divine nature and improve your life through awareness and understanding.",
+    "Explore 'Nature of the Divine' by Alfas B — a new eye-opening spiritual book that guides you through a profound spiritual awakening. Understand God, consciousness, and the purpose of existence to transform your life.",
   alternates: {
     canonical: "/",
   },

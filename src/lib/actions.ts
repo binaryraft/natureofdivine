@@ -468,7 +468,7 @@ export async function getShippingRatesAction(orderData: any) {
 }
 
 // Replaced getShippingRatesAction with a new calculate total action
-export async function calculateOrderTotalAction(countryCode: string, variant: string) {
+export async function calculateOrderTotalAction(countryCode: string, variant: string, discountCode?: string) {
     try {
         let basePrice = await getPriceForCountry(countryCode);
         
@@ -479,12 +479,23 @@ export async function calculateOrderTotalAction(countryCode: string, variant: st
         }
 
         const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice;
+        let finalPrice = variantPrice;
+        let discountAmount = 0;
+
+        if (discountCode) {
+            const discount = await getDiscount(discountCode);
+            if (discount) {
+                discountAmount = Math.round(variantPrice * (discount.percent / 100));
+                finalPrice = variantPrice - discountAmount;
+            }
+        }
         
         return {
             success: true,
             productPrice: variantPrice,
             shippingCost: 0,
-            totalPrice: variantPrice,
+            discountAmount,
+            totalPrice: finalPrice,
             currency: 'INR'
         };
     } catch (e: any) {

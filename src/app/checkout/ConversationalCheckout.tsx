@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Send, Truck, CreditCard, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
-import { calculateOrderTotalAction, placeOrder } from '@/lib/actions';
+import { calculateOrderTotalAction, placeOrder, validateDiscountCode } from '@/lib/actions';
 import { Stock } from '@/lib/definitions';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useLocation } from '@/hooks/useLocation';
 import { countries as countryList } from '@/lib/countries';
 
-type Step = 'name' | 'email' | 'phone' | 'country' | 'postal' | 'state' | 'city' | 'address' | 'landmark' | 'variant' | 'payment' | 'processing';
+type Step = 'name' | 'email' | 'phone' | 'country' | 'postal' | 'state' | 'city' | 'address' | 'landmark' | 'promo' | 'variant' | 'payment' | 'processing';
 
 interface Message {
     id: string;
@@ -34,6 +33,7 @@ interface FormData {
     pinCode: string;
     address: string;
     street: string; // Used for landmark
+    discountCode?: string;
     paymentMethod?: 'cod' | 'prepaid';
     totalPrice?: number;
 }
@@ -42,7 +42,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     const { user } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
-    const searchParams = useSearchParams(); // Added useSearchParams
+    const searchParams = useSearchParams();
     const { priceData } = useLocation();
     const scrollRef = useRef<HTMLDivElement>(null);
     const messageIdCounter = useRef(0);
@@ -68,6 +68,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                         pinCode: '',
                         address: '',
                         street: '',
+                        discountCode: '',
                         ...parsed
                     };
                 } catch (e) { }
@@ -84,6 +85,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             pinCode: '',
             address: '',
             street: '',
+            discountCode: ''
         };
     });
 
@@ -219,7 +221,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                     <div className="flex gap-2">
                         <Button size="sm" onClick={() => {
                             addUserMessage("Yes, ship here");
-                            calculateTotal();
+                            askPromo();
                         }}>
                             Yes
                         </Button>
@@ -266,6 +268,29 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     const askLandmark = () => {
         setCurrentStep('landmark');
         addBotMessage("Any nearby landmark to help the delivery partner find you?");
+    };
+
+    const askPromo = () => {
+        addBotMessage(
+            <div className="space-y-3">
+                <p>Do you have a promo code or discount coupon?</p>
+                <div className="flex gap-2">
+                    <Button size="sm" onClick={() => {
+                        addUserMessage("Yes, I have a code");
+                        setCurrentStep('promo');
+                        addBotMessage("Please enter your promo code.");
+                    }}>
+                        Yes
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                        addUserMessage("No");
+                        calculateTotal(formData.country, formData.variant);
+                    }}>
+                        No
+                    </Button>
+                </div>
+            </div>
+        );
     };
 
     const handleSubmit = async () => {
@@ -363,18 +388,55 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             addUserMessage(landmark || "None");
             setInputValue('');
             
-            // Use local variables to avoid stale state in calculateTotal
-            await calculateTotal(formData.country, formData.variant);
+            askPromo();
+        } else if (currentStep === 'promo') {
+            const code = inputValue.trim();
+            if (!code) {
+                 toast({ title: "Please enter a code or say no" });
+                 return;
+            }
+            addUserMessage(code);
+            setInputValue('');
+            setLoading(true);
+            const res = await validateDiscountCode(code);
+            setLoading(false);
+
+            if (res.success) {
+                setFormData(prev => ({ ...prev, discountCode: code }));
+                addBotMessage(`Code applied! ${res.percent}% discount will be added.`);
+                // Use the code directly to avoid stale state
+                await calculateTotal(formData.country, formData.variant, code);
+            } else {
+                addBotMessage(
+                    <div className="space-y-2">
+                         <p className="text-destructive">{res.message}</p>
+                         <p>Do you want to try another code?</p>
+                         <div className="flex gap-2">
+                             <Button size="sm" onClick={() => addBotMessage("Please enter the code.")}>Yes</Button>
+                             <Button size="sm" variant="outline" onClick={() => {
+                                 addUserMessage("No, skip promo");
+                                 calculateTotal(formData.country, formData.variant);
+                             }}>No</Button>
+                         </div>
+                    </div>
+                );
+            }
         }
     };
 
-    const calculateTotal = async (countryCode: string, variant: string) => {
+    const calculateTotal = async (countryCode: string, variant: string, discountCode?: string) => {
         addBotMessage(<div className="flex gap-2"><Loader2 className="animate-spin h-4 w-4" /><span>Just a moment, calculating your total...</span></div>);
 
-        const result = await calculateOrderTotalAction(countryCode, variant);
+        if (!countryCode || !variant) {
+             addBotMessage("I seem to be missing some details. Please refresh and try again.");
+             return;
+        }
+
+        const result = await calculateOrderTotalAction(countryCode, variant, discountCode);
 
         if (result.success) {
             const formattedTotal = new Intl.NumberFormat('en-IN', { style: 'currency', currency: result.currency }).format(result.totalPrice || 0);
+            const formattedProductPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: result.currency }).format(result.productPrice || 0);
             setFormData(prev => ({ ...prev, totalPrice: result.totalPrice }));
             
             addBotMessage(
@@ -383,8 +445,14 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                     <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-2">
                         <div className="flex justify-between">
                             <span>{variant.charAt(0).toUpperCase() + variant.slice(1)} Edition:</span>
-                            <span>{formattedTotal}</span>
+                            <span>{formattedProductPrice}</span>
                         </div>
+                        {result.discountAmount && result.discountAmount > 0 && (
+                            <div className="flex justify-between text-green-600">
+                                <span>Discount:</span>
+                                <span>-{new Intl.NumberFormat('en-IN', { style: 'currency', currency: result.currency }).format(result.discountAmount)}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between text-muted-foreground">
                             <span>Shipping:</span>
                             <span>Included</span>
@@ -485,7 +553,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
             </div>
 
             <div className="p-4 border-t bg-background">
-                {['name', 'email', 'phone', 'country', 'postal', 'state', 'city', 'address', 'landmark'].includes(currentStep) && (
+                {['name', 'email', 'phone', 'country', 'postal', 'state', 'city', 'address', 'landmark', 'promo'].includes(currentStep) && (
                     <div className="flex gap-2">
                         <Input
                             value={inputValue}
@@ -500,6 +568,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                                                     currentStep === 'state' ? "State/Province" :
                                                         currentStep === 'city' ? "City/District" :
                                                             currentStep === 'address' ? "Street Address..." :
+                                                                currentStep === 'promo' ? "Enter code..." :
                                                                 "Landmark (optional)..."
                             }
                             className="flex-1"
