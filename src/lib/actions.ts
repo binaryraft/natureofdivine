@@ -99,8 +99,13 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
 
   const validatedFields = OrderFormSchema.safeParse(payload);
   if (!validatedFields.success) {
-    await addLog('error', 'Order validation failed', validatedFields.error.flatten());
-    return { success: false, message: 'Invalid data provided.' };
+    const errorMap = validatedFields.error.flatten().fieldErrors;
+    const errorMessages = Object.entries(errorMap)
+      .map(([field, errors]) => `${field}: ${errors?.join(', ')}`)
+      .join(' | ');
+    
+    await addLog('error', 'Order validation failed', { errors: errorMap });
+    return { success: false, message: `Invalid data provided: ${errorMessages}` };
   }
 
   const { variant, userId, discountCode, paymentMethod } = validatedFields.data;
@@ -110,7 +115,14 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     const countryCode = validatedFields.data.country;
     
     // Fetch the canonical price for this country
-    const basePrice = await getPriceForCountry(countryCode);
+    let basePrice = await getPriceForCountry(countryCode);
+    
+    // Safety check: If country is India ('IN') and price returned is the default international (10000), 
+    // it likely means the DB config is missing the 'IN' override. We enforce 299 for IN.
+    if (countryCode === 'IN' && basePrice === 10000) {
+        basePrice = 299;
+    }
+
     const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice; // Apply hardcover markup logic consistently
 
     let finalPrice = variantPrice;
@@ -455,7 +467,14 @@ export async function getShippingRatesAction(orderData: any) {
 // Replaced getShippingRatesAction with a new calculate total action
 export async function calculateOrderTotalAction(countryCode: string, variant: string) {
     try {
-        const basePrice = await getPriceForCountry(countryCode);
+        let basePrice = await getPriceForCountry(countryCode);
+        
+        // Safety check: If country is India ('IN') and price returned is the default international (10000), 
+        // it likely means the DB config is missing the 'IN' override. We enforce 299 for IN.
+        if (countryCode === 'IN' && basePrice === 10000) {
+            basePrice = 299;
+        }
+
         const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice;
         
         return {
