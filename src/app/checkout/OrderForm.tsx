@@ -287,9 +287,9 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
             if (priceResult.success) {
                 dispatch({ type: 'SET_ORDER_SUMMARY', payload: {
-                    productPrice: priceResult.productPrice,
-                    shippingCost: priceResult.shippingCost,
-                    totalPrice: priceResult.totalPrice
+                    productPrice: priceResult.productPrice || 0,
+                    shippingCost: priceResult.shippingCost || 0,
+                    totalPrice: priceResult.totalPrice || 0
                 }});
                 dispatch({ type: 'NEXT_STEP' });
             } else {

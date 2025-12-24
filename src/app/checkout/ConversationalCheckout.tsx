@@ -340,7 +340,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
         const result = await calculateOrderTotalAction(formData.country, formData.variant);
 
         if (result.success) {
-            const formattedTotal = new Intl.NumberFormat('en-IN', { style: 'currency', currency: result.currency }).format(result.totalPrice);
+            const formattedTotal = new Intl.NumberFormat('en-IN', { style: 'currency', currency: result.currency }).format(result.totalPrice || 0);
             setFormData(prev => ({ ...prev, totalPrice: result.totalPrice }));
             
             addBotMessage(

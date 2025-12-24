@@ -78,13 +78,15 @@ async function fetchPhonePeAccessToken(): Promise<{ success: boolean; accessToke
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
 
-    if (response.data.access_token) {
+    const data = response.data as any;
+
+    if (data.access_token) {
       await addLog('info', 'PhonePe access token retrieved');
-      return { success: true, accessToken: response.data.access_token };
+      return { success: true, accessToken: data.access_token };
     }
 
-    await addLog('error', 'PhonePe access token retrieval failed', { response: response.data });
-    throw new Error(response.data.message || 'Failed to retrieve PhonePe access token.');
+    await addLog('error', 'PhonePe access token retrieval failed', { response: data });
+    throw new Error(data.message || 'Failed to retrieve PhonePe access token.');
   } catch (error: any) {
     const errorMessage = error.message || 'Failed to fetch PhonePe access token';
     await addLog('error', 'fetchPhonePeAccessToken failed', { error: errorMessage });
@@ -239,13 +241,15 @@ async function initiatePhonePePayment(order: Order) {
       },
     });
 
-    if (response.data.state === 'PENDING') {
+    const data = response.data as any;
+
+    if (data.state === 'PENDING') {
       await addLog('info', 'PhonePe payment initiation successful', { orderId: order.id, transactionId: merchantTransactionId });
-      return { success: true, redirectUrl: response.data.redirectUrl };
+      return { success: true, redirectUrl: data.redirectUrl };
     }
 
-    await addLog('error', 'PhonePe API error', { orderId: order.id, response: response.data });
-    throw new Error(response.data.message || 'PhonePe payment initiation failed.');
+    await addLog('error', 'PhonePe API error', { orderId: order.id, response: data });
+    throw new Error(data.message || 'PhonePe payment initiation failed.');
   } catch (error: any) {
     const errorMessage = error.message || 'Failed to initiate PhonePe payment';
     await addLog('error', 'initiatePhonePePayment failed', { orderId: order.id, error: errorMessage });
@@ -284,16 +288,18 @@ export async function checkPhonePeStatus(merchantTransactionId: string) {
       },
     });
 
-    if (response.data.success) {
-      await addLog('info', 'PhonePe status check successful', { transactionId: merchantTransactionId, state: response.data.code });
-      if (response.data.code === 'PAYMENT_SUCCESS') {
+    const data = response.data as any;
+
+    if (data.success) {
+      await addLog('info', 'PhonePe status check successful', { transactionId: merchantTransactionId, state: data.code });
+      if (data.code === 'PAYMENT_SUCCESS') {
         await addEvent('order_placed_prepaid_success');
       }
-      return { success: true, status: response.data.code, data: response.data.data };
+      return { success: true, status: data.code, data: data.data };
     }
 
-    await addLog('warn', 'PhonePe status check failed', { transactionId: merchantTransactionId, response: response.data });
-    return { success: false, message: response.data.message };
+    await addLog('warn', 'PhonePe status check failed', { transactionId: merchantTransactionId, response: data });
+    return { success: false, message: data.message };
   } catch (error: any) {
     const errorMessage = error.message || 'Failed to check PhonePe status';
     await addLog('error', 'checkPhonePeStatus failed', { transactionId: merchantTransactionId, error: errorMessage });
