@@ -41,6 +41,7 @@ const testPayload = {
         insurance: 0,
         declared_value: 500,
         weight_unit: "KG",
+        length_unit: "CM",
         dimensions: {
             length: 22,
             width: 15,

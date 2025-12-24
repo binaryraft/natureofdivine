@@ -126,19 +126,14 @@ async function mapStateToCode(stateName: string, countryCode: string): Promise<s
     }
 }
 
-// Common payload generator based on Laynered implementation
+// Common payload generator - Standardized to snake_case for Envia API
 async function generatePayload(order: Order, carrier?: string, service?: string, isRateQuery: boolean = false) {
     const countryCode = order.country.slice(0, 2).toUpperCase();
     const stateCode = await mapStateToCode(order.state, countryCode);
     
-    // Determine package details based on variant
-    // Laynered logic: groups items. Here we have a single book variant per order for now (or simplified).
-    // Using fixed dimensions as per our logic, but structure from Laynered.
     const weight = order.variant === 'paperback' ? 0.3 : 0.5;
     const dimensions = order.variant === 'paperback' ? { length: 22, width: 15, height: 2 } : { length: 23, width: 16, height: 3 };
     
-    // Laynered calculates quantity * weight. We assume 1 item for now or logic from order.
-    // Assuming quantity 1 for quoting if not present (simplified checkout).
     const quantity = 1; 
 
     const packageData = {
@@ -147,9 +142,9 @@ async function generatePayload(order: Order, carrier?: string, service?: string,
         type: 'box',
         weight: weight * quantity,
         insurance: 0,
-        declaredValue: order.originalPrice || order.price || 1, // camelCase as per Laynered
-        weightUnit: 'KG',      // camelCase as per Laynered
-        lengthUnit: 'CM',      // Laynered uses lengthUnit, not dimensionUnit
+        declared_value: order.originalPrice || order.price || 1, // snake_case
+        weight_unit: 'KG',      // snake_case
+        length_unit: 'CM',      // snake_case
         dimensions
     };
 
@@ -165,7 +160,7 @@ async function generatePayload(order: Order, carrier?: string, service?: string,
             city: "Kottayam",
             state: "KL",
             country: "IN",
-            postalCode: "686001", // camelCase
+            postal_code: "686001", // snake_case
             reference: ""
         },
         destination: {
@@ -179,7 +174,7 @@ async function generatePayload(order: Order, carrier?: string, service?: string,
             city: order.city,
             state: stateCode,
             country: countryCode,
-            postalCode: order.pinCode, // camelCase
+            postal_code: order.pinCode, // snake_case
             reference: order.street || ''
         },
         packages: [packageData],
@@ -190,8 +185,8 @@ async function generatePayload(order: Order, carrier?: string, service?: string,
         } : undefined,
         settings: {
             currency: "INR",
-            printFormat: "PDF",      // camelCase
-            printSize: "STOCK_4X6",  // camelCase
+            print_format: "PDF",      // snake_case
+            print_size: "STOCK_4X6",  // snake_case
             comments: isRateQuery ? undefined : `Order ID: ${order.id}`
         }
     };
@@ -209,31 +204,9 @@ export async function getShippingRates(order: Order) {
             const carriers = await getServiceableCarriers(order.country);
             if (carriers.length === 0) addLog('warn', 'Envia: No carriers found', { country: order.country });
 
-            // Generate base payload without carrier (partially) or we iterate
-            // We need to iterate carriers.
-            
-            // Construct payload base - wait, generatePayload takes carrier/service.
-            // But we don't have them yet for rate query across ALL carriers.
-            // Laynered's createRateQuery takes specific carrier/service. 
-            // Envia has a generic rate endpoint too? 
-            // Laynered uses `${BASE_URL}/ship/rate/` which requires carrier/service in payload usually?
-            // Or maybe not? Let's check Utils.js again.
-            // Utils.js: createRateQuery takes carrier, serviceName.
-            // NatureOfTheDivine needs ALL rates.
-            
-            // Strategy: Loop through carriers like before, but use generatePayload.
-            
             const ratePromises = carriers.map(async (carrier) => {
-                // For rate query, service is optional/wildcard? 
-                // Laynered passes serviceName. 
-                // If we don't know service, can we pass empty? 
-                // Envia docs usually allow omitting service to get all services for a carrier.
-                
                 try {
                     const payload = await generatePayload(order, carrier, undefined, true);
-                    
-                    // Fix: Envia API for rate often expects 'shipment' object even if service is missing?
-                    // Payload generator adds it if carrier is passed.
                     
                     const response = await axios.post(`${getApiBaseUrl()}/ship/rate/`, payload, {
                         headers: getHeaders(false),
