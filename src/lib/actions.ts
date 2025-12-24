@@ -215,6 +215,7 @@ async function initiatePhonePePayment(order: Order) {
       throw new Error(tokenResponse.message || 'Failed to obtain PhonePe access token.');
     }
 
+    const baseUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.com';
     const payload = {
       merchantOrderId: merchantTransactionId,
       amount: order.price * 100, // Amount in paise
@@ -227,9 +228,9 @@ async function initiatePhonePePayment(order: Order) {
         type: 'PG_CHECKOUT',
         message: 'Payment for book order',
         merchantUrls: {
-          redirectUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/orders?orderId=${order.id}`,
+          redirectUrl: `${baseUrl}/checkout?orderId=${order.id}`, // Changed to /checkout
           // The callback URL should point to our API route.
-          callbackUrl: `${process.env.NEXT_PUBLIC_HOST_URL}/api/payment/callback`
+          callbackUrl: `${baseUrl}/api/payment/callback`
         },
         paymentModeConfig: {
           enabledPaymentModes: [

@@ -10,7 +10,7 @@ import { calculateOrderTotalAction, placeOrder } from '@/lib/actions';
 import { Stock } from '@/lib/definitions';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useLocation } from '@/hooks/useLocation';
 import { countries as countryList } from '@/lib/countries';
@@ -42,6 +42,7 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     const { user } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
+    const searchParams = useSearchParams(); // Added useSearchParams
     const { priceData } = useLocation();
     const scrollRef = useRef<HTMLDivElement>(null);
     const messageIdCounter = useRef(0);
@@ -115,6 +116,9 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
     }, [messages]);
 
     useEffect(() => {
+        // Check if we have saved data
+        const hasSavedData = formData.name || formData.email || formData.phone;
+
         addBotMessage(
             <div className="space-y-2">
                 <p className="text-lg font-medium">Welcome to Nature of the Divine.</p>
