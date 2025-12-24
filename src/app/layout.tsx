@@ -9,6 +9,8 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/hooks/useLocation";
 import SmoothScroll from "@/components/SmoothScroll";
+import { Snowfall } from "@/components/Snowfall";
+import { ChristmasGift } from "@/components/ChristmasGift";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const garamond = EB_Garamond({
@@ -178,6 +180,8 @@ export default function RootLayout({
           garamond.variable
         )}
       >
+        <Snowfall />
+        <ChristmasGift />
         <SmoothScroll />
         <AuthProvider>
           <LocationProvider>
