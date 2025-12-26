@@ -526,43 +526,10 @@ export function ConversationalCheckout({ stock }: { stock: Stock }) {
                     router.push(`/orders?success=true&orderId=${result.orderId}`);
                 }
             } else {
-                addBotMessage(
-                    <div className="space-y-3">
-                        <p className="text-destructive">Oops! {result.message}</p>
-                        <p>It seems there was an issue with your order details.</p>
-                        <div className="flex gap-2">
-                             <Button size="sm" onClick={() => {
-                                 addUserMessage("I need to fix my details");
-                                 setFormData({
-                                    variant: 'paperback',
-                                    name: '',
-                                    email: '',
-                                    phone: '',
-                                    country: 'IN',
-                                    state: '',
-                                    city: '',
-                                    pinCode: '',
-                                    address: '',
-                                    street: '',
-                                    discountCode: ''
-                                 });
-                                 localStorage.removeItem('checkout_form_data');
-                                 setCurrentStep('variant');
-                                 addBotMessage("No problem. Let's start over. Which edition would you like?");
-                             }}>
-                                Start Over
-                             </Button>
-                        </div>
-                    </div>
-                );
+                addBotMessage(`Oops! ${result.message}`);
             }
         } catch (e: any) {
-            addBotMessage(
-                <div className="space-y-3">
-                    <p className="text-destructive">I encountered an error: {e.message}</p>
-                    <Button size="sm" onClick={() => window.location.reload()}>Reload Page</Button>
-                </div>
-            );
+            addBotMessage(`I encountered an error: ${e.message}`);
         }
     };
 
