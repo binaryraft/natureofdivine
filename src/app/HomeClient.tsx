@@ -4,6 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ThreeDBook } from "@/components/ThreeDBook";
 import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -200,36 +201,20 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                 {/* Hero Image */}
                 <motion.div 
                   style={{ y: y2 }}
-                  className="relative flex justify-center lg:justify-end perspective-1000"
+                  className="relative flex justify-center lg:justify-end"
                 >
-                  <motion.div 
-                     initial={{ opacity: 0, rotateY: 30, rotateX: 10, scale: 0.8 }}
-                     animate={{ opacity: 1, rotateY: -10, rotateX: 5, scale: 1 }}
-                     transition={{ duration: 1.2, ease: "easeOut" }}
-                     whileHover={{ rotateY: 0, rotateX: 0, scale: 1.05, transition: { duration: 0.4 } }}
-                     className="relative z-20 w-[280px] md:w-[400px] aspect-[2/3] rounded-lg shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] bg-gray-900"
-                  >
-                     <Image
-                        src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
-                        fill
-                        alt="Book Cover"
-                        className="object-cover rounded-lg"
-                        priority
-                     />
-                     {/* Gloss effect */}
-                     <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 rounded-lg pointer-events-none" />
-                  </motion.div>
+                  <ThreeDBook coverImage="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png" />
                   
                   {/* Decorative Elements around book */}
                   <motion.div 
                     animate={{ y: [0, -20, 0] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 backdrop-blur-md rounded-full z-10" 
+                    className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 backdrop-blur-md rounded-full z-10 blur-xl" 
                   />
                   <motion.div 
                     animate={{ y: [0, 30, 0] }}
                     transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                    className="absolute bottom-10 -left-10 w-32 h-32 bg-accent/20 backdrop-blur-md rounded-full z-10" 
+                    className="absolute bottom-10 -left-10 w-32 h-32 bg-accent/20 backdrop-blur-md rounded-full z-10 blur-xl" 
                   />
                 </motion.div>
              </div>
