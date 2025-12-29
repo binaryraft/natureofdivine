@@ -106,6 +106,106 @@ function FullscreenImageViewer({ isOpen, onOpenChange, image }: { isOpen: boolea
   );
 }
 
+interface Book3DProps {
+  src: string;
+}
+
+function Book3D({ src }: Book3DProps) {
+  return (
+    <div className="group relative cursor-pointer" style={{ perspective: "2000px" }}>
+      <motion.div
+        initial={{ rotateY: -30, rotateX: 5, y: 0 }}
+        animate={{ 
+          rotateY: [-30, -15, -30], 
+          rotateX: [5, 0, 5], 
+          y: [0, -20, 0] 
+        }}
+        transition={{ 
+          rotateY: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+          rotateX: { duration: 10, repeat: Infinity, ease: "easeInOut" },
+          y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+        }}
+        whileHover={{ 
+          rotateY: -10,
+          scale: 1.05, 
+          transition: { duration: 0.5 } 
+        }}
+        style={{ transformStyle: "preserve-3d" }}
+        className="relative w-[260px] md:w-[320px] aspect-[2/3]"
+      >
+        {/* Front Cover */}
+        <div 
+          className="absolute inset-0 z-20 rounded-r-sm rounded-l-md shadow-2xl"
+          style={{ transform: "translateZ(25px)" }}
+        >
+          <Image
+            src={src}
+            fill
+            alt="Book Cover"
+            className="object-cover rounded-r-sm rounded-l-md"
+            priority
+          />
+          {/* Lighting/Gloss Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/30 rounded-r-sm rounded-l-md mix-blend-overlay pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20 rounded-r-sm rounded-l-md pointer-events-none" />
+        </div>
+
+        {/* Back Cover */}
+        <div 
+          className="absolute inset-0 bg-[#0f0f0f] rounded-l-sm rounded-r-md border border-white/5"
+          style={{ transform: "rotateY(180deg) translateZ(25px)" }}
+        >
+           <div className="absolute inset-4 border border-white/10 rounded-sm flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-primary/20 blur-xl" />
+           </div>
+        </div>
+
+        {/* Spine (Left) */}
+        <div 
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#080808]"
+          style={{ 
+            width: "50px", 
+            height: "100%", 
+            transform: "rotateY(-90deg) translateZ(130px) md:translateZ(160px)" 
+            /* 
+               Width is 260(mobile)/320(desktop). 
+               Half width is 130/160. 
+               TranslateZ moves it to the edge.
+            */
+          }}
+        >
+           <div className="w-full h-full relative overflow-hidden flex items-center justify-center border-x border-white/10">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+              <span className="whitespace-nowrap rotate-90 text-primary font-garamond font-bold tracking-[0.3em] text-xs md:text-sm opacity-80">
+                NATURE OF THE DIVINE
+              </span>
+           </div>
+        </div>
+
+        {/* Pages (Right) */}
+        <div 
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#f8f8f8]"
+          style={{ 
+            width: "48px", 
+            height: "98%", 
+            transform: "rotateY(90deg) translateZ(130px) md:translateZ(160px)" 
+          }}
+        >
+           <div className="w-full h-full bg-[repeating-linear-gradient(90deg,#f8f8f8_0px,#f8f8f8_1px,#e5e5e5_1px,#e5e5e5_2px)] shadow-inner" />
+        </div>
+
+      </motion.div>
+      
+      {/* Floating Shadow */}
+      <motion.div
+        animate={{ scale: [1, 0.8, 1], opacity: [0.3, 0.1, 0.3] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-black/40 blur-2xl rounded-[100%]"
+      />
+    </div>
+  );
+}
+
 interface HomeClientProps {
   initialChapters: SampleChapter[];
   initialGalleryImages: GalleryImage[];
@@ -200,37 +300,27 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                 {/* Hero Image */}
                 <motion.div 
                   style={{ y: y2 }}
-                  className="relative flex justify-center lg:justify-end perspective-1000"
+                  className="relative flex justify-center lg:justify-end py-10"
                 >
-                  <motion.div 
-                     initial={{ opacity: 0, rotateY: 30, rotateX: 10, scale: 0.8 }}
-                     animate={{ opacity: 1, rotateY: -10, rotateX: 5, scale: 1 }}
-                     transition={{ duration: 1.2, ease: "easeOut" }}
-                     whileHover={{ rotateY: 0, rotateX: 0, scale: 1.05, transition: { duration: 0.4 } }}
-                     className="relative z-20 w-[280px] md:w-[400px] aspect-[2/3] rounded-lg shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] bg-gray-900"
-                  >
-                     <Image
-                        src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
-                        fill
-                        alt="Book Cover"
-                        className="object-cover rounded-lg"
-                        priority
-                     />
-                     {/* Gloss effect */}
-                     <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 rounded-lg pointer-events-none" />
-                  </motion.div>
-                  
-                  {/* Decorative Elements around book */}
-                  <motion.div 
-                    animate={{ y: [0, -20, 0] }}
-                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 backdrop-blur-md rounded-full z-10" 
-                  />
-                  <motion.div 
-                    animate={{ y: [0, 30, 0] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                    className="absolute bottom-10 -left-10 w-32 h-32 bg-accent/20 backdrop-blur-md rounded-full z-10" 
-                  />
+                   <Book3D src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png" />
+                   
+                   {/* Decorative Ambient Effects */}
+                   <motion.div 
+                      animate={{ 
+                        scale: [1, 1.2, 1],
+                        opacity: [0.3, 0.6, 0.3],
+                      }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[80px] rounded-full -z-10 mix-blend-screen"
+                   />
+                   <motion.div 
+                      animate={{ 
+                        scale: [1.2, 1, 1.2],
+                        opacity: [0.2, 0.5, 0.2],
+                      }}
+                      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                      className="absolute bottom-0 left-0 w-64 h-64 bg-accent/10 blur-[80px] rounded-full -z-10 mix-blend-screen"
+                   />
                 </motion.div>
              </div>
            </div>
