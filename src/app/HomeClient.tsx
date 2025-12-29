@@ -236,103 +236,180 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
       <main className="flex-1">
         
         {/* HERO SECTION */}
-        <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden pt-20 pb-10">
-           {/* Background Elements */}
-           <div className="absolute inset-0 -z-10">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(var(--primary-rgb),0.05),transparent_70%)]" />
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen" />
-              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/5 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen" />
-              <div className="absolute inset-0 bg-noise opacity-[0.04] mix-blend-overlay" />
+        <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden pt-20 pb-10 bg-[#050505]">
+           
+           {/* Animated Background System */}
+           <div className="absolute inset-0 -z-10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-[#111] to-[#050505]" />
+              
+              {/* Aurora Effects */}
+              <motion.div 
+                 animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
+                 transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                 className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-primary/5 blur-[120px] rounded-full mix-blend-screen" 
+              />
+              <motion.div 
+                 animate={{ opacity: [0.2, 0.4, 0.2], scale: [1.1, 1, 1.1] }}
+                 transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+                 className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] bg-accent/5 blur-[100px] rounded-full mix-blend-screen" 
+              />
+              
+              {/* Subtle Noise Texture */}
+              <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay" />
+              
+              {/* Floating Particles */}
+              <div className="absolute inset-0">
+                {[...Array(20)].map((_, i) => (
+                   <motion.div
+                     key={i}
+                     className="absolute bg-white/10 rounded-full"
+                     initial={{ 
+                        x: Math.random() * 100 + "vw", 
+                        y: Math.random() * 100 + "vh", 
+                        scale: Math.random() * 0.5 + 0.5,
+                        opacity: Math.random() * 0.5
+                     }}
+                     animate={{ 
+                        y: [null, Math.random() * -100 + "vh"],
+                        opacity: [0, 0.5, 0]
+                     }}
+                     transition={{ 
+                        duration: Math.random() * 10 + 20, 
+                        repeat: Infinity, 
+                        ease: "linear",
+                        delay: Math.random() * 10
+                     }}
+                     style={{ width: Math.random() * 4 + 1 + "px", height: Math.random() * 4 + 1 + "px" }}
+                   />
+                ))}
+              </div>
            </div>
 
            <div className="container relative z-10 px-4 md:px-6">
-             <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+             <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
                 
                 {/* Text Content */}
                 <motion.div 
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="flex flex-col space-y-8 text-center lg:text-left"
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8"
                 >
+                   {/* Badge */}
                    <motion.div 
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     transition={{ delay: 0.3, duration: 1 }}
-                     className="inline-flex items-center justify-center lg:justify-start gap-2 text-primary font-medium tracking-wider uppercase text-sm"
+                     initial={{ opacity: 0, y: 10 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     transition={{ delay: 0.5, duration: 0.8 }}
+                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-lg"
                    >
-                     <span className="h-px w-8 bg-primary/50"></span>
-                     <span>A Spiritual Masterpiece</span>
-                     <span className="h-px w-8 bg-primary/50 lg:hidden"></span>
+                     <Sparkles className="w-3 h-3 text-primary" />
+                     <span className="text-xs font-medium tracking-widest uppercase text-gray-300">A Spiritual Masterpiece</span>
                    </motion.div>
 
-                   <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold font-garamond tracking-tight leading-[0.9]">
-                     Nature of <br/>
-                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary animate-gradient bg-[length:200%_auto]">the Divine</span>
-                   </h1>
+                   {/* Main Title */}
+                   <div className="space-y-2">
+                     <h1 className="flex flex-col font-garamond leading-[0.85]">
+                       <motion.span 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.6 }}
+                          className="text-4xl md:text-5xl font-medium italic text-gray-400 font-serif tracking-wide"
+                       >
+                         The Nature of
+                       </motion.span>
+                       <motion.span 
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.8, type: "spring", stiffness: 50 }}
+                          className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#DBC07C] via-[#FFF8E7] to-[#DBC07C] drop-shadow-2xl"
+                       >
+                         DIVINE
+                       </motion.span>
+                     </h1>
+                   </div>
 
-                   <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 font-light">
+                   <motion.p 
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     transition={{ delay: 1 }}
+                     className="text-lg md:text-xl text-gray-400/90 leading-relaxed max-w-xl font-light"
+                   >
                      An eye-opening philosophical journey into the nature of God and spiritual awakening. Discover the complex struggles of humanity and the elegant path to aligning with divine existence.
-                   </p>
+                   </motion.p>
                    
-                   <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
-                      <Button asChild size="lg" className="cta-button text-lg h-14 px-8 w-full sm:w-auto group relative overflow-hidden" onClick={() => trackEvent('click_buy_hero')}>
+                   {/* Buttons */}
+                   <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.2 }}
+                      className="flex flex-col sm:flex-row items-center gap-5 pt-4 w-full sm:w-auto"
+                   >
+                      <Button asChild size="lg" className="h-14 px-10 rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold text-lg shadow-[0_0_20px_rgba(219,192,124,0.3)] hover:shadow-[0_0_30px_rgba(219,192,124,0.5)] transition-all duration-300 w-full sm:w-auto" onClick={() => trackEvent('click_buy_hero')}>
                         <Link href="/checkout?variant=paperback">
-                          <span className="relative z-10 flex items-center gap-2">
-                             Buy Signed Copy <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                          <span className="flex items-center gap-2">
+                             Buy Signed Copy 
                           </span>
                         </Link>
                       </Button>
-                      <Button asChild variant="ghost" size="lg" className="h-14 px-8 w-full sm:w-auto text-lg font-medium hover:bg-secondary/50 group" onClick={() => trackEvent('click_read_sample_hero')}>
+                      <Button asChild variant="outline" size="lg" className="h-14 px-8 rounded-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white hover:border-white/40 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_read_sample_hero')}>
                         <Link href="#sample-chapters">
-                           Read Sample <ChevronRight className="w-4 h-4 ml-2 opacity-50 group-hover:opacity-100 transition-all" />
+                           Read Sample 
                         </Link>
                       </Button>
-                   </div>
+                   </motion.div>
                    
-                   <div className="flex items-center justify-center lg:justify-start gap-4 pt-4">
+                   {/* Social Proof */}
+                   <motion.div 
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     transition={{ delay: 1.4 }}
+                     className="pt-2"
+                   >
                      {analytics?.reviews && (
                        <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />
                      )}
-                   </div>
+                   </motion.div>
                 </motion.div>
 
-                {/* Hero Image */}
+                {/* Hero 3D Book */}
                 <motion.div 
                   style={{ y: y2 }}
-                  className="relative flex justify-center lg:justify-end py-10"
+                  className="relative flex justify-center lg:justify-end py-10 lg:py-0"
                 >
+                   {/* Sacred Geometry / Halo Effect behind book */}
+                   <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full -z-10"
+                   >
+                      <div className="absolute inset-[20px] border border-white/5 rounded-full" />
+                      <div className="absolute inset-[100px] border border-dashed border-white/5 rounded-full opacity-50" />
+                   </motion.div>
+
                    <Book3D src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png" />
                    
-                   {/* Decorative Ambient Effects */}
+                   {/* Light Flares */}
                    <motion.div 
                       animate={{ 
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.6, 0.3],
+                        opacity: [0, 0.4, 0],
+                        scale: [0.8, 1.2, 0.8],
                       }}
-                      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[80px] rounded-full -z-10 mix-blend-screen"
-                   />
-                   <motion.div 
-                      animate={{ 
-                        scale: [1.2, 1, 1.2],
-                        opacity: [0.2, 0.5, 0.2],
-                      }}
-                      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                      className="absolute bottom-0 left-0 w-64 h-64 bg-accent/10 blur-[80px] rounded-full -z-10 mix-blend-screen"
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute top-0 right-10 w-32 h-32 bg-primary/20 blur-[50px] rounded-full -z-10 mix-blend-screen"
                    />
                 </motion.div>
              </div>
            </div>
            
+           {/* Scroll Indicator */}
            <motion.div 
-             style={{ opacity }}
-             animate={{ y: [0, 10, 0] }}
-             transition={{ duration: 2, repeat: Infinity }}
-             className="absolute bottom-10 left-1/2 -translate-x-1/2 text-muted-foreground/50 flex flex-col items-center gap-2"
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1, y: [0, 10, 0] }}
+             transition={{ delay: 2, duration: 2, repeat: Infinity }}
+             className="absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500 flex flex-col items-center gap-3"
            >
-             <span className="text-xs uppercase tracking-widest">Scroll to Explore</span>
-             <div className="w-px h-8 bg-gradient-to-b from-muted-foreground/50 to-transparent" />
+             <span className="text-[10px] uppercase tracking-[0.2em]">Scroll to Explore</span>
+             <div className="w-[1px] h-12 bg-gradient-to-b from-gray-500/0 via-gray-500/50 to-gray-500/0" />
            </motion.div>
         </section>
 
