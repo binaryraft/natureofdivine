@@ -234,30 +234,28 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
       <main className="flex-1">
         
         {/* HERO SECTION */}
-        <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden pt-20 pb-10 bg-[#050505]">
+        <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden pt-20 pb-10 bg-background">
            
            {/* Animated Background System */}
            <div className="absolute inset-0 -z-10 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-[#111] to-[#050505]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background" />
               
-              {/* Aurora Effects */}
-              <motion.div 
-                 animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
-                 transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-                 className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-primary/5 blur-[120px] rounded-full mix-blend-screen" 
+              {/* Aurora Effects - Optimized */}
+              <div 
+                 className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-primary/5 rounded-full mix-blend-screen animate-pulse" 
+                 style={{ filter: 'blur(100px)', willChange: 'opacity' }}
               />
-              <motion.div 
-                 animate={{ opacity: [0.2, 0.4, 0.2], scale: [1.1, 1, 1.1] }}
-                 transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-                 className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] bg-accent/5 blur-[100px] rounded-full mix-blend-screen" 
+              <div 
+                 className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] bg-accent/5 rounded-full mix-blend-screen animate-pulse" 
+                 style={{ filter: 'blur(80px)', animationDelay: '2s', willChange: 'opacity' }}
               />
               
               {/* Subtle Noise Texture */}
               <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay" />
               
-              {/* Floating Particles */}
-              <div className="absolute inset-0">
-                {[...Array(20)].map((_, i) => (
+              {/* Floating Particles - Optimized */}
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(10)].map((_, i) => (
                    <motion.div
                      key={i}
                      className="absolute bg-white/10 rounded-full"
@@ -277,7 +275,11 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                         ease: "linear",
                         delay: Math.random() * 10
                      }}
-                     style={{ width: Math.random() * 4 + 1 + "px", height: Math.random() * 4 + 1 + "px" }}
+                     style={{ 
+                        width: Math.random() * 4 + 1 + "px", 
+                        height: Math.random() * 4 + 1 + "px",
+                        willChange: "transform, opacity" 
+                     }}
                    />
                 ))}
               </div>
@@ -413,7 +415,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
 
 
         {/* SYNOPSIS SECTION */}
-        <section id="synopsis" className="py-24 md:py-32 relative overflow-hidden bg-secondary/30">
+        <section id="synopsis" className="py-24 md:py-32 relative overflow-hidden">
            <div className="container px-4 md:px-6">
               <div className="max-w-4xl mx-auto space-y-12">
                  <motion.div 
@@ -441,7 +443,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
 
 
         {/* CHAPTERS SECTION */}
-        <section id="sample-chapters" className="py-24 md:py-32 bg-background">
+        <section id="sample-chapters" className="py-24 md:py-32">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
                <motion.div 
@@ -524,7 +526,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
 
 
         {/* GALLERY SECTION */}
-        <section id="gallery" className="py-24 md:py-32 overflow-hidden bg-black text-white relative">
+        <section id="gallery" className="py-24 md:py-32 overflow-hidden relative">
           <div className="container px-4 md:px-6 mb-12">
              <div className="flex flex-col md:flex-row items-end justify-between gap-6">
                 <div>
@@ -595,7 +597,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
         </section>
 
         {/* AUTHOR SECTION */}
-        <section id="author" className="py-24 md:py-32 bg-background">
+        <section id="author" className="py-24 md:py-32">
            <div className="container px-4 md:px-6">
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
                  <motion.div 

@@ -2,69 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
   :root {
-    /* Divine Light Mode - Modern & Sophisticated */
-    --background: 40 20% 99%; /* #FFFCF9 - Very subtle warm white */
-    --foreground: 220 15% 10%; /* #16191D - Deep Charcoal */
-
-    --card: 40 20% 99%;
-    --card-foreground: 220 15% 10%;
-
-    --popover: 40 20% 99%;
-    --popover-foreground: 220 15% 10%;
-
-    --primary: 43 50% 45%; /* #AD8B39 - Muted Metallic Gold */
-    --primary-foreground: 40 20% 99%;
-
-    --secondary: 40 10% 94%; /* #F2F0ED - Soft Stone */
-    --secondary-foreground: 220 15% 10%;
-
-    --muted: 40 10% 92%;
-    --muted-foreground: 220 5% 45%;
-
-    --accent: 35 60% 60%; /* #D9A066 - Warm Amber */
-    --accent-foreground: 220 15% 10%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 40 10% 90%;
-    --input: 40 10% 90%;
-    --ring: 43 50% 45%;
-
-    --radius: 0.5rem; /* Slightly sharper corners for modern feel */
-  }
-
-  .dark {
-    /* Divine Dark Mode - Deep Cosmic/Midnight */
-    --background: 222 47% 6%; /* #080D17 - Deepest Navy */
+    /* Divine Dark Mode - Global Default */
+    --background: 0 0% 2%; /* #050505 - Deepest Black */
     --foreground: 40 15% 90%; /* #EBE9E4 - Parchment */
 
-    --card: 222 47% 8%;
+    --card: 0 0% 4%;
     --card-foreground: 40 15% 90%;
 
-    --popover: 222 47% 6%;
+    --popover: 0 0% 2%;
     --popover-foreground: 40 15% 90%;
 
     --primary: 43 60% 65%; /* #DBC07C - Luminous Gold */
-    --primary-foreground: 222 47% 6%;
+    --primary-foreground: 0 0% 2%;
 
-    --secondary: 222 30% 12%; /* #151A26 - Dark Navy */
+    --secondary: 240 4% 10%; /* #19191B - Soft Dark Stone */
     --secondary-foreground: 40 15% 90%;
 
-    --muted: 222 30% 12%;
+    --muted: 240 4% 10%;
     --muted-foreground: 215 15% 65%;
 
     --accent: 35 70% 65%; /* #E6B57E - Glowing Amber */
-    --accent-foreground: 222 47% 6%;
+    --accent-foreground: 0 0% 2%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 222 30% 12%;
-    --input: 222 30% 12%;
+    --border: 240 4% 10%;
+    --input: 240 4% 10%;
     --ring: 43 60% 65%;
+
+    --radius: 0.5rem;
   }
 }
 
