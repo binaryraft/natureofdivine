@@ -6,9 +6,46 @@
 @tailwind components;
 @tailwind utilities;
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
   :root {
-    /* Divine Dark Mode - Global Default */
+    /* Divine Light Mode - Modern & Sophisticated */
+    --background: 40 20% 99%; /* #FFFCF9 - Very subtle warm white */
+    --foreground: 220 15% 10%; /* #16191D - Deep Charcoal */
+
+    --card: 40 20% 99%;
+    --card-foreground: 220 15% 10%;
+
+    --popover: 40 20% 99%;
+    --popover-foreground: 220 15% 10%;
+
+    --primary: 43 50% 45%; /* #AD8B39 - Muted Metallic Gold */
+    --primary-foreground: 40 20% 99%;
+
+    --secondary: 40 10% 94%; /* #F2F0ED - Soft Stone */
+    --secondary-foreground: 220 15% 10%;
+
+    --muted: 40 10% 92%;
+    --muted-foreground: 220 5% 45%;
+
+    --accent: 35 60% 60%; /* #D9A066 - Warm Amber */
+    --accent-foreground: 220 15% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 40 10% 90%;
+    --input: 40 10% 90%;
+    --ring: 43 50% 45%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Divine Dark Mode - Deep Cosmic/Midnight */
     --background: 0 0% 2%; /* #050505 - Deepest Black */
     --foreground: 40 15% 90%; /* #EBE9E4 - Parchment */
 
@@ -36,8 +73,6 @@
     --border: 240 4% 10%;
     --input: 240 4% 10%;
     --ring: 43 60% 65%;
-
-    --radius: 0.5rem;
   }
 }
 

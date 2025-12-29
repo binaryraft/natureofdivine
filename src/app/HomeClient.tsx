@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trackEvent, fetchAnalytics } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 import { authorBio, buyLinks, synopsis } from "@/lib/data";
-import { SampleChapter, GalleryImage } from "@/lib/definitions";
+import { SampleChapter, Stock } from "@/lib/definitions";
 import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -44,65 +44,6 @@ function StarRating({ rating, totalReviews }: { rating: number, totalReviews: nu
         {rating.toFixed(1)} ({totalReviews} reviews)
       </span>
     </motion.div>
-  );
-}
-
-function FullscreenImageViewer({ isOpen, onOpenChange, image }: { isOpen: boolean, onOpenChange: (open: boolean) => void, image: GalleryImage | null }) {
-  if (!image) return null;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 border-0 max-w-none w-screen h-screen bg-black/95 backdrop-blur-xl flex items-center justify-center overflow-hidden">
-        <DialogTitle className="sr-only">Content Preview</DialogTitle>
-        <DialogClose className="absolute right-6 top-6 z-50 focus:outline-none">
-          <div className="bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full p-3 transition-colors group">
-            <X className="h-6 w-6 text-white group-hover:rotate-90 transition-transform duration-300" />
-          </div>
-        </DialogClose>
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="relative w-full h-full max-w-7xl max-h-[90vh] p-4 flex items-center justify-center"
-        >
-          {image.locked ? (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-6 text-white bg-black/60 backdrop-blur-sm rounded-xl">
-              <Lock className="w-16 h-16 mb-6 text-primary animate-pulse" />
-              <p className="text-4xl font-bold font-garamond mb-3 text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary">Premium Content</p>
-              <p className="text-lg text-gray-300 max-w-md mb-8">This glimpse into the divine is reserved for our readers.</p>
-              <Button asChild size="lg" className="cta-button text-lg px-10" onClick={() => trackEvent('click_buy_signed_gallery')}>
-                <Link href="/checkout?variant=paperback">Unlock Now</Link>
-              </Button>
-            </div>
-          ) : null}
-          
-          <div className="relative w-full h-full flex items-center justify-center">
-             {image.type === 'text' ? (
-                 <div className="w-full max-w-2xl aspect-[3/4] bg-[#FDFBF7] rounded-lg shadow-2xl p-12 md:p-16 flex flex-col justify-center text-slate-900 overflow-y-auto">
-                    <div className="h-full border-2 border-transparent flex flex-col justify-center">
-                        <p style={{
-                            textAlign: image.styles?.textAlign || 'left',
-                            fontStyle: image.styles?.fontStyle || 'normal',
-                            fontWeight: image.styles?.fontWeight || 'normal',
-                            fontSize: 'clamp(1.2rem, 4vw, 2rem)',
-                        }} className="font-garamond leading-loose">
-                            {image.content}
-                        </p>
-                    </div>
-                 </div>
-             ) : (
-                <Image
-                    src={image.src || ''}
-                    fill
-                    style={{ objectFit: 'contain' }}
-                    alt={image.alt || 'Gallery Image'}
-                    className={cn("rounded-lg shadow-2xl", image.locked && "blur-md scale-105")}
-                />
-             )}
-          </div>
-        </motion.div>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -206,16 +147,17 @@ function Book3D({ src }: Book3DProps) {
 
 interface HomeClientProps {
   initialChapters: SampleChapter[];
-  initialGalleryImages: GalleryImage[];
+  stock: Stock;
 }
 
-export function HomeClient({ initialChapters, initialGalleryImages }: HomeClientProps) {
+export function HomeClient({ initialChapters, stock }: HomeClientProps) {
   const [analytics, setAnalytics] = useState<any>(null);
-  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
   const y2 = useTransform(scrollY, [0, 500], [0, -150]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+
+  const isOutOfStock = stock.paperback <= 0;
 
   useEffect(() => {
     trackEvent('page_view_home', { sessionId: crypto.randomUUID() });
@@ -300,10 +242,10 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                      initial={{ opacity: 0, y: 10 }}
                      animate={{ opacity: 1, y: 0 }}
                      transition={{ delay: 0.5, duration: 0.8 }}
-                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-lg"
+                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/50 backdrop-blur-md shadow-lg"
                    >
                      <Sparkles className="w-3 h-3 text-primary" />
-                     <span className="text-xs font-medium tracking-widest uppercase text-gray-300">A Spiritual Masterpiece</span>
+                     <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">A Spiritual Masterpiece</span>
                    </motion.div>
 
                    {/* Main Title */}
@@ -313,7 +255,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.6 }}
-                          className="text-4xl md:text-5xl font-medium italic text-gray-400 font-serif tracking-wide"
+                          className="text-4xl md:text-5xl font-medium italic text-muted-foreground font-serif tracking-wide"
                        >
                          The Nature of
                        </motion.span>
@@ -321,7 +263,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: 0.8, type: "spring", stiffness: 50 }}
-                          className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#DBC07C] via-[#FFF8E7] to-[#DBC07C] drop-shadow-2xl"
+                          className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary drop-shadow-2xl"
                        >
                          DIVINE
                        </motion.span>
@@ -332,7 +274,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                      initial={{ opacity: 0 }}
                      animate={{ opacity: 1 }}
                      transition={{ delay: 1 }}
-                     className="text-lg md:text-xl text-gray-400/90 leading-relaxed max-w-xl font-light"
+                     className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light"
                    >
                      An eye-opening philosophical journey into the nature of God and spiritual awakening. Discover the complex struggles of humanity and the elegant path to aligning with divine existence.
                    </motion.p>
@@ -344,14 +286,25 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                       transition={{ delay: 1.2 }}
                       className="flex flex-col sm:flex-row items-center gap-5 pt-4 w-full sm:w-auto"
                    >
-                      <Button asChild size="lg" className="h-14 px-10 rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold text-lg shadow-[0_0_20px_rgba(219,192,124,0.3)] hover:shadow-[0_0_30px_rgba(219,192,124,0.5)] transition-all duration-300 w-full sm:w-auto" onClick={() => trackEvent('click_buy_hero')}>
-                        <Link href="/checkout?variant=paperback">
-                          <span className="flex items-center gap-2">
-                             Buy Signed Copy 
-                          </span>
-                        </Link>
-                      </Button>
-                      <Button asChild variant="outline" size="lg" className="h-14 px-8 rounded-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white hover:border-white/40 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_read_sample_hero')}>
+                      {isOutOfStock ? (
+                        <Button 
+                          size="lg" 
+                          disabled 
+                          className="h-14 px-10 rounded-full bg-muted text-muted-foreground font-semibold text-lg cursor-not-allowed w-full sm:w-auto"
+                        >
+                          Out of Stock
+                        </Button>
+                      ) : (
+                        <Button asChild size="lg" className="h-14 px-10 rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold text-lg shadow-[0_0_20px_rgba(219,192,124,0.3)] hover:shadow-[0_0_30px_rgba(219,192,124,0.5)] transition-all duration-300 w-full sm:w-auto" onClick={() => trackEvent('click_buy_hero')}>
+                          <Link href="/checkout?variant=paperback">
+                            <span className="flex items-center gap-2">
+                               Buy Signed Copy 
+                            </span>
+                          </Link>
+                        </Button>
+                      )}
+                      
+                      <Button asChild variant="outline" size="lg" className="h-14 px-8 rounded-full border-primary/20 bg-transparent text-foreground hover:bg-primary/10 hover:border-primary/40 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_read_sample_hero')}>
                         <Link href="#sample-chapters">
                            Read Sample 
                         </Link>
@@ -509,9 +462,15 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                                 <Lock className="w-10 h-10 text-muted-foreground/50 mb-4" />
                                 <h4 className="text-xl font-medium mb-2">This Chapter is Locked</h4>
                                 <p className="text-muted-foreground mb-6 max-w-md">Purchase the full book to unlock all chapters and discover the complete philosophy.</p>
-                                <Button asChild className="cta-button" onClick={() => trackEvent('click_buy_signed_sample_chapter')}>
-                                  <Link href="/checkout?variant=paperback">Buy Signed Copy</Link>
-                                </Button>
+                                {isOutOfStock ? (
+                                    <Button disabled className="cta-button opacity-50 cursor-not-allowed">
+                                        Out of Stock
+                                    </Button>
+                                ) : (
+                                    <Button asChild className="cta-button" onClick={() => trackEvent('click_buy_signed_sample_chapter')}>
+                                        <Link href="/checkout?variant=paperback">Buy Signed Copy</Link>
+                                    </Button>
+                                )}
                               </div>
                             )}
                          </div>
@@ -524,77 +483,6 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
           </div>
         </section>
 
-
-        {/* GALLERY SECTION */}
-        <section id="gallery" className="py-24 md:py-32 overflow-hidden relative">
-          <div className="container px-4 md:px-6 mb-12">
-             <div className="flex flex-col md:flex-row items-end justify-between gap-6">
-                <div>
-                  <h2 className="text-4xl md:text-6xl font-bold font-garamond mb-4">Visual <span className="text-primary">Journey</span></h2>
-                  <p className="text-gray-400 max-w-md">Glimpses into the illustrated world of the divine.</p>
-                </div>
-                <div className="flex gap-2">
-                   {/* Navigation controls could go here */}
-                </div>
-             </div>
-          </div>
-
-          <div className="relative w-full overflow-x-auto pb-12 hide-scrollbar pl-4 md:pl-[max(1rem,calc((100vw-80rem)/2))]">
-             <div className="flex gap-6 w-max pr-12">
-                {initialGalleryImages.map((image, index) => (
-                   <motion.div
-                     key={image.id}
-                     initial={{ opacity: 0, scale: 0.9 }}
-                     whileInView={{ opacity: 1, scale: 1 }}
-                     viewport={{ once: true }}
-                     transition={{ delay: index * 0.1 }}
-                     className="relative w-[300px] md:w-[400px] aspect-[3/4] group cursor-pointer"
-                     onClick={() => setSelectedImage(image)}
-                   >
-                      <div className="absolute inset-0 bg-gray-900 rounded-xl overflow-hidden border border-white/10 shadow-2xl transition-transform duration-500 group-hover:-translate-y-2">
-                         {image.type === 'text' ? (
-                            <div className="w-full h-full bg-[#FDFBF7] p-8 flex flex-col justify-center text-slate-900">
-                                <div className="h-full border-2 border-transparent flex flex-col justify-center overflow-hidden">
-                                     <p style={{
-                                        textAlign: image.styles?.textAlign || 'left',
-                                        fontStyle: image.styles?.fontStyle || 'normal',
-                                        fontWeight: image.styles?.fontWeight || 'normal',
-                                        fontSize: image.styles?.fontSize || '1.1rem',
-                                    }} className="font-garamond leading-relaxed">
-                                        {image.content}
-                                    </p>
-                                </div>
-                            </div>
-                         ) : (
-                             <Image
-                               src={image.src || ''}
-                               fill
-                               alt={image.alt || 'Gallery Image'}
-                               className={cn("object-cover transition-all duration-700 group-hover:scale-110", image.locked && "blur-sm opacity-50")}
-                             />
-                         )}
-
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity pointer-events-none" />
-                         
-                         <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                            {image.locked ? (
-                               <div className="flex items-center gap-2 text-primary font-medium">
-                                  <Lock className="w-5 h-5" />
-                                  <span>Locked Content</span>
-                               </div>
-                            ) : (
-                               <div className="flex items-center gap-2 text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity delay-100">
-                                  <Maximize2 className="w-5 h-5" />
-                                  <span>View Fullscreen</span>
-                               </div>
-                            )}
-                         </div>
-                      </div>
-                   </motion.div>
-                ))}
-             </div>
-          </div>
-        </section>
 
         {/* AUTHOR SECTION */}
         <section id="author" className="py-24 md:py-32">
@@ -698,7 +586,6 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
 
       </main>
       
-      <FullscreenImageViewer isOpen={!!selectedImage} onOpenChange={() => setSelectedImage(null)} image={selectedImage} />
     </div>
   );
 }

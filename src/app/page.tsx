@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { HomeClient } from "./HomeClient";
-import { fetchChaptersAction, fetchGalleryImagesAction } from "@/lib/actions";
+import { fetchChaptersAction } from "@/lib/actions";
+import { getStock } from "@/lib/stock-store";
 
 export const metadata: Metadata = {
   title: "Nature of the Divine | New Eye-Opening Spiritual Book for Awakening",
@@ -37,10 +38,10 @@ export const viewport = {
 
 export default async function Home() {
   // Fetch data on the server for instant loading
-  const [chapters, galleryImages] = await Promise.all([
+  const [chapters, stock] = await Promise.all([
     fetchChaptersAction(),
-    fetchGalleryImagesAction(),
+    getStock(),
   ]);
 
-  return <HomeClient initialChapters={chapters} initialGalleryImages={galleryImages} />;
+  return <HomeClient initialChapters={chapters} stock={stock} />;
 }
