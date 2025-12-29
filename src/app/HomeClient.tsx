@@ -114,16 +114,14 @@ function Book3D({ src }: Book3DProps) {
   return (
     <div className="group relative cursor-pointer" style={{ perspective: "2000px" }}>
       <motion.div
-        initial={{ rotateY: -30, rotateX: 5, y: 0 }}
+        initial={{ rotateY: -25, rotateX: 2, y: 0 }}
         animate={{ 
-          rotateY: [-30, -15, -30], 
-          rotateX: [5, 0, 5], 
-          y: [0, -20, 0] 
+          rotateY: [-25, -20, -25], 
+          rotateX: [2, 0, 2]
         }}
         transition={{ 
-          rotateY: { duration: 8, repeat: Infinity, ease: "easeInOut" },
-          rotateX: { duration: 10, repeat: Infinity, ease: "easeInOut" },
-          y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+          rotateY: { duration: 12, repeat: Infinity, ease: "easeInOut" },
+          rotateX: { duration: 15, repeat: Infinity, ease: "easeInOut" }
         }}
         whileHover={{ 
           rotateY: -10,
@@ -374,7 +372,7 @@ export function HomeClient({ initialChapters, initialGalleryImages }: HomeClient
                 {/* Hero 3D Book */}
                 <motion.div 
                   style={{ y: y2 }}
-                  className="relative flex justify-center lg:justify-end py-10 lg:py-0"
+                  className="relative flex justify-center lg:justify-center py-10 lg:py-0"
                 >
                    {/* Sacred Geometry / Halo Effect behind book */}
                    <motion.div
