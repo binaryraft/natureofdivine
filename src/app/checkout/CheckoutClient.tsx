@@ -1,10 +1,9 @@
 'use client';
 
-import { ConversationalCheckout } from './ConversationalCheckout';
+import { OrderForm } from './OrderForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Suspense, useEffect, useState } from 'react';
 import { getStock } from '@/lib/stock-store';
-import { getServiceableCountries } from '@/lib/envia-service';
 import { Loader2 } from 'lucide-react';
 import type { Stock } from '@/lib/definitions';
 
@@ -12,7 +11,6 @@ import type { Stock } from '@/lib/definitions';
 function CheckoutPageContent() {
     // Initialize with optimistic stock to render immediately
     const [stock, setStock] = useState<Stock>({ paperback: 100, hardcover: 100, ebook: 99999 });
-    const [loading, setLoading] = useState(false); // No global loading state needed
 
     useEffect(() => {
         async function loadData() {
@@ -29,8 +27,6 @@ function CheckoutPageContent() {
         loadData();
     }, []);
 
-    // Removed the loading check block entirely since we start with default stock
-
     return (
         <div className="container mx-auto py-12 md:py-16 max-w-3xl">
             <Card>
@@ -40,8 +36,8 @@ function CheckoutPageContent() {
                         Fill out the form below to get a copy of "Nature of the Divine" delivered to your doorstep.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <ConversationalCheckout stock={stock} />
+                <CardContent className="p-0 md:p-6">
+                    <OrderForm stock={stock} />
                 </CardContent>
             </Card>
         </div>
