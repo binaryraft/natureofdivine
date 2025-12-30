@@ -54,93 +54,78 @@ interface Book3DProps {
 function Book3D({ src }: Book3DProps) {
   return (
     <div className="group relative cursor-pointer" style={{ perspective: "2000px" }}>
-      <motion.div
-        initial={{ rotateY: -25, rotateX: 2, y: 0 }}
-        animate={{ 
-          rotateY: [-25, -20, -25], 
-          rotateX: [2, 0, 2]
-        }}
-        transition={{ 
-          rotateY: { duration: 12, repeat: Infinity, ease: "easeInOut" },
-          rotateX: { duration: 15, repeat: Infinity, ease: "easeInOut" }
-        }}
-        whileHover={{ 
-          rotateY: -10,
-          scale: 1.05, 
-          transition: { duration: 0.5 } 
-        }}
-        style={{ transformStyle: "preserve-3d" }}
-        className="relative w-[260px] md:w-[320px] aspect-[2/3]"
-      >
-        {/* Front Cover */}
-        <div 
-          className="absolute inset-0 z-20 rounded-r-sm rounded-l-md shadow-2xl"
-          style={{ transform: "translateZ(25px)" }}
-        >
-          <Image
-            src={src}
-            fill
-            alt="Book Cover"
-            className="object-cover rounded-r-sm rounded-l-md"
-            priority
-          />
-          {/* Lighting/Gloss Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/30 rounded-r-sm rounded-l-md mix-blend-overlay pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20 rounded-r-sm rounded-l-md pointer-events-none" />
-        </div>
-
-        {/* Back Cover */}
-        <div 
-          className="absolute inset-0 bg-[#0f0f0f] rounded-l-sm rounded-r-md border border-white/5"
-          style={{ transform: "rotateY(180deg) translateZ(25px)" }}
-        >
-           <div className="absolute inset-4 border border-white/10 rounded-sm flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-primary/20 blur-xl" />
-           </div>
-        </div>
-
-        {/* Spine (Left) */}
-        <div 
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#080808]"
-          style={{ 
-            width: "50px", 
-            height: "100%", 
-            transform: "rotateY(-90deg) translateZ(130px) md:translateZ(160px)" 
-            /* 
-               Width is 260(mobile)/320(desktop). 
-               Half width is 130/160. 
-               TranslateZ moves it to the edge.
-            */
+      <div className="animate-rotate-book relative w-[260px] md:w-[320px] aspect-[2/3]" style={{ transformStyle: "preserve-3d" }}>
+        <motion.div
+          initial={{ rotateY: -25, rotateX: 2 }}
+          whileHover={{ 
+            rotateY: -10,
+            scale: 1.05, 
+            transition: { duration: 0.5 } 
           }}
+          style={{ transformStyle: "preserve-3d" }}
+          className="w-full h-full relative"
         >
-           <div className="w-full h-full relative overflow-hidden flex items-center justify-center border-x border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-              <span className="whitespace-nowrap rotate-90 text-primary font-garamond font-bold tracking-[0.3em] text-xs md:text-sm opacity-80">
-                NATURE OF THE DIVINE
-              </span>
-           </div>
-        </div>
+          {/* Front Cover */}
+          <div 
+            className="absolute inset-0 z-20 rounded-r-sm rounded-l-md shadow-2xl"
+            style={{ transform: "translateZ(25px)" }}
+          >
+            <Image
+              src={src}
+              fill
+              alt="Book Cover"
+              className="object-cover rounded-r-sm rounded-l-md"
+              priority
+            />
+            {/* Lighting/Gloss Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/30 rounded-r-sm rounded-l-md mix-blend-overlay pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20 rounded-r-sm rounded-l-md pointer-events-none" />
+          </div>
 
-        {/* Pages (Right) */}
-        <div 
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#f8f8f8]"
-          style={{ 
-            width: "48px", 
-            height: "98%", 
-            transform: "rotateY(90deg) translateZ(130px) md:translateZ(160px)" 
-          }}
-        >
-           <div className="w-full h-full bg-[repeating-linear-gradient(90deg,#f8f8f8_0px,#f8f8f8_1px,#e5e5e5_1px,#e5e5e5_2px)] shadow-inner" />
-        </div>
+          {/* Back Cover */}
+          <div 
+            className="absolute inset-0 bg-[#0f0f0f] rounded-l-sm rounded-r-md border border-white/5"
+            style={{ transform: "rotateY(180deg) translateZ(25px)" }}
+          >
+             <div className="absolute inset-4 border border-white/10 rounded-sm flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-primary/20 blur-xl" />
+             </div>
+          </div>
 
-      </motion.div>
+          {/* Spine (Left) */}
+          <div 
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#080808]"
+            style={{ 
+              width: "50px", 
+              height: "100%", 
+              transform: "rotateY(-90deg) translateZ(130px) md:translateZ(160px)" 
+            }}
+          >
+             <div className="w-full h-full relative overflow-hidden flex items-center justify-center border-x border-white/10">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+                <span className="whitespace-nowrap rotate-90 text-primary font-garamond font-bold tracking-[0.3em] text-xs md:text-sm opacity-80">
+                  NATURE OF THE DIVINE
+                </span>
+             </div>
+          </div>
+
+          {/* Pages (Right) */}
+          <div 
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#f8f8f8]"
+            style={{ 
+              width: "48px", 
+              height: "98%", 
+              transform: "rotateY(90deg) translateZ(130px) md:translateZ(160px)" 
+            }}
+          >
+             <div className="w-full h-full bg-[repeating-linear-gradient(90deg,#f8f8f8_0px,#f8f8f8_1px,#e5e5e5_1px,#e5e5e5_2px)] shadow-inner" />
+          </div>
+
+        </motion.div>
+      </div>
       
-      {/* Floating Shadow */}
-      <motion.div
-        animate={{ scale: [1, 0.8, 1], opacity: [0.3, 0.1, 0.3] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-black/40 blur-2xl rounded-[100%]"
-      />
+      {/* Floating Shadow - Optimized CSS */}
+      <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-black/40 blur-2xl rounded-[100%] animate-shadow-pulse" />
     </div>
   );
 }
@@ -178,53 +163,22 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
         {/* HERO SECTION */}
         <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden pt-20 pb-10 bg-background">
            
-           {/* Animated Background System */}
+           {/* Animated Background System - Optimized */}
            <div className="absolute inset-0 -z-10 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background" />
+              <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
               
-              {/* Aurora Effects - Optimized */}
+              {/* Aurora Effects - CSS Gradients (Faster than blur filters) */}
               <div 
-                 className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-primary/5 rounded-full mix-blend-screen animate-pulse" 
-                 style={{ filter: 'blur(100px)', willChange: 'opacity' }}
+                 className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-[radial-gradient(circle,hsl(var(--primary)/0.15)_0%,transparent_70%)] opacity-60 animate-aurora" 
+                 style={{ willChange: 'opacity, transform' }}
               />
               <div 
-                 className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] bg-accent/5 rounded-full mix-blend-screen animate-pulse" 
-                 style={{ filter: 'blur(80px)', animationDelay: '2s', willChange: 'opacity' }}
+                 className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,hsl(var(--accent)/0.15)_0%,transparent_70%)] opacity-50 animate-aurora" 
+                 style={{ animationDelay: '2s', willChange: 'opacity, transform' }}
               />
               
               {/* Subtle Noise Texture */}
-              <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay" />
-              
-              {/* Floating Particles - Optimized */}
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(10)].map((_, i) => (
-                   <motion.div
-                     key={i}
-                     className="absolute bg-white/10 rounded-full"
-                     initial={{ 
-                        x: Math.random() * 100 + "vw", 
-                        y: Math.random() * 100 + "vh", 
-                        scale: Math.random() * 0.5 + 0.5,
-                        opacity: Math.random() * 0.5
-                     }}
-                     animate={{ 
-                        y: [null, Math.random() * -100 + "vh"],
-                        opacity: [0, 0.5, 0]
-                     }}
-                     transition={{ 
-                        duration: Math.random() * 10 + 20, 
-                        repeat: Infinity, 
-                        ease: "linear",
-                        delay: Math.random() * 10
-                     }}
-                     style={{ 
-                        width: Math.random() * 4 + 1 + "px", 
-                        height: Math.random() * 4 + 1 + "px",
-                        willChange: "transform, opacity" 
-                     }}
-                   />
-                ))}
-              </div>
+              <div className="absolute inset-0 bg-noise opacity-[0.02] mix-blend-overlay" />
            </div>
 
            <div className="container relative z-10 px-4 md:px-6">
@@ -330,25 +284,20 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                   className="relative flex justify-center lg:justify-center py-10 lg:py-0"
                 >
                    {/* Sacred Geometry / Halo Effect behind book */}
-                   <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+                   <div
                       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full -z-10"
                    >
-                      <div className="absolute inset-[20px] border border-white/5 rounded-full" />
-                      <div className="absolute inset-[100px] border border-dashed border-white/5 rounded-full opacity-50" />
-                   </motion.div>
+                      <div className="w-full h-full animate-spin-slow rounded-full">
+                        <div className="absolute inset-[20px] border border-white/5 rounded-full" />
+                        <div className="absolute inset-[100px] border border-dashed border-white/5 rounded-full opacity-50" />
+                      </div>
+                   </div>
 
                    <Book3D src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png" />
                    
                    {/* Light Flares */}
-                   <motion.div 
-                      animate={{ 
-                        opacity: [0, 0.4, 0],
-                        scale: [0.8, 1.2, 0.8],
-                      }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute top-0 right-10 w-32 h-32 bg-primary/20 blur-[50px] rounded-full -z-10 mix-blend-screen"
+                   <div 
+                      className="absolute top-0 right-10 w-32 h-32 bg-primary/20 blur-[50px] rounded-full -z-10 mix-blend-screen animate-flare"
                    />
                 </motion.div>
              </div>

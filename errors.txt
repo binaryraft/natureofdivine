@@ -1,0 +1,17 @@
+
+Sitemap can be read, but has errors
+URL not allowed
+7 instances
+This URL is not allowed for a Sitemap at this location.
+Examples
+URL:
+http://localhost:3000
+Line 3
+URL:
+http://localhost:3000/privacy
+Line 9
+URL:
+http://localhost:3000/terms
+Line 15
+
+sitemap errors with localhost blunder and /privacy nd terms instead of our actual pages that are worth showing instead of pricavy and terms...
