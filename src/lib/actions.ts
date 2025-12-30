@@ -1,5 +1,6 @@
 'use server';
 import { z } from 'zod';
+import { headers } from 'next/headers';
 import axios from 'axios';
 import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById, updateOrderPaymentStatus, updateOrderShippingDetails } from './order-store';
 import { revalidatePath } from 'next/cache';
@@ -217,7 +218,11 @@ async function initiatePhonePePayment(order: Order) {
       throw new Error(tokenResponse.message || 'Failed to obtain PhonePe access token.');
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://www.natureofthedivine.com';
+    const headersList = await headers();
+    const host = headersList.get('host');
+    const proto = headersList.get('x-forwarded-proto') || 'https';
+    const baseUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_HOST_URL || 'https://www.natureofthedivine.com');
+
     const payload = {
       merchantOrderId: merchantTransactionId,
       amount: order.price * 100, // Amount in paise
