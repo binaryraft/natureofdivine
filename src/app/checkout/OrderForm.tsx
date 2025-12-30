@@ -184,15 +184,26 @@ export function OrderForm({ stock }: { stock: Stock }) {
 
     useEffect(() => {
         const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
+
+        // Prevent re-running if we're already past the variant selection step for this variant
+        if (state.variant === variantParam && state.step !== 'variant') {
+            return;
+        }
+
         if (variantParam && physicalVariants.includes(variantParam)) {
             if (isTestMode || (stock && stock[variantParam] > 0)) {
                 dispatch({ type: 'SET_VARIANT', payload: variantParam });
-                dispatch({ type: 'NEXT_STEP' });
+                // Only advance if currently on variant step
+                if (state.step === 'variant') {
+                    dispatch({ type: 'NEXT_STEP' });
+                }
             } else if (stock && stock[variantParam] <= 0) {
-                toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.' });
+                 if (state.variant !== variantParam) {
+                    toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.' });
+                 }
             }
         }
-    }, [searchParams, stock, toast, isTestMode]);
+    }, [searchParams, stock, toast, isTestMode, state.step, state.variant]);
 
     // Track analytics events when step changes
     useEffect(() => {
