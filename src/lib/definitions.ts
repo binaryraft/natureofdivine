@@ -67,6 +67,11 @@ export type AnalyticsEvent = {
     metadata?: Record<string, any>;
 }
 
+export type TimeSeriesDataPoint = {
+    date: string;
+    value: number;
+};
+
 export type AnalyticsData = {
     totalVisitors: number;
     clicks: Record<string, number>;
@@ -87,7 +92,10 @@ export type AnalyticsData = {
     reviews: {
         total: number;
         averageRating: number;
-    }
+    };
+    visitorsOverTime: TimeSeriesDataPoint[];
+    salesOverTime: TimeSeriesDataPoint[];
+    ordersOverTime: TimeSeriesDataPoint[];
 }
 
 export type SampleChapter = {

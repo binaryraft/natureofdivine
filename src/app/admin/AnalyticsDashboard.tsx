@@ -5,8 +5,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAnalytics, trackEvent } from '@/lib/actions';
 import { AnalyticsData } from '@/lib/definitions';
-import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star, Target, ChevronsRight, MousePointerClick } from 'lucide-react';
-import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star, Target, ChevronsRight, MousePointerClick, TrendingUp, IndianRupee } from 'lucide-react';
+import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Area, AreaChart, CartesianGrid } from 'recharts';
 import { sampleChapters } from '@/lib/data';
 
 function StatCard({ title, value, icon: Icon, description }: { title: string; value: string | number; icon: React.ElementType; description?: string }) {
@@ -46,6 +46,52 @@ function SimpleBarChart({ data, xKey, yKey, title, description }: { data: any[],
                         <Legend />
                         <Bar dataKey={yKey} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     </RechartsBarChart>
+                </ResponsiveContainer>
+            </CardContent>
+        </Card>
+    )
+}
+
+function TimeSeriesChart({ data, title, description, color, yLabel, formatter }: { data: any[], title: string, description: string, color: string, yLabel: string, formatter?: (val: any) => string }) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={data}>
+                        <defs>
+                            <linearGradient id={`color${yLabel.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <XAxis 
+                            dataKey="date" 
+                            stroke="#888888" 
+                            fontSize={12} 
+                            tickLine={false} 
+                            axisLine={false}
+                            tickFormatter={(value) => {
+                                const date = new Date(value);
+                                return `${date.getDate()}/${date.getMonth() + 1}`;
+                            }}
+                        />
+                        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatter} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" opacity={0.4}/>
+                        <Tooltip 
+                            contentStyle={{
+                                background: "hsl(var(--background))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "var(--radius)",
+                            }}
+                            labelFormatter={(label) => new Date(label).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            formatter={(value: any) => [formatter ? formatter(value) : value, yLabel]}
+                        />
+                        <Area type="monotone" dataKey="value" stroke={color} fillOpacity={1} fill={`url(#color${yLabel.replace(/\s/g, '')})`} name={yLabel} />
+                    </AreaChart>
                 </ResponsiveContainer>
             </CardContent>
         </Card>
@@ -108,6 +154,32 @@ export function AnalyticsDashboard() {
                 <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={Target} description="Visitors to Signed Copy Sales" />
                 <StatCard title="New Users" value={analyticsData.users?.signup || 0} icon={UserPlus} description={`${analyticsData.users?.login || 0} total logins`}/>
                 <StatCard title="Avg. Rating" value={analyticsData.reviews?.averageRating.toFixed(1) || 'N/A'} icon={Star} description={`${analyticsData.reviews?.total || 0} total reviews`}/>
+            </div>
+
+            {/* Time Series Charts */}
+            <div className="grid gap-6 md:grid-cols-3">
+                 <TimeSeriesChart 
+                    data={analyticsData.visitorsOverTime}
+                    title="Daily Visitors"
+                    description="Unique sessions over the last 30 days."
+                    color="#8884d8"
+                    yLabel="Visitors"
+                />
+                 <TimeSeriesChart 
+                    data={analyticsData.ordersOverTime}
+                    title="Daily Orders"
+                    description="Confirmed orders over the last 30 days."
+                    color="#82ca9d"
+                    yLabel="Orders"
+                />
+                 <TimeSeriesChart 
+                    data={analyticsData.salesOverTime}
+                    title="Revenue Trend"
+                    description="Daily sales revenue (INR)."
+                    color="#ffc658"
+                    yLabel="Revenue"
+                    formatter={(val) => `₹${val}`}
+                />
             </div>
             
              <div className="grid gap-6 md:grid-cols-2">
