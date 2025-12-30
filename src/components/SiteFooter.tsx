@@ -2,8 +2,11 @@
 import { BookHeart, Twitter, Facebook, Instagram, Mail } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
+import { getSettings } from "@/lib/settings-store";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const settings = await getSettings();
+
   return (
     <footer className="w-full bg-[#1A1A1A] text-white/80 border-t border-white/10">
       <div className="container py-12 md:py-16">
@@ -22,10 +25,9 @@ export function SiteFooter() {
            {/* Links */}
            <div className="flex flex-col gap-3 text-sm">
              <h3 className="font-semibold text-white mb-2">Legal & Support</h3>
-             <Link href="/terms" className="hover:text-primary transition-colors w-fit">Terms and Conditions</Link>
-             <Link href="/privacy" className="hover:text-primary transition-colors w-fit">Privacy Policy</Link>
-             <Link href="/shipping" className="hover:text-primary transition-colors w-fit">Shipping Policy</Link>
-             <Link href="/returns" className="hover:text-primary transition-colors w-fit">Return Policy</Link>
+             {settings.footerLinks.map((link, index) => (
+               <Link key={index} href={link.url} className="hover:text-primary transition-colors w-fit">{link.label}</Link>
+             ))}
            </div>
 
            {/* Socials */}

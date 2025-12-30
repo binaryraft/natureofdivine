@@ -1,6 +1,7 @@
 
 import type { Metadata } from 'next';
 import { CheckoutClient } from './CheckoutClient';
+import { getSettings } from '@/lib/settings-store';
 
 export const metadata: Metadata = {
   title: 'Secure Checkout - Order Your Spiritual Book | Nature of the Divine',
@@ -11,8 +12,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+    const settings = await getSettings();
     return (
-        <CheckoutClient />
+        <CheckoutClient settings={settings} />
     );
 }

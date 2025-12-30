@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { countries } from '@/lib/countries';
+import type { SiteSettings } from '@/lib/definitions';
 
 const isPrepaidEnabled = true;
 
@@ -166,7 +167,7 @@ const variantDetails: Record<Exclude<BookVariant, 'ebook'>, { name: string; icon
     hardcover: { name: 'Hardcover', icon: Book, description: "A durable, premium edition." },
 };
 
-export function OrderForm({ stock }: { stock: Stock }) {
+export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSettings }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -600,12 +601,13 @@ export function OrderForm({ stock }: { stock: Stock }) {
                                 onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
                                 value={state.paymentMethod || ''}
                             >
-                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all")}>
-                                    <RadioGroupItem value="cod" id="cod" />
+                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", settings.codEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>
+                                    <RadioGroupItem value="cod" id="cod" disabled={!settings.codEnabled}/>
                                     <Truck className="h-6 w-6 text-primary" />
                                     <div className="flex-grow">
                                         <span className="font-semibold">Cash on Delivery</span>
                                         <p className="text-xs text-muted-foreground">Pay with cash upon delivery.</p>
+                                        {!settings.codEnabled && <p className="text-sm text-destructive font-medium mt-1">(Temporarily Unavailable)</p>}
                                     </div>
                                 </Label>
                                 <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>

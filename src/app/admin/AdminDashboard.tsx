@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, updateGalleryImageAction, addGalleryImageAction, deleteGalleryImageAction } from '@/lib/actions';
-import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData, SampleChapter, GalleryImage } from '@/lib/definitions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, updateGalleryImageAction, addGalleryImageAction, deleteGalleryImageAction, getSettingsAction, updateSettingsAction } from '@/lib/actions';
+import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData, SampleChapter, GalleryImage, SiteSettings } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2, BookOpen, GalleryHorizontal, PlusCircle, ImagePlus, Upload, ExternalLink } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2, BookOpen, GalleryHorizontal, PlusCircle, ImagePlus, Upload, ExternalLink, Download, Settings, Link as LinkIcon, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
@@ -43,8 +43,8 @@ const OrderTable = ({
     onStatusChange,
     selectedOrders,
     onSelectionChange
-}: { 
-    orders: Order[], 
+}: {
+    orders: Order[],
     onStatusChange: (userId: string, orderId: string, newStatus: OrderStatus) => void,
     selectedOrders: string[],
     onSelectionChange: (orderId: string, checked: boolean) => void
@@ -159,6 +159,144 @@ const OrderTable = ({
         </div>
     );
 };
+
+function SettingsManager() {
+    const { toast } = useToast();
+    const [settings, setSettings] = useState<SiteSettings | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        async function loadSettings() {
+            try {
+                const fetchedSettings = await getSettingsAction();
+                setSettings(fetchedSettings);
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load settings.' });
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadSettings();
+    }, [toast]);
+
+    const handleSave = async () => {
+        if (!settings) return;
+        setIsSaving(true);
+        try {
+            await updateSettingsAction(settings);
+            toast({ title: 'Success', description: 'Settings updated successfully.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update settings.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleFooterLinkChange = (index: number, field: 'label' | 'url', value: string) => {
+        setSettings(prev => {
+            if (!prev) return null;
+            const newLinks = [...prev.footerLinks];
+            newLinks[index] = { ...newLinks[index], [field]: value };
+            return { ...prev, footerLinks: newLinks };
+        });
+    };
+
+    const addFooterLink = () => {
+        setSettings(prev => {
+            if (!prev) return null;
+            return { ...prev, footerLinks: [...prev.footerLinks, { label: 'New Link', url: '/' }] };
+        });
+    };
+
+    const removeFooterLink = (index: number) => {
+        setSettings(prev => {
+            if (!prev) return null;
+            return { ...prev, footerLinks: prev.footerLinks.filter((_, i) => i !== index) };
+        });
+    };
+
+    if (isLoading || !settings) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Settings/> General Settings</CardTitle>
+                </CardHeader>
+                <CardContent><div className="flex justify-center items-center p-4"><Loader2 className="animate-spin" /></div></CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Settings/> General Settings</CardTitle>
+                <CardDescription>Manage global site settings, including COD availability and footer links.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+                {/* Checkout Settings */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium border-b pb-2">Checkout Configuration</h3>
+                    <div className="flex items-center space-x-2 border p-4 rounded-md bg-muted/20">
+                        <Switch 
+                            id="cod-enabled" 
+                            checked={settings.codEnabled}
+                            onCheckedChange={(checked) => setSettings(prev => prev ? ({ ...prev, codEnabled: checked }) : null)} 
+                        />
+                        <div>
+                            <Label htmlFor="cod-enabled" className="text-base">Enable Cash on Delivery (COD)</Label>
+                            <p className="text-sm text-muted-foreground">If disabled, customers will only see Prepaid options.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer Links */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-2">
+                         <h3 className="text-lg font-medium">Footer Links</h3>
+                         <Button size="sm" variant="outline" onClick={addFooterLink}><PlusCircle className="mr-2 h-4 w-4"/> Add Link</Button>
+                    </div>
+                   
+                    <div className="space-y-3">
+                        {settings.footerLinks.map((link, index) => (
+                            <div key={index} className="flex gap-4 items-center">
+                                <div className="grid grid-cols-2 gap-4 flex-1">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Label</Label>
+                                        <Input 
+                                            value={link.label} 
+                                            onChange={e => handleFooterLinkChange(index, 'label', e.target.value)} 
+                                            placeholder="Link Text"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">URL</Label>
+                                        <Input 
+                                            value={link.url} 
+                                            onChange={e => handleFooterLinkChange(index, 'url', e.target.value)} 
+                                            placeholder="/path"
+                                        />
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="icon" className="mt-5 text-destructive hover:bg-destructive/10" onClick={() => removeFooterLink(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Changes
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
+// ... StockManager, DiscountManager, ChapterManager, GalleryManager ...
 
 function StockManager() {
     const { toast } = useToast();
@@ -459,28 +597,16 @@ function GalleryManager() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [newItem, setNewItem] = useState<{
-        type: 'image' | 'text',
-        src: string,
-        alt: string,
-        aiHint: string,
-        content: string,
-        styles: {
-            textAlign: 'left' | 'center' | 'right' | 'justify',
-            fontStyle: 'normal' | 'italic',
-            fontWeight: 'normal' | 'bold',
-            fontSize: string
-        }
-    }>({
-        type: 'image',
+    const [newItem, setNewItem] = useState({
+        type: 'image' as 'image' | 'text',
         src: '',
         alt: '',
         aiHint: '',
         content: '',
         styles: {
-            textAlign: 'left',
-            fontStyle: 'normal',
-            fontWeight: 'normal',
+            textAlign: 'left' as 'left' | 'center' | 'right' | 'justify',
+            fontStyle: 'normal' as 'normal' | 'italic',
+            fontWeight: 'normal' as 'normal' | 'bold',
             fontSize: '1rem'
         }
     });
@@ -931,6 +1057,47 @@ export function AdminDashboard() {
         }
     }
 
+    const handleExportOrders = () => {
+        if (orders.length === 0) {
+            toast({ title: "No orders", description: "There are no orders to export." });
+            return;
+        }
+
+        // CSV Header
+        const headers = ["Order ID", "Date", "Status", "Name", "Email", "Phone", "Address", "City", "State", "Country", "Pincode", "Variant", "Price", "Payment Method", "Discount Code"];
+        
+        // CSV Rows
+        const rows = orders.map(order => [
+            order.id,
+            new Date(order.createdAt).toISOString().split('T')[0],
+            order.status,
+            `"${order.name}"`,
+            order.email,
+            order.phone,
+            `"${order.address.replace(/"/g, '""')}"`,
+            order.city,
+            order.state,
+            order.country,
+            order.pinCode,
+            order.variant,
+            order.price,
+            order.paymentMethod,
+            order.discountCode || ""
+        ]);
+
+        const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
   const categorizedOrders = {
     new: orders.filter(o => o.status === 'new'),
     dispatched: orders.filter(o => o.status === 'dispatched'),
@@ -967,7 +1134,7 @@ export function AdminDashboard() {
   return (
     <div className="container mx-auto py-12 md:py-16 space-y-8">
         <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="chapters">Chapters</TabsTrigger>
@@ -975,6 +1142,7 @@ export function AdminDashboard() {
                 <TabsTrigger value="stock">Stock</TabsTrigger>
                 <TabsTrigger value="discounts">Discounts</TabsTrigger>
                 <TabsTrigger value="pricing">Pricing</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             
             <TabsContent value="orders" className="mt-6">
@@ -985,9 +1153,14 @@ export function AdminDashboard() {
                             <CardTitle className="text-3xl font-headline flex items-center gap-2"><ShieldCheck /> Order Management</CardTitle>
                             <CardDescription>View and manage all incoming orders.</CardDescription>
                         </div>
-                        <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
-                            <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
-                        </Button>
+                        <div className="flex gap-2">
+                             <Button onClick={handleExportOrders} variant="outline">
+                                <Download className="mr-2 h-4 w-4" /> Export CSV
+                            </Button>
+                            <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
+                                <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
+                            </Button>
+                        </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1043,6 +1216,9 @@ export function AdminDashboard() {
             </TabsContent>
             <TabsContent value="pricing" className="mt-6">
                 <PricingManager />
+            </TabsContent>
+            <TabsContent value="settings" className="mt-6">
+                <SettingsManager />
             </TabsContent>
         </Tabs>
     </div>

@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Suspense, useEffect, useState } from 'react';
 import { getStock } from '@/lib/stock-store';
 import { Loader2 } from 'lucide-react';
-import type { Stock } from '@/lib/definitions';
+import type { Stock, SiteSettings } from '@/lib/definitions';
 
 
-function CheckoutPageContent() {
+function CheckoutPageContent({ settings }: { settings: SiteSettings }) {
     // Initialize with optimistic stock to render immediately
     const [stock, setStock] = useState<Stock>({ paperback: 100, hardcover: 100, ebook: 99999 });
 
@@ -37,7 +37,7 @@ function CheckoutPageContent() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 md:p-6">
-                    <OrderForm stock={stock} />
+                    <OrderForm stock={stock} settings={settings} />
                 </CardContent>
             </Card>
         </div>
@@ -45,7 +45,7 @@ function CheckoutPageContent() {
 }
 
 
-export function CheckoutClient() {
+export function CheckoutClient({ settings }: { settings: SiteSettings }) {
     return (
         <Suspense fallback={
             <div className="container mx-auto py-12 md:py-24 max-w-3xl">
@@ -56,7 +56,7 @@ export function CheckoutClient() {
                 </Card>
             </div>
         }>
-            <CheckoutPageContent />
+            <CheckoutPageContent settings={settings} />
         </Suspense>
     )
 }

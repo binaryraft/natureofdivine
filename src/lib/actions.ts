@@ -17,6 +17,8 @@ import { updateChapter, getChapters } from './chapter-store';
 import { updateGalleryImage, addGalleryImage, deleteGalleryImage, getGalleryImages } from './gallery-store';
 import { getPriceForCountry } from './pricing-store';
 import { getShippingRates as getEnviaShippingRates } from './envia-service';
+import { getSettings, updateSettings } from './settings-store';
+import { SiteSettings } from './definitions';
 
 
 cloudinary.config({
@@ -501,4 +503,12 @@ export async function calculateOrderTotalAction(countryCode: string, variant: st
     } catch (e: any) {
         return { success: false, message: e.message };
     }
+}
+
+export async function getSettingsAction(): Promise<SiteSettings> {
+    return await getSettings();
+}
+
+export async function updateSettingsAction(settings: Partial<SiteSettings>) {
+    await updateSettings(settings);
 }

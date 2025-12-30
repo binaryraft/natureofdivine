@@ -124,3 +124,9 @@ export type GalleryImage = {
     aiHint?: string;
     createdAt: number;
 };
+
+export type SiteSettings = {
+    codEnabled: boolean;
+    footerLinks: { label: string; url: string }[];
+    socialLinks: { platform: string; url: string }[];
+};
