@@ -332,6 +332,10 @@ export async function fetchUserOrdersAction(userId: string) {
   return await getOrdersByUserId(userId);
 }
 
+export async function fetchOrderByIdAction(userId: string, orderId: string) {
+    return await getOrderById(userId, orderId);
+}
+
 export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
   // Removed Envia label generation logic as per new requirement
   return await updateOrderStatus(userId, orderId, status);

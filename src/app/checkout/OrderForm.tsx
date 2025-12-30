@@ -3,7 +3,7 @@
 
 import { useEffect, useReducer, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { placeOrder, validateDiscountCode, trackEvent, calculateOrderTotalAction } from '@/lib/actions';
+import { placeOrder, validateDiscountCode, trackEvent, calculateOrderTotalAction, fetchOrderByIdAction } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -180,8 +180,56 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
     const [pincodeError, setPincodeError] = useState<string | null>(null);
     const [isCheckingCode, setIsCheckingCode] = useState(false);
     const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
 
     const isTestMode = process.env.NEXT_PUBLIC_ENVIA_IS_TEST === 'true';
+
+    useEffect(() => {
+        const orderId = searchParams.get('orderId');
+        if (orderId && user) {
+            setIsVerifying(true);
+            const checkStatus = async () => {
+                try {
+                    let order = await fetchOrderByIdAction(user.uid, orderId);
+                    
+                    // Poll for status update if still pending (callback might be slightly delayed)
+                    let attempts = 0;
+                    while (order?.status === 'pending' && attempts < 5) {
+                        await new Promise(r => setTimeout(r, 2000));
+                        order = await fetchOrderByIdAction(user.uid, orderId);
+                        attempts++;
+                    }
+
+                    if (order) {
+                        if (order.status === 'new' || order.status === 'dispatched' || order.status === 'delivered') {
+                            router.push(`/orders?success=true&orderId=${orderId}`);
+                            return;
+                        } else if (order.status === 'cancelled') {
+                            toast({ 
+                                variant: 'destructive', 
+                                title: 'Payment Failed', 
+                                description: 'Your payment was not successful. Redirecting to home...' 
+                            });
+                            router.push('/');
+                            return;
+                        } else if (order.status === 'pending') {
+                            toast({ 
+                                title: 'Payment Processing', 
+                                description: 'Your payment is still being verified. Please check the orders page in a moment.' 
+                            });
+                            router.push('/orders');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error verifying order:", e);
+                } finally {
+                    setIsVerifying(false);
+                }
+            };
+            checkStatus();
+        }
+    }, [searchParams, user, router, toast]);
 
     useEffect(() => {
         const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
@@ -370,11 +418,11 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
         }
     }
 
-    if (state.step === 'processing' || isSubmitting) {
+    if (state.step === 'processing' || isSubmitting || isVerifying) {
         return (
             <div className="flex flex-col items-center justify-center gap-4 my-8 min-h-[300px]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-lg text-muted-foreground">Processing your order...</p>
+                <p className="text-lg text-muted-foreground">{isVerifying ? 'Verifying payment...' : 'Processing your order...'}</p>
                 <p className="text-sm text-muted-foreground">Please do not refresh or go back.</p>
             </div>
         )
