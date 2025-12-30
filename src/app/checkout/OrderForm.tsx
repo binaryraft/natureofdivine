@@ -192,6 +192,16 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                 try {
                     let order = await fetchOrderByIdAction(user.uid, orderId);
                     
+                    if (!order) {
+                        toast({
+                            variant: 'destructive',
+                            title: 'Order Not Found',
+                            description: 'The requested order could not be found. Redirecting to home...',
+                        });
+                        router.push('/');
+                        return;
+                    }
+
                     // Poll for status update if still pending (callback might be slightly delayed)
                     let attempts = 0;
                     while (order?.status === 'pending' && attempts < 5) {
@@ -223,6 +233,12 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                     }
                 } catch (e) {
                     console.error("Error verifying order:", e);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'An error occurred while verifying your order. Redirecting to home...',
+                    });
+                    router.push('/');
                 } finally {
                     setIsVerifying(false);
                 }
