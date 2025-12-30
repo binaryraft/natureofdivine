@@ -53,79 +53,14 @@ interface Book3DProps {
 
 function Book3D({ src }: Book3DProps) {
   return (
-    <div className="group relative cursor-pointer" style={{ perspective: "2000px" }}>
-      <div className="animate-rotate-book relative w-[260px] md:w-[320px] aspect-[2/3]" style={{ transformStyle: "preserve-3d" }}>
-        <motion.div
-          initial={{ rotateY: -25, rotateX: 2 }}
-          whileHover={{ 
-            rotateY: -10,
-            scale: 1.05, 
-            transition: { duration: 0.5 } 
-          }}
-          style={{ transformStyle: "preserve-3d" }}
-          className="w-full h-full relative"
-        >
-          {/* Front Cover */}
-          <div 
-            className="absolute inset-0 z-20 rounded-r-sm rounded-l-md shadow-2xl"
-            style={{ transform: "translateZ(25px)" }}
-          >
-            <Image
-              src={src}
-              fill
-              alt="Book Cover"
-              className="object-cover rounded-r-sm rounded-l-md"
-              priority
-            />
-            {/* Lighting/Gloss Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/30 rounded-r-sm rounded-l-md mix-blend-overlay pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20 rounded-r-sm rounded-l-md pointer-events-none" />
-          </div>
-
-          {/* Back Cover */}
-          <div 
-            className="absolute inset-0 bg-[#0f0f0f] rounded-l-sm rounded-r-md border border-white/5"
-            style={{ transform: "rotateY(180deg) translateZ(25px)" }}
-          >
-             <div className="absolute inset-4 border border-white/10 rounded-sm flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full bg-primary/20 blur-xl" />
-             </div>
-          </div>
-
-          {/* Spine (Left) */}
-          <div 
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#080808]"
-            style={{ 
-              width: "50px", 
-              height: "100%", 
-              transform: "rotateY(-90deg) translateZ(130px) md:translateZ(160px)" 
-            }}
-          >
-             <div className="w-full h-full relative overflow-hidden flex items-center justify-center border-x border-white/10">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-                <span className="whitespace-nowrap rotate-90 text-primary font-garamond font-bold tracking-[0.3em] text-xs md:text-sm opacity-80">
-                  NATURE OF THE DIVINE
-                </span>
-             </div>
-          </div>
-
-          {/* Pages (Right) */}
-          <div 
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#f8f8f8]"
-            style={{ 
-              width: "48px", 
-              height: "98%", 
-              transform: "rotateY(90deg) translateZ(130px) md:translateZ(160px)" 
-            }}
-          >
-             <div className="w-full h-full bg-[repeating-linear-gradient(90deg,#f8f8f8_0px,#f8f8f8_1px,#e5e5e5_1px,#e5e5e5_2px)] shadow-inner" />
-          </div>
-
-        </motion.div>
-      </div>
-      
-      {/* Floating Shadow - Optimized CSS */}
-      <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-black/40 blur-2xl rounded-[100%] animate-shadow-pulse" />
+    <div className="relative w-[260px] md:w-[320px] aspect-[2/3]">
+      <Image
+        src={src}
+        fill
+        alt="Nature of the Divine Book Cover"
+        className="object-cover rounded-lg"
+        priority
+      />
     </div>
   );
 }
