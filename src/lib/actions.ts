@@ -217,7 +217,7 @@ async function initiatePhonePePayment(order: Order) {
       throw new Error(tokenResponse.message || 'Failed to obtain PhonePe access token.');
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://natureofthedivine.com';
+    const baseUrl = process.env.NEXT_PUBLIC_HOST_URL || 'https://www.natureofthedivine.com';
     const payload = {
       merchantOrderId: merchantTransactionId,
       amount: order.price * 100, // Amount in paise
