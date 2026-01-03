@@ -76,15 +76,6 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
   const y2 = useTransform(scrollY, [0, 500], [0, -150]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
-  
-  const [isDesktop, setIsDesktop] = useState(true); // Default to true for SSR stability, adjusted in effect
-
-  useEffect(() => {
-    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
 
   const isOutOfStock = stock.paperback <= 0;
 
@@ -130,23 +121,9 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                 
                 {/* Text Content */}
                 <motion.div 
-                  initial={{ 
-                    x: isDesktop ? "50%" : 0, 
-                    y: isDesktop ? 350 : 200, // Push it further down to clearly be "below" the centered book
-                    scale: 0.6, 
-                    opacity: 1 
-                  }}
-                  animate={{ 
-                    x: 0, 
-                    y: 0, 
-                    scale: 1, 
-                    opacity: 1 
-                  }}
-                  transition={{ 
-                    delay: 0.2, // Move together with image
-                    duration: 1.5, 
-                    ease: [0.22, 1, 0.36, 1] 
-                  }}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
                   className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 order-2 lg:order-1"
                 >
                    {/* Badge */}
@@ -210,23 +187,9 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
 
                 {/* Hero 3D Book */}
                 <motion.div 
-                  initial={{ 
-                    x: isDesktop ? "-50%" : 0, 
-                    y: isDesktop ? 0 : "-50%", // Start roughly where text was (or center)
-                    scale: 1.15,
-                    zIndex: 20
-                  }}
-                  animate={{ 
-                    x: 0, 
-                    y: 0, 
-                    scale: 1,
-                    zIndex: 1
-                  }}
-                  transition={{ 
-                    delay: 0.2, // Start showing quickly
-                    duration: 1.5, // Slow drift to position
-                    ease: [0.22, 1, 0.36, 1]
-                  }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 1, ease: "easeOut" }}
                   style={{ y: y2 }} // Combine with scroll parallax
                   className="relative flex justify-center lg:justify-center py-10 lg:py-0 order-1 lg:order-2"
                 >
