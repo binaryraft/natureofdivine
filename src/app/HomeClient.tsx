@@ -132,9 +132,9 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                 <motion.div 
                   initial={{ 
                     x: isDesktop ? "50%" : 0, 
-                    y: isDesktop ? 200 : 200, 
-                    scale: 0.8, 
-                    opacity: 0 
+                    y: isDesktop ? 350 : 200, // Push it further down to clearly be "below" the centered book
+                    scale: 0.6, 
+                    opacity: 1 
                   }}
                   animate={{ 
                     x: 0, 
@@ -143,17 +143,14 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                     opacity: 1 
                   }}
                   transition={{ 
-                    delay: 1.5, // Wait for image to settle/be viewed
-                    duration: 1.2, 
-                    ease: [0.22, 1, 0.36, 1] // Custom easeOutQuint-ish
+                    delay: 0.2, // Move together with image
+                    duration: 1.5, 
+                    ease: [0.22, 1, 0.36, 1] 
                   }}
                   className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 order-2 lg:order-1"
                 >
                    {/* Badge */}
                    <motion.div 
-                     initial={{ opacity: 0, y: 10 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     transition={{ delay: 2.0, duration: 0.8 }}
                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/50 backdrop-blur-md shadow-lg"
                    >
                      <Sparkles className="w-3 h-3 text-primary" />
@@ -163,41 +160,21 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                    {/* Main Title */}
                    <div className="space-y-2">
                      <h1 className="flex flex-col font-garamond leading-[0.85]">
-                       <motion.span 
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 2.1 }}
-                          className="text-4xl md:text-5xl font-medium italic text-muted-foreground font-serif tracking-wide"
-                       >
+                       <span className="text-4xl md:text-5xl font-medium italic text-muted-foreground font-serif tracking-wide">
                          The Nature of
-                       </motion.span>
-                       <motion.span 
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 2.2, type: "spring", stiffness: 50 }}
-                          className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary drop-shadow-2xl"
-                       >
+                       </span>
+                       <span className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary drop-shadow-2xl">
                          DIVINE
-                       </motion.span>
+                       </span>
                      </h1>
                    </div>
 
-                   <motion.p 
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     transition={{ delay: 2.3 }}
-                     className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light"
-                   >
+                   <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light">
                      An eye-opening philosophical journey into the nature of God and spiritual awakening. Discover the complex struggles of humanity and the elegant path to aligning with divine existence.
-                   </motion.p>
+                   </p>
                    
                    {/* Buttons */}
-                   <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 2.4 }}
-                      className="flex flex-col sm:flex-row items-center gap-5 pt-4 w-full sm:w-auto"
-                   >
+                   <div className="flex flex-col sm:flex-row items-center gap-5 pt-4 w-full sm:w-auto">
                       {isOutOfStock ? (
                         <Button 
                           size="lg" 
@@ -221,19 +198,14 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                            Read Sample 
                         </Link>
                       </Button>
-                   </motion.div>
+                   </div>
                    
                    {/* Social Proof */}
-                   <motion.div 
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     transition={{ delay: 2.5 }}
-                     className="pt-2"
-                   >
+                   <div className="pt-2">
                      {analytics?.reviews && (
                        <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />
                      )}
-                   </motion.div>
+                   </div>
                 </motion.div>
 
                 {/* Hero 3D Book */}
