@@ -76,6 +76,15 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
   const y2 = useTransform(scrollY, [0, 500], [0, -150]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+  
+  const [isDesktop, setIsDesktop] = useState(true); // Default to true for SSR stability, adjusted in effect
+
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   const isOutOfStock = stock.paperback <= 0;
 
@@ -121,16 +130,30 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                 
                 {/* Text Content */}
                 <motion.div 
-                  initial={{ opacity: 0, x: -30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8"
+                  initial={{ 
+                    x: isDesktop ? "50%" : 0, 
+                    y: isDesktop ? 200 : 200, 
+                    scale: 0.8, 
+                    opacity: 0 
+                  }}
+                  animate={{ 
+                    x: 0, 
+                    y: 0, 
+                    scale: 1, 
+                    opacity: 1 
+                  }}
+                  transition={{ 
+                    delay: 1.5, // Wait for image to settle/be viewed
+                    duration: 1.2, 
+                    ease: [0.22, 1, 0.36, 1] // Custom easeOutQuint-ish
+                  }}
+                  className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 order-2 lg:order-1"
                 >
                    {/* Badge */}
                    <motion.div 
                      initial={{ opacity: 0, y: 10 }}
                      animate={{ opacity: 1, y: 0 }}
-                     transition={{ delay: 0.1, duration: 0.8 }}
+                     transition={{ delay: 2.0, duration: 0.8 }}
                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/50 backdrop-blur-md shadow-lg"
                    >
                      <Sparkles className="w-3 h-3 text-primary" />
@@ -143,7 +166,7 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                        <motion.span 
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
+                          transition={{ delay: 2.1 }}
                           className="text-4xl md:text-5xl font-medium italic text-muted-foreground font-serif tracking-wide"
                        >
                          The Nature of
@@ -151,7 +174,7 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                        <motion.span 
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.2, type: "spring", stiffness: 50 }}
+                          transition={{ delay: 2.2, type: "spring", stiffness: 50 }}
                           className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary drop-shadow-2xl"
                        >
                          DIVINE
@@ -162,7 +185,7 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                    <motion.p 
                      initial={{ opacity: 0 }}
                      animate={{ opacity: 1 }}
-                     transition={{ delay: 0.3 }}
+                     transition={{ delay: 2.3 }}
                      className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light"
                    >
                      An eye-opening philosophical journey into the nature of God and spiritual awakening. Discover the complex struggles of humanity and the elegant path to aligning with divine existence.
@@ -172,7 +195,7 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                    <motion.div 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
+                      transition={{ delay: 2.4 }}
                       className="flex flex-col sm:flex-row items-center gap-5 pt-4 w-full sm:w-auto"
                    >
                       {isOutOfStock ? (
@@ -204,7 +227,7 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
                    <motion.div 
                      initial={{ opacity: 0 }}
                      animate={{ opacity: 1 }}
-                     transition={{ delay: 0.5 }}
+                     transition={{ delay: 2.5 }}
                      className="pt-2"
                    >
                      {analytics?.reviews && (
@@ -215,8 +238,25 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
 
                 {/* Hero 3D Book */}
                 <motion.div 
-                  style={{ y: y2 }}
-                  className="relative flex justify-center lg:justify-center py-10 lg:py-0"
+                  initial={{ 
+                    x: isDesktop ? "-50%" : 0, 
+                    y: isDesktop ? 0 : "-50%", // Start roughly where text was (or center)
+                    scale: 1.15,
+                    zIndex: 20
+                  }}
+                  animate={{ 
+                    x: 0, 
+                    y: 0, 
+                    scale: 1,
+                    zIndex: 1
+                  }}
+                  transition={{ 
+                    delay: 0.2, // Start showing quickly
+                    duration: 1.5, // Slow drift to position
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  style={{ y: y2 }} // Combine with scroll parallax
+                  className="relative flex justify-center lg:justify-center py-10 lg:py-0 order-1 lg:order-2"
                 >
                    {/* Sacred Geometry / Halo Effect behind book */}
                    <div
