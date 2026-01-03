@@ -237,6 +237,8 @@ function SettingsManager() {
                 {/* Checkout Settings */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium border-b pb-2">Checkout Configuration</h3>
+                    
+                    {/* India COD */}
                     <div className="flex items-center space-x-2 border p-4 rounded-md bg-muted/20">
                         <Switch 
                             id="cod-enabled" 
@@ -244,8 +246,21 @@ function SettingsManager() {
                             onCheckedChange={(checked) => setSettings(prev => prev ? ({ ...prev, codEnabled: checked }) : null)} 
                         />
                         <div>
-                            <Label htmlFor="cod-enabled" className="text-base">Enable Cash on Delivery (COD)</Label>
-                            <p className="text-sm text-muted-foreground">If disabled, customers will only see Prepaid options.</p>
+                            <Label htmlFor="cod-enabled" className="text-base">Enable COD (India)</Label>
+                            <p className="text-sm text-muted-foreground">Allow Cash on Delivery for Indian orders.</p>
+                        </div>
+                    </div>
+
+                    {/* International COD */}
+                    <div className="flex items-center space-x-2 border p-4 rounded-md bg-muted/20">
+                        <Switch 
+                            id="cod-enabled-int" 
+                            checked={settings.codEnabledInternational}
+                            onCheckedChange={(checked) => setSettings(prev => prev ? ({ ...prev, codEnabledInternational: checked }) : null)} 
+                        />
+                        <div>
+                            <Label htmlFor="cod-enabled-int" className="text-base">Enable COD (International)</Label>
+                            <p className="text-sm text-muted-foreground">Allow Cash on Delivery for International orders.</p>
                         </div>
                     </div>
                 </div>

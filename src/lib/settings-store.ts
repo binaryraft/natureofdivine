@@ -10,6 +10,7 @@ const settingsDocRef = doc(db, 'settings', 'global');
 
 const defaultSettings: SiteSettings = {
     codEnabled: true,
+    codEnabledInternational: false,
     footerLinks: [
         { label: 'Terms and Conditions', url: '/terms' },
         { label: 'Privacy Policy', url: '/privacy' },

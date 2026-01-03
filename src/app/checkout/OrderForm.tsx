@@ -602,6 +602,9 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                 const formattedFinalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(finalPrice);
                 const formattedDiscount = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(discountAmount);
 
+                const isInternational = state.details.country !== 'IN';
+                const isCODEnabled = isInternational ? settings.codEnabledInternational : settings.codEnabled;
+
                 return (
                     <Card className="border-none shadow-none">
                         <CardHeader className="p-0 mb-6">
@@ -665,21 +668,21 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                                 onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
                                 value={state.paymentMethod || ''}
                             >
-                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", settings.codEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>
-                                    <RadioGroupItem value="cod" id="cod" disabled={!settings.codEnabled}/>
+                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", isCODEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>
+                                    <RadioGroupItem value="cod" id="cod" disabled={!isCODEnabled}/>
                                     <Truck className="h-6 w-6 text-primary" />
                                     <div className="flex-grow">
                                         <span className="font-semibold">Cash on Delivery</span>
                                         <p className="text-xs text-muted-foreground">Pay with cash upon delivery.</p>
-                                        {!settings.codEnabled && <p className="text-sm text-destructive font-medium mt-1">(Temporarily Unavailable)</p>}
+                                        {!isCODEnabled && <p className="text-sm text-destructive font-medium mt-1">(Temporarily Unavailable)</p>}
                                     </div>
                                 </Label>
                                 <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>
                                     <RadioGroupItem value="prepaid" id="prepaid" disabled={!isPrepaidEnabled} />
                                     <CreditCard className="h-6 w-6 text-primary" />
                                     <div className="flex-grow">
-                                        <span className="font-semibold">Prepaid / Online</span>
-                                        <p className="text-xs text-muted-foreground">Pay via PhonePe (UPI, Card, etc).</p>
+                                        <span className="font-semibold">{isInternational ? "PhonePe International Checkout" : "Prepaid / Online"}</span>
+                                        <p className="text-xs text-muted-foreground">{isInternational ? "Secure payment for international orders." : "Pay via PhonePe (UPI, Card, etc)."}</p>
                                         {!isPrepaidEnabled && <p className="text-sm text-muted-foreground">(Currently unavailable)</p>}
                                     </div>
                                 </Label>

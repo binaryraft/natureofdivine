@@ -126,7 +126,8 @@ export type GalleryImage = {
 };
 
 export type SiteSettings = {
-    codEnabled: boolean;
+    codEnabled: boolean; // India COD
+    codEnabledInternational: boolean; // International COD
     footerLinks: { label: string; url: string }[];
     socialLinks: { platform: string; url: string }[];
 };
