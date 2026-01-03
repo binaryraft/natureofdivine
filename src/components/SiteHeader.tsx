@@ -2,6 +2,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu, Settings, LogOut, BookHeart, ShoppingCart, User } from 'lucide-react';
@@ -64,7 +65,14 @@ export function SiteHeader() {
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center space-x-2 group">
-            <BookHeart className="h-7 w-7 text-primary group-hover:scale-110 transition-transform duration-300" />
+            <div className="relative h-8 w-8 group-hover:scale-110 transition-transform duration-300">
+               <Image 
+                 src="/logo.svg" 
+                 alt="Nature of the Divine Logo" 
+                 fill
+                 className="object-contain"
+               />
+            </div>
             <span className="font-bold font-headline text-lg tracking-tight group-hover:text-primary transition-colors">Nature of the Divine</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
@@ -102,7 +110,14 @@ export function SiteHeader() {
                   href="/"
                   className="flex items-center gap-2 text-xl font-bold font-headline text-primary"
                 >
-                  <BookHeart className="h-6 w-6" />
+                  <div className="relative h-8 w-8">
+                     <Image 
+                       src="/logo.svg" 
+                       alt="Logo" 
+                       fill
+                       className="object-contain"
+                     />
+                  </div>
                   <span>Nature of the Divine</span>
                 </Link>
                 <div className="flex flex-col gap-4">
