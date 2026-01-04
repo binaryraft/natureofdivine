@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageCircle, Star, Send, ArrowLeft, Share2 } from 'lucide-react';
+import { Loader2, MessageCircle, Star, Send, ArrowLeft, Share2, ShieldCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -98,7 +98,10 @@ export function QuestionClient({ post }: { post: Post }) {
                         <div className="space-y-2">
                             <CardTitle className="text-2xl md:text-3xl font-headline leading-tight">{currentPost.title}</CardTitle>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span className="font-semibold text-primary">{currentPost.userName}</span>
+                                <span className={cn("font-semibold flex items-center gap-1", currentPost.userId === 'admin' ? "text-primary" : "text-primary")}>
+                                    {currentPost.userName}
+                                    {currentPost.userId === 'admin' && <ShieldCheck className="h-3 w-3" />}
+                                </span>
                                 <span>•</span>
                                 <span>{formatDistanceToNow(currentPost.createdAt)} ago</span>
                             </div>
@@ -137,7 +140,10 @@ export function QuestionClient({ post }: { post: Post }) {
                                 <Card key={answer.id} className="bg-muted/30 border-none">
                                     <CardContent className="p-4 space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <span className="font-bold text-primary">{answer.userName}</span>
+                                            <span className={cn("font-bold flex items-center gap-1", answer.userId === 'admin' ? "text-primary" : "text-primary")}>
+                                                {answer.userName}
+                                                {answer.userId === 'admin' && <ShieldCheck className="h-3 w-3" />}
+                                            </span>
                                             <span className="text-xs text-muted-foreground">{formatDistanceToNow(answer.createdAt)} ago</span>
                                         </div>
                                         <p className="text-sm md:text-base leading-relaxed">{answer.content}</p>

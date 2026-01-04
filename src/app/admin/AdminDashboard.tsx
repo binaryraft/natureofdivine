@@ -28,6 +28,8 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
 import { PricingManager } from './PricingManager';
+import { UsersManager } from './UsersManager';
+import { CommunityManager } from './CommunityManager';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -1211,8 +1213,10 @@ export function AdminDashboard() {
             isSubmitting={isDispatching}
         />
         <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-8 overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-10 overflow-x-auto">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="users">Users</TabsTrigger>
+                <TabsTrigger value="community">Community</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="chapters">Chapters</TabsTrigger>
                 <TabsTrigger value="gallery">Gallery</TabsTrigger>
@@ -1275,6 +1279,12 @@ export function AdminDashboard() {
                      )}
                   </CardContent>
                 </Card>
+            </TabsContent>
+            <TabsContent value="users" className="mt-6">
+                <UsersManager orders={orders} />
+            </TabsContent>
+            <TabsContent value="community" className="mt-6">
+                <CommunityManager />
             </TabsContent>
              <TabsContent value="analytics" className="mt-6">
                 <AnalyticsDashboard />

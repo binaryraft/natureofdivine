@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageCircle, Star, PlusCircle, Search } from 'lucide-react';
+import { Loader2, MessageCircle, Star, PlusCircle, Search, ShieldCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -176,7 +176,10 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                                             <div className="space-y-1">
                                                 <CardTitle className="text-xl font-medium leading-tight group-hover:text-primary transition-colors">{post.title}</CardTitle>
                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <span className="font-semibold text-primary">{post.userName}</span>
+                                                    <span className={cn("font-semibold flex items-center gap-1", post.userId === 'admin' ? "text-primary" : "")}>
+                                                        {post.userName}
+                                                        {post.userId === 'admin' && <ShieldCheck className="h-3 w-3" />}
+                                                    </span>
                                                     <span>•</span>
                                                     <span>{formatDistanceToNow(post.createdAt)} ago</span>
                                                 </div>
