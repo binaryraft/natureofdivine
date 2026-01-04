@@ -61,6 +61,20 @@ export async function getPosts(): Promise<Post[]> {
     }
 }
 
+export async function getPostById(postId: string): Promise<Post | null> {
+    try {
+        const docRef = doc(postsCollection, postId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as Post;
+        }
+        return null;
+    } catch (error: any) {
+        await addLog('error', 'getPostById failed', { postId, error: error.message });
+        return null;
+    }
+}
+
 export async function addAnswer(postId: string, userId: string, userName: string, content: string) {
     try {
         const postRef = doc(postsCollection, postId);

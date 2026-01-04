@@ -59,6 +59,7 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                 login: 0,
                 signup: 0,
             },
+            communityVisits: 0,
             sampleChapters: sampleChapters.reduce((acc, chap) => ({ ...acc, [chap.number]: 0 }), {}),
             reviews: {
                 total: reviews.length,
@@ -97,6 +98,12 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                     }
                 }
             }
+            
+            // Community Visits
+            if (event.type === 'view_community' || event.type === 'view_question') {
+                analytics.communityVisits++;
+            }
+
             // Checkout
             if (event.type === 'checkout_reached_shipping') analytics.checkoutFunnel.reachedShipping++;
             if (event.type === 'checkout_completed_shipping') analytics.checkoutFunnel.completedShipping++;

@@ -88,6 +88,7 @@ export type AnalyticsData = {
         login: number;
         signup: number;
     };
+    communityVisits: number;
     sampleChapters: Record<string, number>;
     reviews: {
         total: number;

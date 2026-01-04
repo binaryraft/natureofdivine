@@ -1,27 +1,28 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Post, addPost, addAnswer, toggleLike } from '@/lib/community-store';
+import { Post, addPost, toggleLike } from '@/lib/community-store';
+import { trackEvent } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageCircle, Star, ThumbsUp, PlusCircle, Search, User, Send } from 'lucide-react';
+import { Loader2, MessageCircle, Star, PlusCircle, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
     const { user } = useAuth();
     const { toast } = useToast();
+    const router = useRouter();
     const [posts, setPosts] = useState<Post[]>(initialPosts);
     const [sort, setSort] = useState<'top' | 'newest'>('top');
-    const [isPending, startTransition] = useTransition();
     const [search, setSearch] = useState('');
     
     // New Post State
@@ -30,10 +31,9 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
     const [newContent, setNewContent] = useState('');
     const [isPosting, setIsPosting] = useState(false);
 
-    // Answer State
-    const [replyingTo, setReplyingTo] = useState<string | null>(null);
-    const [replyContent, setReplyContent] = useState('');
-    const [isReplying, setIsReplying] = useState(false);
+    useEffect(() => {
+        trackEvent('view_community');
+    }, []);
 
     const filteredPosts = posts
         .filter(p => p.title.toLowerCase().includes(search.toLowerCase()) || p.content.toLowerCase().includes(search.toLowerCase()))
@@ -63,17 +63,16 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
             setNewPostOpen(false);
             setNewTitle('');
             setNewContent('');
-            // Optimistic update or router refresh could happen here, 
-            // but since we passed initialPosts, we might need to refresh via router
-            // or just rely on revalidatePath to update next fetch.
-            // For immediate feedback, we can reload or wait for next navigation.
             window.location.reload(); 
         } else {
             toast({ variant: 'destructive', title: 'Error', description: result.message });
         }
     };
 
-    const handleLike = async (post: Post) => {
+    const handleLike = async (post: Post, e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent navigating if clicking the like button
+        e.stopPropagation();
+
         if (!user) {
             toast({ variant: 'destructive', title: 'Login Required', description: 'Please login to like posts.' });
             return;
@@ -94,27 +93,6 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
 
         await toggleLike(post.id, user.uid, isLiked);
     };
-
-    const handleAnswer = async (postId: string) => {
-        if (!user) {
-            toast({ variant: 'destructive', title: 'Login Required', description: 'Please login to answer.' });
-            return;
-        }
-        if (!replyContent.trim()) return;
-
-        setIsReplying(true);
-        const result = await addAnswer(postId, user.uid, user.displayName || 'Anonymous', replyContent);
-        setIsReplying(false);
-
-        if (result.success) {
-            toast({ title: 'Success', description: result.message });
-            setReplyContent('');
-            setReplyingTo(null);
-            window.location.reload();
-        } else {
-            toast({ variant: 'destructive', title: 'Error', description: result.message });
-        }
-    }
 
     return (
         <div className="container mx-auto py-8 md:py-12 max-w-4xl space-y-8">
@@ -191,75 +169,38 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                     filteredPosts.map(post => {
                         const isLiked = user ? post.likes.includes(user.uid) : false;
                         return (
-                            <Card key={post.id} className="transition-all hover:border-primary/50">
-                                <CardHeader className="pb-3">
-                                    <div className="flex justify-between items-start gap-4">
-                                        <div className="space-y-1">
-                                            <CardTitle className="text-xl font-medium leading-tight">{post.title}</CardTitle>
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <span className="font-semibold text-primary">{post.userName}</span>
-                                                <span>•</span>
-                                                <span>{formatDistanceToNow(post.createdAt)} ago</span>
+                            <Link href={`/community/${post.id}`} key={post.id} className="block group">
+                                <Card className="transition-all hover:border-primary/50 hover:shadow-md cursor-pointer">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start gap-4">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-xl font-medium leading-tight group-hover:text-primary transition-colors">{post.title}</CardTitle>
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                    <span className="font-semibold text-primary">{post.userName}</span>
+                                                    <span>•</span>
+                                                    <span>{formatDistanceToNow(post.createdAt)} ago</span>
+                                                </div>
                                             </div>
+                                            <Button 
+                                                variant={isLiked ? "secondary" : "ghost"} 
+                                                size="sm" 
+                                                className={cn("flex flex-col h-auto py-2 px-3 gap-1 z-10", isLiked && "bg-yellow-100 text-yellow-700 hover:bg-yellow-200")}
+                                                onClick={(e) => handleLike(post, e)}
+                                            >
+                                                <Star className={cn("h-5 w-5", isLiked ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground")} />
+                                                <span className="text-xs font-bold">{post.likes.length}</span>
+                                            </Button>
                                         </div>
-                                        <Button 
-                                            variant={isLiked ? "secondary" : "ghost"} 
-                                            size="sm" 
-                                            className={cn("flex flex-col h-auto py-2 px-3 gap-1", isLiked && "bg-yellow-100 text-yellow-700 hover:bg-yellow-200")}
-                                            onClick={() => handleLike(post)}
-                                        >
-                                            <Star className={cn("h-5 w-5", isLiked ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground")} />
-                                            <span className="text-xs font-bold">{post.likes.length}</span>
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{post.content}</p>
-                                    
-                                    {/* Answers Section */}
-                                    <div className="mt-6 pt-4 border-t">
-                                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                                            <MessageCircle className="h-4 w-4"/> 
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="whitespace-pre-wrap text-sm leading-relaxed line-clamp-3 text-muted-foreground">{post.content}</p>
+                                        <div className="mt-4 pt-4 border-t flex items-center text-sm text-muted-foreground">
+                                            <MessageCircle className="h-4 w-4 mr-2"/> 
                                             {post.answers.length} Answer{post.answers.length !== 1 ? 's' : ''}
-                                        </h4>
-                                        
-                                        <div className="space-y-4 pl-4 border-l-2 border-muted">
-                                            {post.answers.map(answer => (
-                                                <div key={answer.id} className="space-y-1">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-bold text-primary">{answer.userName}</span>
-                                                        <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(answer.createdAt)} ago</span>
-                                                    </div>
-                                                    <p className="text-sm text-muted-foreground">{answer.content}</p>
-                                                </div>
-                                            ))}
-                                            
-                                            {replyingTo === post.id ? (
-                                                <div className="space-y-2 mt-4">
-                                                    <Textarea 
-                                                        placeholder="Write your answer..." 
-                                                        className="min-h-[80px]" 
-                                                        value={replyContent}
-                                                        onChange={e => setReplyContent(e.target.value)}
-                                                        autoFocus
-                                                    />
-                                                    <div className="flex gap-2 justify-end">
-                                                        <Button variant="ghost" size="sm" onClick={() => setReplyingTo(null)}>Cancel</Button>
-                                                        <Button size="sm" onClick={() => handleAnswer(post.id)} disabled={isReplying}>
-                                                            {isReplying ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4 mr-2"/>}
-                                                            Submit
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                 <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setReplyingTo(post.id)}>
-                                                    Write an Answer
-                                                </Button>
-                                            )}
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                            </Link>
                         );
                     })
                 )}
