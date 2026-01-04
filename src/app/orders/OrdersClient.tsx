@@ -211,6 +211,18 @@ function OrderItem({ order }: { order: Order }) {
                  <div className="font-bold text-lg">
                     Qty: 1
                 </div>
+                 {order.shippingDetails?.trackingNumber && (
+                    <div className="bg-muted/30 p-3 rounded-md border text-sm mt-2">
+                         <div className="flex justify-between items-center">
+                            <div>
+                                <p className="font-medium text-primary flex items-center gap-1"><Truck className="h-3 w-3"/> Dispatched via {order.shippingDetails.carrier}</p>
+                                <p className="text-muted-foreground text-xs mt-1">Tracking ID: <span className="font-mono select-all">{order.shippingDetails.trackingNumber}</span></p>
+                            </div>
+                            {/* You can add a specific tracking URL logic here if carriers follow a standard URL pattern, 
+                                otherwise just showing the ID is helpful */}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
 

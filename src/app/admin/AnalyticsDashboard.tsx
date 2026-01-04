@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAnalytics, trackEvent } from '@/lib/actions';
-import { AnalyticsData } from '@/lib/definitions';
-import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star, Target, ChevronsRight, MousePointerClick, TrendingUp, IndianRupee } from 'lucide-react';
+import { AnalyticsData, TimeSeriesDataPoint } from '@/lib/definitions';
+import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star, Target, ChevronsRight, MousePointerClick, TrendingUp, IndianRupee, Calendar } from 'lucide-react';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Area, AreaChart, CartesianGrid } from 'recharts';
 import { sampleChapters } from '@/lib/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function StatCard({ title, value, icon: Icon, description }: { title: string; value: string | number; icon: React.ElementType; description?: string }) {
     return (
@@ -75,8 +76,11 @@ function TimeSeriesChart({ data, title, description, color, yLabel, formatter }:
                             tickLine={false} 
                             axisLine={false}
                             tickFormatter={(value) => {
+                                // Simple formatting based on length to guess if it's full date or just Month/Year
+                                if (value.length <= 4) return value; // Year
                                 const date = new Date(value);
-                                return `${date.getDate()}/${date.getMonth() + 1}`;
+                                if (isNaN(date.getTime())) return value;
+                                return value.length > 7 ? `${date.getDate()}/${date.getMonth() + 1}` : `${date.toLocaleString('default', { month: 'short' })}`;
                             }}
                         />
                         <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatter} />
@@ -87,7 +91,10 @@ function TimeSeriesChart({ data, title, description, color, yLabel, formatter }:
                                 border: "1px solid hsl(var(--border))",
                                 borderRadius: "var(--radius)",
                             }}
-                            labelFormatter={(label) => new Date(label).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            labelFormatter={(label) => {
+                                const d = new Date(label);
+                                return isNaN(d.getTime()) ? label : d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                            }}
                             formatter={(value: any) => [formatter ? formatter(value) : value, yLabel]}
                         />
                         <Area type="monotone" dataKey="value" stroke={color} fillOpacity={1} fill={`url(#color${yLabel.replace(/\s/g, '')})`} name={yLabel} />
@@ -110,9 +117,12 @@ function FunnelStep({ value, label, icon: Icon }: {value: number, label: string,
     )
 }
 
+type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
 export function AnalyticsDashboard() {
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [timeRange, setTimeRange] = useState<TimeRange>('daily');
 
     useEffect(() => {
         startTransition(async () => {
@@ -120,6 +130,52 @@ export function AnalyticsDashboard() {
             setAnalyticsData(data);
         });
     }, []);
+
+    const processedData = useMemo(() => {
+        if (!analyticsData) return { visitors: [], sales: [], orders: [] };
+
+        const { visitorsOverTime, salesOverTime, ordersOverTime } = analyticsData;
+
+        const aggregate = (data: TimeSeriesDataPoint[]) => {
+            if (timeRange === 'daily') {
+                // Return last 30 days
+                return data.slice(-30);
+            }
+
+            const map = new Map<string, number>();
+
+            data.forEach(item => {
+                const date = new Date(item.date);
+                let key = '';
+
+                if (timeRange === 'weekly') {
+                    // Get ISO week number or simple start of week
+                    const d = new Date(date);
+                    const day = d.getDay();
+                    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+                    const monday = new Date(d.setDate(diff));
+                    key = monday.toISOString().split('T')[0];
+                } else if (timeRange === 'monthly') {
+                    key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                } else if (timeRange === 'yearly') {
+                    key = `${date.getFullYear()}`;
+                }
+
+                map.set(key, (map.get(key) || 0) + item.value);
+            });
+
+            return Array.from(map.entries())
+                .map(([date, value]) => ({ date, value }))
+                .sort((a, b) => a.date.localeCompare(b.date));
+        };
+
+        return {
+            visitors: aggregate(visitorsOverTime),
+            sales: aggregate(salesOverTime),
+            orders: aggregate(ordersOverTime),
+        };
+
+    }, [analyticsData, timeRange]);
 
     if (isPending || !analyticsData) {
         return (
@@ -143,8 +199,26 @@ export function AnalyticsDashboard() {
         <div className="space-y-6">
              <Card>
                 <CardHeader>
-                    <CardTitle className="text-3xl font-headline flex items-center gap-2"><BarChart /> Website Analytics</CardTitle>
-                    <CardDescription>An overview of user engagement and conversion metrics.</CardDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-3xl font-headline flex items-center gap-2"><BarChart /> Website Analytics</CardTitle>
+                            <CardDescription>An overview of user engagement and conversion metrics.</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <Select value={timeRange} onValueChange={(v: TimeRange) => setTimeRange(v)}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Select Range" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="daily">Daily (Last 30 Days)</SelectItem>
+                                    <SelectItem value="weekly">Weekly</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                    <SelectItem value="yearly">Yearly</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </CardHeader>
             </Card>
 
@@ -159,23 +233,23 @@ export function AnalyticsDashboard() {
             {/* Time Series Charts */}
             <div className="grid gap-6 md:grid-cols-3">
                  <TimeSeriesChart 
-                    data={analyticsData.visitorsOverTime}
-                    title="Daily Visitors"
-                    description="Unique sessions over the last 30 days."
+                    data={processedData.visitors}
+                    title="Visitors"
+                    description={`Unique sessions (${timeRange}).`}
                     color="#8884d8"
                     yLabel="Visitors"
                 />
                  <TimeSeriesChart 
-                    data={analyticsData.ordersOverTime}
-                    title="Daily Orders"
-                    description="Confirmed orders over the last 30 days."
+                    data={processedData.orders}
+                    title="Orders"
+                    description={`Confirmed orders (${timeRange}).`}
                     color="#82ca9d"
                     yLabel="Orders"
                 />
                  <TimeSeriesChart 
-                    data={analyticsData.salesOverTime}
-                    title="Revenue Trend"
-                    description="Daily sales revenue (INR)."
+                    data={processedData.sales}
+                    title="Revenue"
+                    description={`Sales revenue (${timeRange}).`}
                     color="#ffc658"
                     yLabel="Revenue"
                     formatter={(val) => `₹${val}`}

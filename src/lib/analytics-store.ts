@@ -33,14 +33,11 @@ export async function getAnalytics(): Promise<AnalyticsData> {
         const reviews = await getReviews();
         const orders = await getOrders();
 
-        // Initialize last 30 days map
+        // Initialize last 365 days map for Daily/Weekly/Monthly/Yearly views
         const timeSeriesMap: Record<string, { visitors: number, sales: number, orders: number }> = {};
         const now = new Date();
-        // Set to start of today in local time for consistent bucketing, or just UTC date string
-        // Using strict YYYY-MM-DD from ISO string is UTC based. 
-        // For simplicity in this context, UTC dates are fine.
         
-        for (let i = 29; i >= 0; i--) {
+        for (let i = 365; i >= 0; i--) {
             const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
             const dateStr = d.toISOString().split('T')[0];
             timeSeriesMap[dateStr] = { visitors: 0, sales: 0, orders: 0 };

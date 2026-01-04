@@ -346,6 +346,26 @@ export async function changeOrderStatusAction(userId: string, orderId: string, s
   return await updateOrderStatus(userId, orderId, status);
 }
 
+export async function dispatchOrderAction(userId: string, orderId: string, carrier: string, trackingNumber: string) {
+    try {
+        await updateOrderStatus(userId, orderId, 'dispatched');
+        await updateOrderShippingDetails(userId, orderId, {
+            carrier,
+            trackingNumber,
+            service: 'Standard', // Default service
+            cost: 0, // Assume cost is handled elsewhere or irrelevant for this manual update
+            labelUrl: null
+        });
+        await addLog('info', `Order ${orderId} dispatched manually`, { carrier, trackingNumber });
+        revalidatePath('/admin');
+        revalidatePath('/orders');
+        return { success: true, message: 'Order dispatched successfully.' };
+    } catch (error: any) {
+        await addLog('error', 'dispatchOrderAction failed', { userId, orderId, error: error.message });
+        return { success: false, message: 'Failed to dispatch order.' };
+    }
+}
+
 export async function changeMultipleOrderStatusAction(orders: { orderId: string, userId: string }[], status: OrderStatus) {
   try {
     await Promise.all(orders.map(order => changeOrderStatusAction(order.userId, order.orderId, status)));

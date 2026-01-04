@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 
 const navLinks = [
   { href: '/', label: 'Home' },
+  { href: '/community', label: 'Community' },
   { href: '/#synopsis', label: 'About' },
   { href: '/orders', label: 'My Orders' },
 ];
