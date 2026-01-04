@@ -76,8 +76,10 @@ function TimeSeriesChart({ data, title, description, color, yLabel, formatter }:
                             tickLine={false} 
                             axisLine={false}
                             tickFormatter={(value) => {
-                                // Simple formatting based on length to guess if it's full date or just Month/Year
-                                if (value.length <= 4) return value; // Year
+                                // For hourly data
+                                if (value.includes(':')) return value;
+                                // For yearly data
+                                if (value.length <= 4) return value;
                                 const date = new Date(value);
                                 if (isNaN(date.getTime())) return value;
                                 return value.length > 7 ? `${date.getDate()}/${date.getMonth() + 1}` : `${date.toLocaleString('default', { month: 'short' })}`;
@@ -92,6 +94,7 @@ function TimeSeriesChart({ data, title, description, color, yLabel, formatter }:
                                 borderRadius: "var(--radius)",
                             }}
                             labelFormatter={(label) => {
+                                if (label.includes(':')) return `Time: ${label}`;
                                 const d = new Date(label);
                                 return isNaN(d.getTime()) ? label : d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
                             }}
@@ -117,12 +120,12 @@ function FunnelStep({ value, label, icon: Icon }: {value: number, label: string,
     )
 }
 
-type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
+type TimeRange = 'today' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export function AnalyticsDashboard() {
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
     const [isPending, startTransition] = useTransition();
-    const [timeRange, setTimeRange] = useState<TimeRange>('daily');
+    const [timeRange, setTimeRange] = useState<TimeRange>('today');
 
     useEffect(() => {
         startTransition(async () => {
@@ -131,10 +134,26 @@ export function AnalyticsDashboard() {
         });
     }, []);
 
-    const processedData = useMemo(() => {
-        if (!analyticsData) return { visitors: [], sales: [], orders: [] };
+    const { processedData, currentStats } = useMemo(() => {
+        if (!analyticsData) {
+            return { 
+                processedData: { visitors: [], sales: [], orders: [] },
+                currentStats: { visitors: 0, orders: 0, sales: 0 }
+            };
+        }
 
-        const { visitorsOverTime, salesOverTime, ordersOverTime } = analyticsData;
+        const { visitorsOverTime, salesOverTime, ordersOverTime, today, hourlyTraffic } = analyticsData;
+
+        if (timeRange === 'today') {
+            return {
+                processedData: {
+                    visitors: hourlyTraffic,
+                    sales: [], // Hourly sales not yet implemented
+                    orders: [] // Hourly orders not yet implemented
+                },
+                currentStats: today
+            };
+        }
 
         const aggregate = (data: TimeSeriesDataPoint[]) => {
             if (timeRange === 'daily') {
@@ -149,10 +168,9 @@ export function AnalyticsDashboard() {
                 let key = '';
 
                 if (timeRange === 'weekly') {
-                    // Get ISO week number or simple start of week
                     const d = new Date(date);
                     const day = d.getDay();
-                    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+                    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
                     const monday = new Date(d.setDate(diff));
                     key = monday.toISOString().split('T')[0];
                 } else if (timeRange === 'monthly') {
@@ -169,10 +187,21 @@ export function AnalyticsDashboard() {
                 .sort((a, b) => a.date.localeCompare(b.date));
         };
 
+        const processedVisitors = aggregate(visitorsOverTime);
+        const processedSales = aggregate(salesOverTime);
+        const processedOrders = aggregate(ordersOverTime);
+
         return {
-            visitors: aggregate(visitorsOverTime),
-            sales: aggregate(salesOverTime),
-            orders: aggregate(ordersOverTime),
+            processedData: {
+                visitors: processedVisitors,
+                sales: processedSales,
+                orders: processedOrders
+            },
+            currentStats: {
+                visitors: processedVisitors.reduce((acc, curr) => acc + curr.value, 0),
+                sales: processedSales.reduce((acc, curr) => acc + curr.value, 0),
+                orders: processedOrders.reduce((acc, curr) => acc + curr.value, 0)
+            }
         };
 
     }, [analyticsData, timeRange]);
@@ -211,7 +240,8 @@ export function AnalyticsDashboard() {
                                     <SelectValue placeholder="Select Range" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="daily">Daily (Last 30 Days)</SelectItem>
+                                    <SelectItem value="today">Today</SelectItem>
+                                    <SelectItem value="daily">Last 30 Days</SelectItem>
                                     <SelectItem value="weekly">Weekly</SelectItem>
                                     <SelectItem value="monthly">Monthly</SelectItem>
                                     <SelectItem value="yearly">Yearly</SelectItem>
@@ -223,12 +253,11 @@ export function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                <StatCard title="Total Visitors" value={analyticsData.totalVisitors || 0} icon={Users} description="Unique homepage sessions" />
-                <StatCard title="Total Sales" value={totalOrders} icon={ShoppingCart} description={`${analyticsData.orders?.cod || 0} COD, ${analyticsData.orders?.prepaid || 0} Prepaid`}/>
-                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={Target} description="Visitors to Signed Copy Sales" />
-                <StatCard title="New Users" value={analyticsData.users?.signup || 0} icon={UserPlus} description={`${analyticsData.users?.login || 0} total logins`}/>
-                <StatCard title="Avg. Rating" value={analyticsData.reviews?.averageRating.toFixed(1) || 'N/A'} icon={Star} description={`${analyticsData.reviews?.total || 0} total reviews`}/>
-                <StatCard title="Community Visits" value={analyticsData.communityVisits || 0} icon={MessageCircle} description="Total views on forum pages"/>
+                <StatCard title="Visitors" value={currentStats.visitors} icon={Users} description={`Sessions (${timeRange})`} />
+                <StatCard title="Sales" value={currentStats.orders} icon={ShoppingCart} description={`Orders (${timeRange})`}/>
+                <StatCard title="Revenue" value={`₹${currentStats.sales}`} icon={IndianRupee} description={`Revenue (${timeRange})`}/>
+                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={Target} description="All-time Avg." />
+                <StatCard title="Community Visits" value={analyticsData.communityVisits || 0} icon={MessageCircle} description="All-time views"/>
             </div>
 
             {/* Time Series Charts */}

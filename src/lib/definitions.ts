@@ -89,6 +89,12 @@ export type AnalyticsData = {
         signup: number;
     };
     communityVisits: number;
+    today: {
+        visitors: number;
+        sales: number;
+        orders: number;
+    };
+    hourlyTraffic: TimeSeriesDataPoint[];
     sampleChapters: Record<string, number>;
     reviews: {
         total: number;

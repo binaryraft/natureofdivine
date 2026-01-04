@@ -43,6 +43,12 @@ export async function getAnalytics(): Promise<AnalyticsData> {
             timeSeriesMap[dateStr] = { visitors: 0, sales: 0, orders: 0 };
         }
 
+        const todayStr = new Date().toISOString().split('T')[0];
+        const hourlyTrafficMap: Record<string, number> = {};
+        for(let i=0; i<24; i++) {
+            hourlyTrafficMap[i.toString()] = 0;
+        }
+
         const analytics: AnalyticsData = {
             totalVisitors: 0,
             clicks: {},
@@ -60,6 +66,12 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                 signup: 0,
             },
             communityVisits: 0,
+            today: {
+                visitors: 0,
+                sales: 0,
+                orders: 0
+            },
+            hourlyTraffic: [],
             sampleChapters: sampleChapters.reduce((acc, chap) => ({ ...acc, [chap.number]: 0 }), {}),
             reviews: {
                 total: reviews.length,
@@ -74,6 +86,10 @@ export async function getAnalytics(): Promise<AnalyticsData> {
         const visitorSessionsByDate = new Set<string>();
 
         for (const event of events) {
+            const date = new Date(event.timestamp);
+            const dateStr = date.toISOString().split('T')[0];
+            const hour = date.getHours().toString();
+
             // Clicks
             if (event.type.startsWith('click_')) {
                 analytics.clicks[event.type] = (analytics.clicks[event.type] || 0) + 1;
@@ -87,13 +103,17 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                 
                 // Time Series Visitors
                 if (event.metadata?.sessionId) {
-                    const dateStr = new Date(event.timestamp).toISOString().split('T')[0];
-                    // Only count if within our 30 day window
+                    // Only count if within our 365 day window
                     if (timeSeriesMap[dateStr]) {
                          const key = `${dateStr}:${event.metadata.sessionId}`;
                          if (!visitorSessionsByDate.has(key)) {
                              timeSeriesMap[dateStr].visitors++;
                              visitorSessionsByDate.add(key);
+                             
+                             if (dateStr === todayStr) {
+                                 analytics.today.visitors++;
+                                 hourlyTrafficMap[hour] = (hourlyTrafficMap[hour] || 0) + 1;
+                             }
                          }
                     }
                 }
@@ -136,12 +156,22 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                  timeSeriesMap[dateStr].orders++;
                  timeSeriesMap[dateStr].sales += order.price;
              }
+             
+             if (dateStr === todayStr) {
+                 analytics.today.orders++;
+                 analytics.today.sales += order.price;
+             }
         }
 
         const dates = Object.keys(timeSeriesMap).sort();
         analytics.visitorsOverTime = dates.map(date => ({ date, value: timeSeriesMap[date].visitors }));
         analytics.salesOverTime = dates.map(date => ({ date, value: timeSeriesMap[date].sales }));
         analytics.ordersOverTime = dates.map(date => ({ date, value: timeSeriesMap[date].orders }));
+        
+        analytics.hourlyTraffic = Object.keys(hourlyTrafficMap).sort((a,b) => parseInt(a) - parseInt(b)).map(hour => ({
+            date: `${hour}:00`,
+            value: hourlyTrafficMap[hour]
+        }));
 
         return analytics;
     } catch (error: any) {
