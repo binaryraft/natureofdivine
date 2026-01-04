@@ -157,7 +157,771 @@ const OrderTable = ({
     );
 };
 
-// ... SettingsManager, StockManager, etc ... (Existing code)
+function SettingsManager() {
+    const { toast } = useToast();
+    const [settings, setSettings] = useState<SiteSettings | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        async function loadSettings() {
+            try {
+                const fetchedSettings = await getSettingsAction();
+                setSettings(fetchedSettings);
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load settings.' });
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadSettings();
+    }, [toast]);
+
+    const handleSave = async () => {
+        if (!settings) return;
+        setIsSaving(true);
+        try {
+            await updateSettingsAction(settings);
+            toast({ title: 'Success', description: 'Settings updated successfully.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update settings.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleFooterLinkChange = (index: number, field: 'label' | 'url', value: string) => {
+        setSettings(prev => {
+            if (!prev) return null;
+            const newLinks = [...prev.footerLinks];
+            newLinks[index] = { ...newLinks[index], [field]: value };
+            return { ...prev, footerLinks: newLinks };
+        });
+    };
+
+    const addFooterLink = () => {
+        setSettings(prev => {
+            if (!prev) return null;
+            return { ...prev, footerLinks: [...prev.footerLinks, { label: 'New Link', url: '/' }] };
+        });
+    };
+
+    const removeFooterLink = (index: number) => {
+        setSettings(prev => {
+            if (!prev) return null;
+            return { ...prev, footerLinks: prev.footerLinks.filter((_, i) => i !== index) };
+        });
+    };
+
+    if (isLoading || !settings) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Settings/> General Settings</CardTitle>
+                </CardHeader>
+                <CardContent><div className="flex justify-center items-center p-4"><Loader2 className="animate-spin" /></div></CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Settings/> General Settings</CardTitle>
+                <CardDescription>Manage global site settings, including COD availability and footer links.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium border-b pb-2">Checkout Configuration</h3>
+                    
+                    <div className="flex items-center space-x-2 border p-4 rounded-md bg-muted/20">
+                        <Switch 
+                            id="cod-enabled" 
+                            checked={settings.codEnabled}
+                            onCheckedChange={(checked) => setSettings(prev => prev ? ({ ...prev, codEnabled: checked }) : null)} 
+                        />
+                        <div>
+                            <Label htmlFor="cod-enabled" className="text-base">Enable COD (India)</Label>
+                            <p className="text-sm text-muted-foreground">Allow Cash on Delivery for Indian orders.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 border p-4 rounded-md bg-muted/20">
+                        <Switch 
+                            id="cod-enabled-int" 
+                            checked={settings.codEnabledInternational}
+                            onCheckedChange={(checked) => setSettings(prev => prev ? ({ ...prev, codEnabledInternational: checked }) : null)} 
+                        />
+                        <div>
+                            <Label htmlFor="cod-enabled-int" className="text-base">Enable COD (International)</Label>
+                            <p className="text-sm text-muted-foreground">Allow Cash on Delivery for International orders.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-2">
+                         <h3 className="text-lg font-medium">Footer Links</h3>
+                         <Button size="sm" variant="outline" onClick={addFooterLink}><PlusCircle className="mr-2 h-4 w-4"/> Add Link</Button>
+                    </div>
+                   
+                    <div className="space-y-3">
+                        {settings.footerLinks.map((link, index) => (
+                            <div key={index} className="flex gap-4 items-center">
+                                <div className="grid grid-cols-2 gap-4 flex-1">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Label</Label>
+                                        <Input 
+                                            value={link.label} 
+                                            onChange={e => handleFooterLinkChange(index, 'label', e.target.value)} 
+                                            placeholder="Link Text"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">URL</Label>
+                                        <Input 
+                                            value={link.url} 
+                                            onChange={e => handleFooterLinkChange(index, 'url', e.target.value)} 
+                                            placeholder="/path"
+                                        />
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="icon" className="mt-5 text-destructive hover:bg-destructive/10" onClick={() => removeFooterLink(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Changes
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
+function StockManager() {
+    const { toast } = useToast();
+    const router = useRouter();
+    const [stock, setStock] = useState<Stock | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoadingStock, setIsLoadingStock] = useState(true);
+
+    const loadStock = async () => {
+        setIsLoadingStock(true);
+        try {
+            const fetchedStock = await getStock();
+            setStock(fetchedStock);
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load stock levels.' });
+        } finally {
+            setIsLoadingStock(false);
+        }
+    }
+
+    useEffect(() => {
+        loadStock();
+    }, [toast]);
+
+    const handleStockChange = (variant: BookVariant, value: string) => {
+        if (!stock) return;
+        const quantity = parseInt(value, 10);
+        if (!isNaN(quantity) && quantity >= 0) {
+            setStock(prev => ({ ...prev!, [variant]: quantity }));
+        }
+    };
+
+    const handleSave = async () => {
+        if (!stock) return;
+        setIsSaving(true);
+        try {
+            await updateStock(stock);
+            toast({ title: 'Success', description: 'Stock levels updated successfully.' });
+            router.refresh();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update stock.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (isLoadingStock || !stock) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Warehouse/> Stock Management</CardTitle>
+                    <CardDescription>Update the quantity for each book variant. E-book stock is unlimited.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center items-center p-4">
+                        <Loader2 className="animate-spin" />
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Warehouse/> Stock Management</CardTitle>
+                <CardDescription>Update the quantity for each book variant. E-book stock is unlimited.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="paperback-stock">Paperback Quantity</Label>
+                        <Input 
+                            id="paperback-stock"
+                            type="number" 
+                            value={stock.paperback}
+                            onChange={(e) => handleStockChange('paperback', e.target.value)}
+                            min="0"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="hardcover-stock">Hardcover Quantity</Label>
+                        <Input 
+                            id="hardcover-stock"
+                            type="number"
+                            value={stock.hardcover}
+                             onChange={(e) => handleStockChange('hardcover', e.target.value)}
+                             min="0"
+                        />
+                    </div>
+                </div>
+                 <p className="text-sm text-muted-foreground">E-book stock is considered unlimited.</p>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Stock
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
+function DiscountManager() {
+    const { toast } = useToast();
+    const [discounts, setDiscounts] = useState<Discount[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newCode, setNewCode] = useState('');
+    const [newPercent, setNewPercent] = useState('');
+
+    const loadDiscounts = async () => {
+        setIsLoading(true);
+        try {
+            const fetchedDiscounts = await getAllDiscounts();
+            setDiscounts(fetchedDiscounts);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load discounts.' });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    
+    useEffect(() => {
+        loadDiscounts();
+    }, [toast]);
+
+    const handleCreateDiscount = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsCreating(true);
+        const percent = parseInt(newPercent, 10);
+        const result = await createDiscount(newCode, percent);
+
+        if(result.success) {
+            toast({ title: 'Success!', description: result.message });
+            setNewCode('');
+            setNewPercent('');
+            await loadDiscounts();
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.message });
+        }
+        setIsCreating(false);
+    }
+
+    return (
+        <Card>
+             <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Tag/> Discount Management</CardTitle>
+                <CardDescription>Create and manage discount codes for influencer marketing.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <form onSubmit={handleCreateDiscount} className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                        <Label htmlFor="code">Discount Code</Label>
+                        <Input id="code" placeholder="e.g., INFLUENCER10" value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} required/>
+                    </div>
+                     <div className="flex-1 space-y-2">
+                        <Label htmlFor="percent">Discount Percent</Label>
+                         <div className="relative">
+                            <Input id="percent" type="number" placeholder="e.g., 10" value={newPercent} onChange={e => setNewPercent(e.target.value)} required min="1" max="100"/>
+                            <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        </div>
+                    </div>
+                    <div className="flex items-end">
+                        <Button type="submit" disabled={isCreating}>
+                            {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Create
+                        </Button>
+                    </div>
+                </form>
+                
+                <div className="space-y-2">
+                    <h3 className="font-medium">Existing Discounts</h3>
+                    {isLoading ? (
+                         <div className="flex justify-center items-center p-4">
+                            <Loader2 className="animate-spin" />
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Code</TableHead>
+                                    <TableHead>Percent</TableHead>
+                                    <TableHead className="text-right">Usage Count</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {discounts.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No discounts created yet.</TableCell></TableRow>}
+                                {discounts.map(d => (
+                                    <TableRow key={d.id}>
+                                        <TableCell className="font-mono">{d.id}</TableCell>
+                                        <TableCell>{d.percent}%</TableCell>
+                                        <TableCell className="text-right">{d.usageCount}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+function ChapterManager() {
+    const { toast } = useToast();
+    const [chapters, setChapters] = useState<SampleChapter[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, startTransition] = useTransition();
+
+    useEffect(() => {
+        async function loadChapters() {
+            setIsLoading(true);
+            try {
+                let fetchedChapters = await getChapters();
+                if (fetchedChapters.length === 0) {
+                    await initializeChapters();
+                    fetchedChapters = await getChapters();
+                }
+                setChapters(fetchedChapters);
+            } catch (e) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load chapters.' });
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadChapters();
+    }, [toast]);
+
+    const handleChapterChange = (id: string, field: keyof SampleChapter, value: string | boolean) => {
+        setChapters(prev => prev!.map(chap => chap.id === id ? { ...chap, [field]: value } : chap));
+    };
+
+    const handleSave = (chapter: SampleChapter) => {
+        startTransition(async () => {
+            try {
+                await updateChapterAction(chapter);
+                toast({ title: 'Success', description: `Chapter ${chapter.number} updated successfully.` });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: `Failed to update Chapter ${chapter.number}.` });
+            }
+        });
+    };
+
+    if (isLoading || !chapters) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><BookOpen/> Sample Chapter Management</CardTitle>
+                </CardHeader>
+                <CardContent><div className="flex justify-center items-center p-4"><Loader2 className="animate-spin" /></div></CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><BookOpen/> Sample Chapter Management</CardTitle>
+                <CardDescription>Edit the content for the sample chapters shown on the homepage.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {chapters.map((chapter) => (
+                    <Card key={chapter.id}>
+                        <CardHeader>
+                            <CardTitle>Chapter {chapter.number}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor={`title-${chapter.id}`}>Title</Label>
+                                <Input id={`title-${chapter.id}`} value={chapter.title} onChange={e => handleChapterChange(chapter.id, 'title', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor={`content-${chapter.id}`}>Content</Label>
+                                <Textarea id={`content-${chapter.id}`} value={chapter.content} onChange={e => handleChapterChange(chapter.id, 'content', e.target.value)} rows={5} />
+                            </div>
+                             <div className="flex items-center space-x-2">
+                                <Switch id={`locked-${chapter.id}`} checked={chapter.locked} onCheckedChange={checked => handleChapterChange(chapter.id, 'locked', checked)} />
+                                <Label htmlFor={`locked-${chapter.id}`}>{chapter.locked ? 'Locked' : 'Unlocked'}</Label>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                             <Button onClick={() => handleSave(chapter)} disabled={isSaving}>
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                Save Chapter {chapter.number}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </CardContent>
+        </Card>
+    );
+}
+
+function GalleryManager() {
+    const { toast } = useToast();
+    const [images, setImages] = useState<GalleryImage[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [newItem, setNewItem] = useState({
+        type: 'image' as 'image' | 'text',
+        src: '',
+        alt: '',
+        aiHint: '',
+        content: '',
+        styles: {
+            textAlign: 'left' as 'left' | 'center' | 'right' | 'justify',
+            fontStyle: 'normal' as 'normal' | 'italic',
+            fontWeight: 'normal' as 'normal' | 'bold',
+            fontSize: '1rem'
+        }
+    });
+
+
+    const loadImages = async () => {
+         setIsLoading(true);
+        try {
+            let fetchedImages = await getGalleryImages();
+            if (fetchedImages.length === 0) {
+                await initializeGalleryImages();
+                fetchedImages = await getGalleryImages();
+            }
+            setImages(fetchedImages);
+        } catch (e) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load gallery images.' });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    
+    useEffect(() => {
+        loadImages();
+    }, [toast]);
+
+    const handleImageChange = (id: string, field: keyof GalleryImage, value: any) => {
+        setImages(prev => prev!.map(img => img.id === id ? { ...img, [field]: value } : img));
+    };
+
+    const handleStyleChange = (id: string, styleField: string, value: any) => {
+        setImages(prev => prev!.map(img => {
+            if (img.id === id) {
+                return { 
+                    ...img, 
+                    styles: { 
+                        ...img.styles, 
+                        [styleField]: value 
+                    } 
+                };
+            }
+            return img;
+        }));
+    };
+
+    const handleSave = async (image: GalleryImage) => {
+        setIsSaving(true);
+        try {
+            await updateGalleryImageAction(image);
+            toast({ title: 'Success', description: `Item updated.` });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: `Failed to update item.` });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    const handleDelete = async (id: string) => {
+        setIsSaving(true);
+        try {
+            await deleteGalleryImageAction(id);
+            toast({ title: 'Success', description: `Item deleted.` });
+            await loadImages();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: `Failed to delete item.` });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    const handleAddItem = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newItem.type === 'image' && !newItem.src) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Image URL is required.' });
+            return;
+        }
+        if (newItem.type === 'text' && !newItem.content) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Content is required for text pages.' });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const itemData: Omit<GalleryImage, 'id' | 'createdAt'> = {
+                type: newItem.type,
+                src: newItem.src,
+                alt: newItem.alt || 'Gallery Item',
+                content: newItem.content,
+                styles: newItem.styles,
+                locked: false,
+                aiHint: newItem.aiHint || (newItem.type === 'text' ? 'text page' : 'book page'),
+            }
+            await addGalleryImageAction(itemData);
+            toast({ title: 'Success', description: 'New item added.' });
+            setNewItem({
+                type: 'image',
+                src: '',
+                alt: '',
+                aiHint: '',
+                content: '',
+                styles: { textAlign: 'left', fontStyle: 'normal', fontWeight: 'normal', fontSize: '1rem' }
+            });
+            await loadImages();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to add new item.' });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+    
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+        
+        try {
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await res.json();
+            if(data.secure_url) {
+                setNewItem(prev => ({...prev, src: data.secure_url}));
+                toast({title: 'Success', description: 'Image uploaded. Save to add to gallery.'});
+            } else {
+                throw new Error(data.error.message);
+            }
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+        } finally {
+            setIsUploading(false);
+        }
+    }
+
+    if (isLoading || !images) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><GalleryHorizontal /> Gallery Management</CardTitle>
+                </CardHeader>
+                <CardContent><div className="flex justify-center items-center p-4"><Loader2 className="animate-spin" /></div></CardContent>
+            </Card>
+        )
+    }
+    
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><GalleryHorizontal /> Gallery Management</CardTitle>
+                <CardDescription>Manage the images and pages in the "A Look Inside" section.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button><PlusCircle className="mr-2 h-4 w-4"/> Add New Item</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Add to Gallery</DialogTitle>
+                            <DialogDescription>
+                                Add a new image or a text page to the visual journey.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleAddItem} className="space-y-4">
+                            <Tabs defaultValue="image" onValueChange={(v: any) => setNewItem(p => ({ ...p, type: v }))}>
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="image">Image</TabsTrigger>
+                                    <TabsTrigger value="text">Text Page</TabsTrigger>
+                                </TabsList>
+                                
+                                <TabsContent value="image" className="space-y-4 mt-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="new-image-src">Image URL</Label>
+                                        <div className="flex gap-2">
+                                             <Input id="new-image-src" value={newItem.src} onChange={e => setNewItem(p => ({...p, src: e.target.value}))} placeholder="https://..." />
+                                             <Button asChild variant="outline" size="icon">
+                                                <Label htmlFor="image-upload" className="cursor-pointer">
+                                                    {isUploading ? <Loader2 className="animate-spin" /> : <Upload className="h-4 w-4" />}
+                                                    <Input id="image-upload" type="file" className="sr-only" onChange={handleFileUpload} accept="image/*"/>
+                                                </Label>
+                                             </Button>
+                                        </div>
+                                        {newItem.src && <Image src={newItem.src} alt="Preview" width={100} height={150} className="rounded-md object-contain border mt-2"/>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="new-image-alt">Alt Text</Label>
+                                        <Input id="new-image-alt" value={newItem.alt} onChange={e => setNewItem(p => ({...p, alt: e.target.value}))} placeholder="Description"/>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="text" className="space-y-4 mt-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="new-content">Page Content</Label>
+                                        <Textarea id="new-content" value={newItem.content} onChange={e => setNewItem(p => ({...p, content: e.target.value}))} placeholder="Enter the text for the page..." rows={5}/>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Alignment</Label>
+                                            <Select value={newItem.styles.textAlign} onValueChange={(v: any) => setNewItem(p => ({...p, styles: {...p.styles, textAlign: v}}))}>
+                                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="left">Left</SelectItem>
+                                                    <SelectItem value="center">Center</SelectItem>
+                                                    <SelectItem value="right">Right</SelectItem>
+                                                    <SelectItem value="justify">Justify</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Style</Label>
+                                            <Select value={newItem.styles.fontStyle} onValueChange={(v: any) => setNewItem(p => ({...p, styles: {...p.styles, fontStyle: v}}))}>
+                                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="normal">Normal</SelectItem>
+                                                    <SelectItem value="italic">Italic</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+
+                             <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="submit" disabled={isSaving}>Add Item</Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {images.map(item => (
+                        <Card key={item.id}>
+                            <CardContent className="p-4 space-y-4">
+                                {item.type === 'text' ? (
+                                    <div className="aspect-[3/4] border rounded-md bg-[#FDFBF7] p-4 overflow-hidden shadow-inner flex flex-col justify-center text-black">
+                                        <p style={{
+                                            textAlign: item.styles?.textAlign,
+                                            fontStyle: item.styles?.fontStyle,
+                                            fontWeight: item.styles?.fontWeight,
+                                            fontSize: item.styles?.fontSize || '1rem', 
+                                        }} className="font-garamond line-clamp-6">
+                                            {item.content}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="aspect-[3/4] relative">
+                                        <Image src={item.src || ''} alt={item.alt || ''} fill className="rounded-md object-contain border bg-secondary/20"/>
+                                    </div>
+                                )}
+                                
+                                {item.type === 'image' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`src-${item.id}`}>Image URL</Label>
+                                        <Input id={`src-${item.id}`} value={item.src} onChange={e => handleImageChange(item.id, 'src', e.target.value)} />
+                                    </div>
+                                )}
+                                
+                                {item.type === 'text' && (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor={`content-${item.id}`}>Content</Label>
+                                            <Textarea id={`content-${item.id}`} value={item.content} onChange={e => handleImageChange(item.id, 'content', e.target.value)} rows={3}/>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Select value={item.styles?.textAlign || 'left'} onValueChange={v => handleStyleChange(item.id, 'textAlign', v)}>
+                                                <SelectTrigger className="h-8"><SelectValue placeholder="Align"/></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="left">Left</SelectItem>
+                                                    <SelectItem value="center">Center</SelectItem>
+                                                    <SelectItem value="right">Right</SelectItem>
+                                                    <SelectItem value="justify">Justify</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Select value={item.styles?.fontStyle || 'normal'} onValueChange={v => handleStyleChange(item.id, 'fontStyle', v)}>
+                                                <SelectTrigger className="h-8"><SelectValue placeholder="Style"/></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="normal">Normal</SelectItem>
+                                                    <SelectItem value="italic">Italic</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center space-x-2">
+                                    <Switch id={`locked-${item.id}`} checked={item.locked} onCheckedChange={checked => handleImageChange(item.id, 'locked', checked)} />
+                                    <Label htmlFor={`locked-${item.id}`}>{item.locked ? 'Locked' : 'Unlocked'}</Label>
+                                </div>
+                            </CardContent>
+                             <CardFooter className="flex justify-between">
+                                <Button size="sm" onClick={() => handleSave(item)} disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}
+                                </Button>
+                                 <Button size="sm" variant="destructive" onClick={() => handleDelete(item.id)} disabled={isSaving}>
+                                     <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 function DispatchDialog({ isOpen, onOpenChange, onSubmit, isSubmitting }: { isOpen: boolean, onOpenChange: (o: boolean) => void, onSubmit: (carrier: string, tracking: string) => void, isSubmitting: boolean }) {
     const [carrier, setCarrier] = useState('');
@@ -196,7 +960,25 @@ function DispatchDialog({ isOpen, onOpenChange, onSubmit, isSubmitting }: { isOp
     );
 }
 
-// ... rest of managers ...
+function BulkActions({ selectedCount, onAction }: { selectedCount: number; onAction: (status: OrderStatus) => void }) {
+    if (selectedCount === 0) return null;
+
+    return (
+        <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border my-4">
+            <p className="text-sm font-medium">{selectedCount} order{selectedCount > 1 ? 's' : ''} selected</p>
+            <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => onAction('dispatched')}> 
+                    <Send className="mr-2 h-4 w-4" />
+                    Mark as Dispatched
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => onAction('cancelled')}> 
+                     <Trash2 className="mr-2 h-4 w-4" />
+                    Cancel Selected
+                </Button>
+            </div>
+        </div>
+    );
+}
 
 export function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -208,13 +990,10 @@ export function AdminDashboard() {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
-  // Dispatch Dialog State
   const [dispatchDialogOpen, setDispatchDialogOpen] = useState(false);
   const [dispatchingOrder, setDispatchingOrder] = useState<{id: string, userId: string} | null>(null);
   const [isDispatching, setIsDispatching] = useState(false);
 
-  // ... handleLogin, loadOrders, etc ...
-  
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (passcode === process.env.NEXT_PUBLIC_ADMIN_PASSCODE) {
@@ -230,12 +1009,31 @@ export function AdminDashboard() {
         try {
             const fetchedOrders = await fetchOrdersAction();
             setOrders(fetchedOrders);
-            setSelectedOrders([]); // Clear selection on refresh
+            setSelectedOrders([]); 
         } catch(e: any) {
+            let description = "Failed to load orders. Please try again later.";
+            if (e.message && e.message.includes("indexes?create_composite")) {
+                 const urlMatch = e.message.match(/(https?:\/\/[^\s]+)/);
+                 if (urlMatch) {
+                    const firebaseUrl = urlMatch[0].replace(/\\\"/g, '');
+                    toast({
+                        variant: 'destructive',
+                        title: 'Database Index Required',
+                        description: (
+                            <div>
+                                A database index is required to fetch all orders. Please click the link to create it in the Firebase Console, then refresh this page.
+                                <a href={firebaseUrl} target="_blank" rel="noopener noreferrer" className="underline font-bold ml-2">Create Index</a>
+                            </div>
+                        ),
+                         duration: 30000,
+                    });
+                    return;
+                 }
+            }
              toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'Failed to load orders.',
+                description: description,
              });
         }
     });
@@ -248,7 +1046,14 @@ export function AdminDashboard() {
   }, [isAuthenticated]);
 
   const handleStatusChange = async (userId: string, orderId: string, newStatus: OrderStatus) => {
-    if (!userId) return;
+    if (!userId) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Cannot change status: User ID is missing for this order.'
+        });
+        return;
+    }
 
     if (newStatus === 'dispatched') {
         setDispatchingOrder({ id: orderId, userId });
@@ -290,13 +1095,7 @@ export function AdminDashboard() {
           setIsDispatching(false);
       }
   };
-  
-  // ... rest of handlers ...
 
-  // ... JSX ...
-
-  // Inside the return, add <DispatchDialog ... />
-  
     const handleSelectionChange = (orderId: string, checked: boolean) => {
         setSelectedOrders(prev => 
             checked ? [...prev, orderId] : prev.filter(id => id !== orderId)
@@ -337,18 +1136,16 @@ export function AdminDashboard() {
             return;
         }
 
-        // CSV Header
         const headers = ["Order ID", "Date", "Status", "Name", "Email", "Phone", "Address", "City", "State", "Country", "Pincode", "Variant", "Price", "Payment Method", "Discount Code"];
         
-        // CSV Rows
         const rows = orders.map(order => [
             order.id,
             new Date(order.createdAt).toISOString().split('T')[0],
             order.status,
-            `"${order.name}"`,
+            `"${order.name}"`, 
             order.email,
             order.phone,
-            `"${order.address.replace(/"/g, '""')}"`,
+            `"${order.address.replace(/"/g, '""')}"`, 
             order.city,
             order.state,
             order.country,
