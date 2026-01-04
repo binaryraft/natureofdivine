@@ -1,13 +1,12 @@
 
 'use client';
 
-import { useEffect, useState, useTransition, useMemo } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchAnalytics, trackEvent } from '@/lib/actions';
-import { AnalyticsData, TimeSeriesDataPoint } from '@/lib/definitions';
-import { Loader2, Users, ShoppingCart, BarChart, ExternalLink, ArrowRight, UserPlus, BookOpen, Star, Target, ChevronsRight, MousePointerClick, TrendingUp, IndianRupee, Calendar, MessageCircle } from 'lucide-react';
+import { fetchAnalytics } from '@/lib/actions';
+import { AnalyticsData } from '@/lib/definitions';
+import { Loader2, Users, ShoppingCart, BarChart, UserPlus, Star, Target, ChevronsRight, MousePointerClick, IndianRupee, Calendar, MessageCircle } from 'lucide-react';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Area, AreaChart, CartesianGrid } from 'recharts';
-import { sampleChapters } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function StatCard({ title, value, icon: Icon, description }: { title: string; value: string | number; icon: React.ElementType; description?: string }) {
@@ -125,86 +124,14 @@ type TimeRange = 'today' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 export function AnalyticsDashboard() {
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
     const [isPending, startTransition] = useTransition();
-    const [timeRange, setTimeRange] = useState<TimeRange>('today');
+    const [timeRange, setTimeRange] = useState<TimeRange>('daily');
 
     useEffect(() => {
         startTransition(async () => {
-            const data = await fetchAnalytics();
+            const data = await fetchAnalytics(timeRange);
             setAnalyticsData(data);
         });
-    }, []);
-
-    const { processedData, currentStats } = useMemo(() => {
-        if (!analyticsData) {
-            return { 
-                processedData: { visitors: [], sales: [], orders: [] },
-                currentStats: { visitors: 0, orders: 0, sales: 0 }
-            };
-        }
-
-        const { visitorsOverTime, salesOverTime, ordersOverTime, today, hourlyTraffic } = analyticsData;
-
-        if (timeRange === 'today') {
-            return {
-                processedData: {
-                    visitors: hourlyTraffic,
-                    sales: [], // Hourly sales not yet implemented
-                    orders: [] // Hourly orders not yet implemented
-                },
-                currentStats: today
-            };
-        }
-
-        const aggregate = (data: TimeSeriesDataPoint[]) => {
-            if (timeRange === 'daily') {
-                // Return last 30 days
-                return data.slice(-30);
-            }
-
-            const map = new Map<string, number>();
-
-            data.forEach(item => {
-                const date = new Date(item.date);
-                let key = '';
-
-                if (timeRange === 'weekly') {
-                    const d = new Date(date);
-                    const day = d.getDay();
-                    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                    const monday = new Date(d.setDate(diff));
-                    key = monday.toISOString().split('T')[0];
-                } else if (timeRange === 'monthly') {
-                    key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                } else if (timeRange === 'yearly') {
-                    key = `${date.getFullYear()}`;
-                }
-
-                map.set(key, (map.get(key) || 0) + item.value);
-            });
-
-            return Array.from(map.entries())
-                .map(([date, value]) => ({ date, value }))
-                .sort((a, b) => a.date.localeCompare(b.date));
-        };
-
-        const processedVisitors = aggregate(visitorsOverTime);
-        const processedSales = aggregate(salesOverTime);
-        const processedOrders = aggregate(ordersOverTime);
-
-        return {
-            processedData: {
-                visitors: processedVisitors,
-                sales: processedSales,
-                orders: processedOrders
-            },
-            currentStats: {
-                visitors: processedVisitors.reduce((acc, curr) => acc + curr.value, 0),
-                sales: processedSales.reduce((acc, curr) => acc + curr.value, 0),
-                orders: processedOrders.reduce((acc, curr) => acc + curr.value, 0)
-            }
-        };
-
-    }, [analyticsData, timeRange]);
+    }, [timeRange]);
 
     if (isPending || !analyticsData) {
         return (
@@ -218,7 +145,11 @@ export function AnalyticsDashboard() {
     const clickData = analyticsData.clicks ? Object.entries(analyticsData.clicks).map(([key, value]) => ({ name: key.replace('click_', '').replace(/_/g, ' ').replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase()), clicks: value })) : [];
     const chapterData = analyticsData.sampleChapters ? Object.entries(analyticsData.sampleChapters).map(([key, value]) => ({ name: `Ch. ${key}`, views: value })) : [];
 
+    // Calculate totals for display if needed, but backend filtered data should be used directly for stats
+    // Note: totalOrders is COD + Prepaid count
     const totalOrders = (analyticsData.orders?.cod || 0) + (analyticsData.orders?.prepaid || 0);
+    const totalRevenue = analyticsData.salesOverTime.reduce((acc, curr) => acc + curr.value, 0); // Sum up sales from the time series
+    
     const conversionRate = analyticsData.totalVisitors > 0 ? (totalOrders / analyticsData.totalVisitors) * 100 : 0;
     
     const amazonClicks = (analyticsData.clicks?.['click_buy_amazon_hero'] || 0) + (analyticsData.clicks?.['click_buy_amazon_footer'] || 0);
@@ -242,9 +173,9 @@ export function AnalyticsDashboard() {
                                 <SelectContent>
                                     <SelectItem value="today">Today</SelectItem>
                                     <SelectItem value="daily">Last 30 Days</SelectItem>
-                                    <SelectItem value="weekly">Weekly</SelectItem>
-                                    <SelectItem value="monthly">Monthly</SelectItem>
-                                    <SelectItem value="yearly">Yearly</SelectItem>
+                                    <SelectItem value="weekly">Last 12 Weeks</SelectItem>
+                                    <SelectItem value="monthly">Last 12 Months</SelectItem>
+                                    <SelectItem value="yearly">Last Year</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -253,31 +184,31 @@ export function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                <StatCard title="Visitors" value={currentStats.visitors} icon={Users} description={`Sessions (${timeRange})`} />
-                <StatCard title="Sales" value={currentStats.orders} icon={ShoppingCart} description={`Orders (${timeRange})`}/>
-                <StatCard title="Revenue" value={`₹${currentStats.sales}`} icon={IndianRupee} description={`Revenue (${timeRange})`}/>
-                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={Target} description="All-time Avg." />
-                <StatCard title="Community Visits" value={analyticsData.communityVisits || 0} icon={MessageCircle} description="All-time views"/>
+                <StatCard title="Visitors" value={analyticsData.totalVisitors} icon={Users} description={`Sessions (${timeRange})`} />
+                <StatCard title="Sales" value={totalOrders} icon={ShoppingCart} description={`Orders (${timeRange})`}/>
+                <StatCard title="Revenue" value={`₹${totalRevenue}`} icon={IndianRupee} description={`Revenue (${timeRange})`}/>
+                <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={Target} description="Avg. for period" />
+                <StatCard title="Community Visits" value={analyticsData.communityVisits || 0} icon={MessageCircle} description="Views in period"/>
             </div>
 
             {/* Time Series Charts */}
             <div className="grid gap-6 md:grid-cols-3">
                  <TimeSeriesChart 
-                    data={processedData.visitors}
+                    data={analyticsData.visitorsOverTime}
                     title="Visitors"
                     description={`Unique sessions (${timeRange}).`}
                     color="#8884d8"
                     yLabel="Visitors"
                 />
                  <TimeSeriesChart 
-                    data={processedData.orders}
+                    data={analyticsData.ordersOverTime}
                     title="Orders"
                     description={`Confirmed orders (${timeRange}).`}
                     color="#82ca9d"
                     yLabel="Orders"
                 />
                  <TimeSeriesChart 
-                    data={processedData.sales}
+                    data={analyticsData.salesOverTime}
                     title="Revenue"
                     description={`Sales revenue (${timeRange}).`}
                     color="#ffc658"
@@ -290,7 +221,7 @@ export function AnalyticsDashboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Sales Funnel (Signed Copies)</CardTitle>
-                        <CardDescription>How users progress from visit to a direct sale.</CardDescription>
+                        <CardDescription>User progression for the selected period.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-around gap-2 md:gap-4 flex-wrap">
                         <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users}/>
@@ -303,7 +234,7 @@ export function AnalyticsDashboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Outbound Traffic</CardTitle>
-                        <CardDescription>Where users go after visiting the site.</CardDescription>
+                        <CardDescription>Clicks to external stores in this period.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-around gap-2 md:gap-4 flex-wrap">
                        <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users}/>
@@ -328,7 +259,7 @@ export function AnalyticsDashboard() {
                     xKey="name"
                     yKey="clicks"
                     title="Button Clicks"
-                    description="Clicks on major call-to-action buttons across the site."
+                    description="Clicks on major call-to-action buttons."
                 />
                  <SimpleBarChart 
                     data={chapterData}

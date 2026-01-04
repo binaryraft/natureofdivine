@@ -26,27 +26,77 @@ export async function addEvent(type: string, metadata?: Record<string, any>): Pr
     }
 }
 
-export async function getAnalytics(): Promise<AnalyticsData> {
+export async function getAnalytics(timeRange: 'today' | 'daily' | 'weekly' | 'monthly' | 'yearly' = 'daily'): Promise<AnalyticsData> {
     try {
-        const eventsSnapshot = await getDocs(query(eventsCollection, orderBy('timestamp', 'asc')));
-        const events = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AnalyticsEvent));
-        const reviews = await getReviews();
-        const orders = await getOrders();
-
-        // Initialize last 365 days map for Daily/Weekly/Monthly/Yearly views
-        const timeSeriesMap: Record<string, { visitors: number, sales: number, orders: number }> = {};
         const now = new Date();
-        
-        for (let i = 365; i >= 0; i--) {
-            const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-            const dateStr = d.toISOString().split('T')[0];
-            timeSeriesMap[dateStr] = { visitors: 0, sales: 0, orders: 0 };
+        let startDate = new Date();
+        let granularity: 'hour' | 'day' | 'week' | 'month' = 'day';
+
+        // Determine Start Date & Granularity
+        switch (timeRange) {
+            case 'today':
+                startDate.setHours(0, 0, 0, 0);
+                granularity = 'hour';
+                break;
+            case 'daily': // Last 30 Days
+                startDate.setDate(now.getDate() - 30);
+                granularity = 'day';
+                break;
+            case 'weekly': // Last 12 Weeks
+                startDate.setDate(now.getDate() - 84);
+                granularity = 'week';
+                break;
+            case 'monthly': // Last 12 Months
+            case 'yearly':  // Last Year (Same for now)
+                startDate.setFullYear(now.getFullYear() - 1);
+                granularity = 'month';
+                break;
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        const hourlyTrafficMap: Record<string, number> = {};
-        for(let i=0; i<24; i++) {
-            hourlyTrafficMap[i.toString()] = 0;
+        const startTimestamp = startDate.getTime();
+
+        const eventsSnapshot = await getDocs(query(eventsCollection, orderBy('timestamp', 'asc')));
+        // Filter events by date range
+        const events = eventsSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as AnalyticsEvent))
+            .filter(e => e.timestamp >= startTimestamp);
+
+        const reviews = await getReviews(); // Reviews might be all-time or filtered? Usually ratings are all-time. Let's keep all-time for rating avg, but count could be filtered. Let's keep reviews all-time for now as it's "Avg Rating".
+        const allOrders = await getOrders();
+        // Filter orders by date range
+        const orders = allOrders.filter(o => o.createdAt >= startTimestamp);
+
+        // Initialize Buckets
+        const timeSeriesMap: Record<string, { visitors: number, sales: number, orders: number }> = {};
+        
+        // Helper to generate keys
+        const getKey = (date: Date): string => {
+            if (granularity === 'hour') return `${date.getHours().toString().padStart(2, '0')}:00`;
+            if (granularity === 'day') return date.toISOString().split('T')[0];
+            if (granularity === 'week') {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(d.setDate(diff));
+                return monday.toISOString().split('T')[0];
+            }
+            if (granularity === 'month') return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            return date.toISOString().split('T')[0];
+        };
+
+        // Initialize map with empty buckets to ensure continuity (optional but good for charts)
+        // For 'today', fill 0-23 hours. For others, maybe just let data drive or fill gaps. 
+        // Filling gaps is safer for charts.
+        let iterateDate = new Date(startDate);
+        while (iterateDate <= now) {
+            timeSeriesMap[getKey(iterateDate)] = { visitors: 0, sales: 0, orders: 0 };
+            
+            // Increment logic
+            if (granularity === 'hour') iterateDate.setHours(iterateDate.getHours() + 1);
+            else if (granularity === 'day') iterateDate.setDate(iterateDate.getDate() + 1);
+            else if (granularity === 'week') iterateDate.setDate(iterateDate.getDate() + 7);
+            else if (granularity === 'month') iterateDate.setMonth(iterateDate.getMonth() + 1);
+            else iterateDate.setDate(iterateDate.getDate() + 1);
         }
 
         const analytics: AnalyticsData = {
@@ -66,11 +116,7 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                 signup: 0,
             },
             communityVisits: 0,
-            today: {
-                visitors: 0,
-                sales: 0,
-                orders: 0
-            },
+            today: { visitors: 0, sales: 0, orders: 0 }, // Not strictly used if we return filtered data, but kept for type compat
             hourlyTraffic: [],
             sampleChapters: sampleChapters.reduce((acc, chap) => ({ ...acc, [chap.number]: 0 }), {}),
             reviews: {
@@ -87,8 +133,7 @@ export async function getAnalytics(): Promise<AnalyticsData> {
 
         for (const event of events) {
             const date = new Date(event.timestamp);
-            const dateStr = date.toISOString().split('T')[0];
-            const hour = date.getHours().toString();
+            const key = getKey(date);
 
             // Clicks
             if (event.type.startsWith('click_')) {
@@ -96,6 +141,7 @@ export async function getAnalytics(): Promise<AnalyticsData> {
             }
             // Page Views
             if (event.type.startsWith('page_view_')) {
+                // Total unique visitors in this period
                 if (event.metadata?.sessionId && !uniqueVisitors.has(event.metadata.sessionId)) {
                     analytics.totalVisitors += 1;
                     uniqueVisitors.add(event.metadata.sessionId);
@@ -103,17 +149,11 @@ export async function getAnalytics(): Promise<AnalyticsData> {
                 
                 // Time Series Visitors
                 if (event.metadata?.sessionId) {
-                    // Only count if within our 365 day window
-                    if (timeSeriesMap[dateStr]) {
-                         const key = `${dateStr}:${event.metadata.sessionId}`;
-                         if (!visitorSessionsByDate.has(key)) {
-                             timeSeriesMap[dateStr].visitors++;
-                             visitorSessionsByDate.add(key);
-                             
-                             if (dateStr === todayStr) {
-                                 analytics.today.visitors++;
-                                 hourlyTrafficMap[hour] = (hourlyTrafficMap[hour] || 0) + 1;
-                             }
+                    if (timeSeriesMap[key]) {
+                         const sessionKey = `${key}:${event.metadata.sessionId}`;
+                         if (!visitorSessionsByDate.has(sessionKey)) {
+                             timeSeriesMap[key].visitors++;
+                             visitorSessionsByDate.add(sessionKey);
                          }
                     }
                 }
@@ -151,15 +191,12 @@ export async function getAnalytics(): Promise<AnalyticsData> {
              // Consider only valid sales for revenue
              if (order.status === 'cancelled' || order.status === 'pending') continue;
 
-             const dateStr = new Date(order.createdAt).toISOString().split('T')[0];
-             if (timeSeriesMap[dateStr]) {
-                 timeSeriesMap[dateStr].orders++;
-                 timeSeriesMap[dateStr].sales += order.price;
-             }
+             const date = new Date(order.createdAt);
+             const key = getKey(date);
              
-             if (dateStr === todayStr) {
-                 analytics.today.orders++;
-                 analytics.today.sales += order.price;
+             if (timeSeriesMap[key]) {
+                 timeSeriesMap[key].orders++;
+                 timeSeriesMap[key].sales += order.price;
              }
         }
 
@@ -168,10 +205,15 @@ export async function getAnalytics(): Promise<AnalyticsData> {
         analytics.salesOverTime = dates.map(date => ({ date, value: timeSeriesMap[date].sales }));
         analytics.ordersOverTime = dates.map(date => ({ date, value: timeSeriesMap[date].orders }));
         
-        analytics.hourlyTraffic = Object.keys(hourlyTrafficMap).sort((a,b) => parseInt(a) - parseInt(b)).map(hour => ({
-            date: `${hour}:00`,
-            value: hourlyTrafficMap[hour]
-        }));
+        // For 'today', we can just map the hourly buckets to hourlyTraffic for backward compat or specialized UI
+        if (timeRange === 'today') {
+             analytics.hourlyTraffic = analytics.visitorsOverTime;
+             analytics.today = {
+                 visitors: analytics.totalVisitors,
+                 sales: analytics.salesOverTime.reduce((a, b) => a + b.value, 0),
+                 orders: analytics.ordersOverTime.reduce((a, b) => a + b.value, 0)
+             };
+        }
 
         return analytics;
     } catch (error: any) {
