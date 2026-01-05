@@ -29,11 +29,9 @@ function StarRating({ rating, totalReviews }: { rating: number, totalReviews: nu
   if (totalReviews === 0) return null;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.5 }}
-      className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10"
+    <div 
+      className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 animate-in fade-in slide-in-from-left-4 duration-500 delay-500 fill-mode-forwards opacity-0"
+      style={{ animationFillMode: 'forwards' }}
     >
       <div className="flex items-center gap-0.5">
         {[...Array(5)].map((_, i) => (
@@ -43,7 +41,7 @@ function StarRating({ rating, totalReviews }: { rating: number, totalReviews: nu
       <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
         {rating.toFixed(1)} ({totalReviews} reviews)
       </span>
-    </motion.div>
+    </div>
   );
 }
 

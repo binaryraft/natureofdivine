@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, updateGalleryImageAction, addGalleryImageAction, deleteGalleryImageAction, getSettingsAction, updateSettingsAction, dispatchOrderAction } from '@/lib/actions';
-import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData, SampleChapter, GalleryImage, SiteSettings } from '@/lib/definitions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, getSettingsAction, updateSettingsAction, dispatchOrderAction } from '@/lib/actions';
+import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData, SampleChapter, SiteSettings } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,6 @@ import { getChapters, initializeChapters } from '@/lib/chapter-store';
 import { sampleChapters as defaultChapters } from '@/lib/data';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { getGalleryImages, initializeGalleryImages } from '@/lib/gallery-store';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
@@ -599,332 +598,6 @@ function ChapterManager() {
     );
 }
 
-function GalleryManager() {
-    const { toast } = useToast();
-    const [images, setImages] = useState<GalleryImage[] | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const [newItem, setNewItem] = useState({
-        type: 'image' as 'image' | 'text',
-        src: '',
-        alt: '',
-        aiHint: '',
-        content: '',
-        styles: {
-            textAlign: 'left' as 'left' | 'center' | 'right' | 'justify',
-            fontStyle: 'normal' as 'normal' | 'italic',
-            fontWeight: 'normal' as 'normal' | 'bold',
-            fontSize: '1rem'
-        }
-    });
-
-
-    const loadImages = async () => {
-         setIsLoading(true);
-        try {
-            let fetchedImages = await getGalleryImages();
-            if (fetchedImages.length === 0) {
-                await initializeGalleryImages();
-                fetchedImages = await getGalleryImages();
-            }
-            setImages(fetchedImages);
-        } catch (e) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load gallery images.' });
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    
-    useEffect(() => {
-        loadImages();
-    }, [toast]);
-
-    const handleImageChange = (id: string, field: keyof GalleryImage, value: any) => {
-        setImages(prev => prev!.map(img => img.id === id ? { ...img, [field]: value } : img));
-    };
-
-    const handleStyleChange = (id: string, styleField: string, value: any) => {
-        setImages(prev => prev!.map(img => {
-            if (img.id === id) {
-                return { 
-                    ...img, 
-                    styles: { 
-                        ...img.styles, 
-                        [styleField]: value 
-                    } 
-                };
-            }
-            return img;
-        }));
-    };
-
-    const handleSave = async (image: GalleryImage) => {
-        setIsSaving(true);
-        try {
-            await updateGalleryImageAction(image);
-            toast({ title: 'Success', description: `Item updated.` });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: `Failed to update item.` });
-        } finally {
-            setIsSaving(false);
-        }
-    };
-    
-    const handleDelete = async (id: string) => {
-        setIsSaving(true);
-        try {
-            await deleteGalleryImageAction(id);
-            toast({ title: 'Success', description: `Item deleted.` });
-            await loadImages();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: `Failed to delete item.` });
-        } finally {
-            setIsSaving(false);
-        }
-    }
-
-    const handleAddItem = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newItem.type === 'image' && !newItem.src) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Image URL is required.' });
-            return;
-        }
-        if (newItem.type === 'text' && !newItem.content) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Content is required for text pages.' });
-            return;
-        }
-
-        setIsSaving(true);
-        try {
-            const itemData: Omit<GalleryImage, 'id' | 'createdAt'> = {
-                type: newItem.type,
-                src: newItem.src,
-                alt: newItem.alt || 'Gallery Item',
-                content: newItem.content,
-                styles: newItem.styles,
-                locked: false,
-                aiHint: newItem.aiHint || (newItem.type === 'text' ? 'text page' : 'book page'),
-            }
-            await addGalleryImageAction(itemData);
-            toast({ title: 'Success', description: 'New item added.' });
-            setNewItem({
-                type: 'image',
-                src: '',
-                alt: '',
-                aiHint: '',
-                content: '',
-                styles: { textAlign: 'left', fontStyle: 'normal', fontWeight: 'normal', fontSize: '1rem' }
-            });
-            await loadImages();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to add new item.' });
-        } finally {
-            setIsSaving(false);
-        }
-    }
-    
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-        
-        try {
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-                method: 'POST',
-                body: formData,
-            });
-            const data = await res.json();
-            if(data.secure_url) {
-                setNewItem(prev => ({...prev, src: data.secure_url}));
-                toast({title: 'Success', description: 'Image uploaded. Save to add to gallery.'});
-            } else {
-                throw new Error(data.error.message);
-            }
-        } catch (error: any) {
-             toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
-        } finally {
-            setIsUploading(false);
-        }
-    }
-
-    if (isLoading || !images) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><GalleryHorizontal /> Gallery Management</CardTitle>
-                </CardHeader>
-                <CardContent><div className="flex justify-center items-center p-4"><Loader2 className="animate-spin" /></div></CardContent>
-            </Card>
-        )
-    }
-    
-    return (
-         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><GalleryHorizontal /> Gallery Management</CardTitle>
-                <CardDescription>Manage the images and pages in the "A Look Inside" section.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button><PlusCircle className="mr-2 h-4 w-4"/> Add New Item</Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                            <DialogTitle>Add to Gallery</DialogTitle>
-                            <DialogDescription>
-                                Add a new image or a text page to the visual journey.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleAddItem} className="space-y-4">
-                            <Tabs defaultValue="image" onValueChange={(v: any) => setNewItem(p => ({ ...p, type: v }))}>
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="image">Image</TabsTrigger>
-                                    <TabsTrigger value="text">Text Page</TabsTrigger>
-                                </TabsList>
-                                
-                                <TabsContent value="image" className="space-y-4 mt-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="new-image-src">Image URL</Label>
-                                        <div className="flex gap-2">
-                                             <Input id="new-image-src" value={newItem.src} onChange={e => setNewItem(p => ({...p, src: e.target.value}))} placeholder="https://..." />
-                                             <Button asChild variant="outline" size="icon">
-                                                <Label htmlFor="image-upload" className="cursor-pointer">
-                                                    {isUploading ? <Loader2 className="animate-spin" /> : <Upload className="h-4 w-4" />}
-                                                    <Input id="image-upload" type="file" className="sr-only" onChange={handleFileUpload} accept="image/*"/>
-                                                </Label>
-                                             </Button>
-                                        </div>
-                                        {newItem.src && <Image src={newItem.src} alt="Preview" width={100} height={150} className="rounded-md object-contain border mt-2"/>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="new-image-alt">Alt Text</Label>
-                                        <Input id="new-image-alt" value={newItem.alt} onChange={e => setNewItem(p => ({...p, alt: e.target.value}))} placeholder="Description"/>
-                                    </div>
-                                </TabsContent>
-
-                                <TabsContent value="text" className="space-y-4 mt-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="new-content">Page Content</Label>
-                                        <Textarea id="new-content" value={newItem.content} onChange={e => setNewItem(p => ({...p, content: e.target.value}))} placeholder="Enter the text for the page..." rows={5}/>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Alignment</Label>
-                                            <Select value={newItem.styles.textAlign} onValueChange={(v: any) => setNewItem(p => ({...p, styles: {...p.styles, textAlign: v}}))}>
-                                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="left">Left</SelectItem>
-                                                    <SelectItem value="center">Center</SelectItem>
-                                                    <SelectItem value="right">Right</SelectItem>
-                                                    <SelectItem value="justify">Justify</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Style</Label>
-                                            <Select value={newItem.styles.fontStyle} onValueChange={(v: any) => setNewItem(p => ({...p, styles: {...p.styles, fontStyle: v}}))}>
-                                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="normal">Normal</SelectItem>
-                                                    <SelectItem value="italic">Italic</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                </TabsContent>
-                            </Tabs>
-
-                             <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button type="submit" disabled={isSaving}>Add Item</Button>
-                                </DialogClose>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {images.map(item => (
-                        <Card key={item.id}>
-                            <CardContent className="p-4 space-y-4">
-                                {item.type === 'text' ? (
-                                    <div className="aspect-[3/4] border rounded-md bg-[#FDFBF7] p-4 overflow-hidden shadow-inner flex flex-col justify-center text-black">
-                                        <p style={{
-                                            textAlign: item.styles?.textAlign,
-                                            fontStyle: item.styles?.fontStyle,
-                                            fontWeight: item.styles?.fontWeight,
-                                            fontSize: item.styles?.fontSize || '1rem', 
-                                        }} className="font-garamond line-clamp-6">
-                                            {item.content}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="aspect-[3/4] relative">
-                                        <Image src={item.src || ''} alt={item.alt || ''} fill className="rounded-md object-contain border bg-secondary/20"/>
-                                    </div>
-                                )}
-                                
-                                {item.type === 'image' && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor={`src-${item.id}`}>Image URL</Label>
-                                        <Input id={`src-${item.id}`} value={item.src} onChange={e => handleImageChange(item.id, 'src', e.target.value)} />
-                                    </div>
-                                )}
-                                
-                                {item.type === 'text' && (
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor={`content-${item.id}`}>Content</Label>
-                                            <Textarea id={`content-${item.id}`} value={item.content} onChange={e => handleImageChange(item.id, 'content', e.target.value)} rows={3}/>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Select value={item.styles?.textAlign || 'left'} onValueChange={v => handleStyleChange(item.id, 'textAlign', v)}>
-                                                <SelectTrigger className="h-8"><SelectValue placeholder="Align"/></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="left">Left</SelectItem>
-                                                    <SelectItem value="center">Center</SelectItem>
-                                                    <SelectItem value="right">Right</SelectItem>
-                                                    <SelectItem value="justify">Justify</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <Select value={item.styles?.fontStyle || 'normal'} onValueChange={v => handleStyleChange(item.id, 'fontStyle', v)}>
-                                                <SelectTrigger className="h-8"><SelectValue placeholder="Style"/></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="normal">Normal</SelectItem>
-                                                    <SelectItem value="italic">Italic</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center space-x-2">
-                                    <Switch id={`locked-${item.id}`} checked={item.locked} onCheckedChange={checked => handleImageChange(item.id, 'locked', checked)} />
-                                    <Label htmlFor={`locked-${item.id}`}>{item.locked ? 'Locked' : 'Unlocked'}</Label>
-                                </div>
-                            </CardContent>
-                             <CardFooter className="flex justify-between">
-                                <Button size="sm" onClick={() => handleSave(item)} disabled={isSaving}>
-                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}
-                                </Button>
-                                 <Button size="sm" variant="destructive" onClick={() => handleDelete(item.id)} disabled={isSaving}>
-                                     <Trash2 className="h-4 w-4"/>
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
 function DispatchDialog({ isOpen, onOpenChange, onSubmit, isSubmitting }: { isOpen: boolean, onOpenChange: (o: boolean) => void, onSubmit: (carrier: string, tracking: string) => void, isSubmitting: boolean }) {
     const [carrier, setCarrier] = useState('');
     const [tracking, setTracking] = useState('');
@@ -1213,13 +886,12 @@ export function AdminDashboard() {
             isSubmitting={isDispatching}
         />
         <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-10 overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-9 overflow-x-auto">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
                 <TabsTrigger value="users">Users</TabsTrigger>
                 <TabsTrigger value="community">Community</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="chapters">Chapters</TabsTrigger>
-                <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="stock">Stock</TabsTrigger>
                 <TabsTrigger value="discounts">Discounts</TabsTrigger>
                 <TabsTrigger value="pricing">Pricing</TabsTrigger>
@@ -1291,9 +963,6 @@ export function AdminDashboard() {
             </TabsContent>
             <TabsContent value="chapters" className="mt-6">
                 <ChapterManager />
-            </TabsContent>
-             <TabsContent value="gallery" className="mt-6">
-                <GalleryManager />
             </TabsContent>
             <TabsContent value="stock" className="mt-6">
                 <StockManager />
