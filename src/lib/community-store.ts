@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, updateDoc, doc, arrayUnion, arrayRemove, query, orderBy, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, doc, arrayUnion, arrayRemove, query, orderBy, getDoc, Timestamp, where } from 'firebase/firestore';
 import { addLog } from './log-store';
 import { revalidatePath } from 'next/cache';
 
@@ -55,18 +55,25 @@ export async function addPost(userId: string, userName: string, title: string, c
             isVerified: options.isVerified || false,
             coverImage: options.coverImage
         };
-        await addDoc(postsCollection, newPost);
+        const docRef = await addDoc(postsCollection, newPost);
         revalidatePath('/community');
-        return { success: true, message: 'Post created successfully.' };
+        revalidatePath('/blogs');
+        return { success: true, message: 'Post created successfully.', id: docRef.id };
     } catch (error: any) {
         await addLog('error', 'addPost failed', { error: error.message });
         return { success: false, message: 'Failed to create post.' };
     }
 }
 
-export async function getPosts(): Promise<Post[]> {
+export async function getPosts(type?: PostType): Promise<Post[]> {
     try {
-        const q = query(postsCollection, orderBy('createdAt', 'desc'));
+        let q;
+        if (type) {
+            q = query(postsCollection, where('type', '==', type), orderBy('createdAt', 'desc'));
+        } else {
+             q = query(postsCollection, orderBy('createdAt', 'desc'));
+        }
+       
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({
             id: doc.id,

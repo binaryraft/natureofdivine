@@ -464,7 +464,13 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {physicalVariants.map(variant => {
                                         if (variant === 'ebook') return null;
-                                        const isAvailable = isTestMode || stock[variant] > 0;
+                                        
+                                        // Explicitly check stock for the specific variant
+                                        // If stock is undefined (loading), default to available to avoid flickering disabled state, 
+                                        // but the main loading skeleton handles the initial load.
+                                        const currentStock = stock ? stock[variant] : 0;
+                                        const isAvailable = isTestMode || currentStock > 0;
+                                        
                                         const { name, icon: Icon, description } = variantDetails[variant];
 
                                         return (
@@ -472,14 +478,20 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                                                 key={variant}
                                                 onClick={() => isAvailable && handleVariantSelect(variant)}
                                                 className={cn(
-                                                    "rounded-lg border-2 p-6 cursor-pointer transition-all flex flex-col items-center justify-center text-center group hover:border-primary hover:shadow-xl",
-                                                    !isAvailable && "opacity-50 cursor-not-allowed bg-muted/50 hover:border-border hover:shadow-none"
+                                                    "rounded-lg border-2 p-6 transition-all flex flex-col items-center justify-center text-center group",
+                                                    isAvailable 
+                                                        ? "cursor-pointer hover:border-primary hover:shadow-xl" 
+                                                        : "opacity-50 cursor-not-allowed bg-muted/50 border-muted hover:border-muted hover:shadow-none"
                                                 )}
                                             >
-                                                <Icon className="h-12 w-12 mb-3 text-primary transition-transform group-hover:scale-110" />
+                                                <Icon className={cn("h-12 w-12 mb-3 transition-transform", isAvailable ? "text-primary group-hover:scale-110" : "text-muted-foreground")} />
                                                 <p className="font-bold text-xl font-headline">{name}</p>
                                                 <p className="text-muted-foreground text-sm mb-3">{description}</p>
-                                                {!isAvailable && <p className="text-destructive font-medium mt-2 text-sm">Out of Stock</p>}
+                                                {!isAvailable ? (
+                                                    <p className="text-destructive font-medium mt-2 text-sm bg-destructive/10 px-3 py-1 rounded-full">Out of Stock</p>
+                                                ) : (
+                                                     <p className="text-green-600 font-medium mt-2 text-sm bg-green-100 px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">In Stock</p>
+                                                )}
                                             </div>
                                         );
                                     })}

@@ -24,7 +24,6 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
     const [posts, setPosts] = useState<Post[]>(initialPosts);
     const [sort, setSort] = useState<'top' | 'newest'>('top');
     const [search, setSearch] = useState('');
-    const [activeTab, setActiveTab] = useState<'questions' | 'articles'>('questions');
     
     // New Post State
     const [newPostOpen, setNewPostOpen] = useState(false);
@@ -39,8 +38,7 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
     const filteredPosts = posts
         .filter(p => {
             const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.content.toLowerCase().includes(search.toLowerCase());
-            const matchesTab = activeTab === 'articles' ? p.type === 'article' : (p.type === 'question' || !p.type);
-            return matchesSearch && matchesTab;
+            return matchesSearch;
         })
         .sort((a, b) => {
             if (sort === 'top') {
@@ -104,8 +102,8 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
         <div className="container mx-auto py-8 md:py-12 max-w-4xl space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-headline flex items-center gap-2"><MessageCircle className="h-8 w-8 text-primary"/> Community & Blog</h1>
-                    <p className="text-muted-foreground">Explore spiritual insights, ask questions, and connect.</p>
+                    <h1 className="text-3xl font-headline flex items-center gap-2"><MessageCircle className="h-8 w-8 text-primary"/> Community Forum</h1>
+                    <p className="text-muted-foreground">Ask questions, share insights, and connect with others.</p>
                 </div>
                 <Dialog open={newPostOpen} onOpenChange={setNewPostOpen}>
                     <DialogTrigger asChild>
@@ -140,38 +138,12 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                 </Dialog>
             </div>
 
-            {/* Tabs */}
-            <div className="flex space-x-1 rounded-xl bg-muted p-1">
-                <button
-                    onClick={() => setActiveTab('questions')}
-                    className={cn(
-                        'w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                        activeTab === 'questions'
-                            ? 'bg-background shadow text-foreground'
-                            : 'text-muted-foreground hover:bg-white/[0.12] hover:text-foreground'
-                    )}
-                >
-                    Discussions
-                </button>
-                <button
-                    onClick={() => setActiveTab('articles')}
-                    className={cn(
-                        'w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                        activeTab === 'articles'
-                            ? 'bg-background shadow text-foreground'
-                            : 'text-muted-foreground hover:bg-white/[0.12] hover:text-foreground'
-                    )}
-                >
-                    Articles & Insights
-                </button>
-            </div>
-
             <div className="flex flex-col sm:flex-row gap-4 items-center bg-muted/30 p-4 rounded-lg border">
                 <div className="relative w-full sm:w-auto flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
-                        placeholder={activeTab === 'articles' ? "Search articles..." : "Search discussions..."}
+                        placeholder="Search discussions..."
                         className="pl-8 bg-background"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -195,14 +167,14 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                 {filteredPosts.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                         <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p className="mb-4">{activeTab === 'articles' ? "No articles found yet." : "No questions found. Be the first to ask!"}</p>
+                        <p className="mb-4">No questions found. Be the first to ask!</p>
                         <Button 
                             variant="outline" 
                             onClick={async () => {
                                 setIsPosting(true);
                                 try {
                                     await fetch('/api/seed-content');
-                                    toast({ title: "Content Loaded", description: "Recommended topics have been added." });
+                                    toast({ title: "Content Loaded", description: "Discussion topics have been added." });
                                     window.location.reload();
                                 } catch (e) {
                                     toast({ variant: "destructive", title: "Error", description: "Failed to load content." });
@@ -213,20 +185,16 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                             disabled={isPosting}
                         >
                             {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4"/>}
-                            Load Recommended Topics
+                            Load Topics
                         </Button>
                     </div>
                 ) : (
                     filteredPosts.map(post => {
                         const isLiked = user ? post.likes.includes(user.uid) : false;
-                        const isArticle = post.type === 'article';
                         
                         return (
                             <Link href={`/community/${post.id}`} key={post.id} className="block group">
-                                <Card className={cn("transition-all hover:border-primary/50 hover:shadow-md cursor-pointer overflow-hidden", isArticle ? "border-l-4 border-l-primary" : "")}>
-                                    {isArticle && post.coverImage && (
-                                        <div className="h-48 w-full bg-cover bg-center" style={{ backgroundImage: `url(${post.coverImage})` }} />
-                                    )}
+                                <Card className="transition-all hover:border-primary/50 hover:shadow-md cursor-pointer overflow-hidden">
                                     <CardHeader className="pb-3">
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="space-y-1">
@@ -267,12 +235,11 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                                     </CardHeader>
                                     <CardContent>
                                         <p className="whitespace-pre-wrap text-sm leading-relaxed line-clamp-3 text-muted-foreground">
-                                            {/* Strip markdown for preview if needed, or just show raw text truncated */}
                                             {post.content.replace(/[#*`_\[\]]/g, '')}
                                         </p>
                                         <div className="mt-4 pt-4 border-t flex items-center text-sm text-muted-foreground">
                                             <MessageCircle className="h-4 w-4 mr-2"/> 
-                                            {post.answers.length} {isArticle ? 'Comments' : (post.answers.length !== 1 ? 'Answers' : 'Answer')}
+                                            {post.answers.length} {post.answers.length !== 1 ? 'Answers' : 'Answer'}
                                         </div>
                                     </CardContent>
                                 </Card>
