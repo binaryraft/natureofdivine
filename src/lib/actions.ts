@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
-import { BookVariant, OrderStatus, Review, Order, SampleChapter } from './definitions';
+import { BookVariant, OrderStatus, Review, Order, SampleChapter, GalleryImage } from './definitions';
 import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,6 +19,9 @@ import { getPriceForCountry } from './pricing-store';
 import { getShippingRates as getEnviaShippingRates } from './envia-service';
 import { getSettings, updateSettings } from './settings-store';
 import { SiteSettings } from './definitions';
+import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost } from './blog-store';
+import { addPost as addCommunityPost, addAnswer as addCommunityAnswer } from './community-store';
+import { seedBlogPosts, seedCommunityPosts, spiritualBots } from './seed-data';
 
 
 cloudinary.config({
@@ -517,4 +520,87 @@ export async function getSettingsAction(): Promise<SiteSettings> {
 
 export async function updateSettingsAction(settings: Partial<SiteSettings>) {
     await updateSettings(settings);
+}
+
+// --- BLOG ACTIONS ---
+
+export async function fetchBlogPostsAction(onlyPublished = true): Promise<BlogPost[]> {
+  return await getBlogPosts(onlyPublished);
+}
+
+export async function createBlogPostAction(postData: any) {
+  const result = await addBlogPost(postData);
+  revalidatePath('/blogs');
+  revalidatePath('/admin');
+  return result;
+}
+
+export async function updateBlogPostAction(post: BlogPost) {
+  const result = await updateBlogPost(post);
+  revalidatePath('/blogs');
+  revalidatePath('/admin');
+  return result;
+}
+
+export async function deleteBlogPostAction(id: string) {
+  const result = await deleteBlogPost(id);
+  revalidatePath('/blogs');
+  revalidatePath('/admin');
+  return result;
+}
+
+// --- SEED CONTENT ACTION ---
+
+export async function seedContentAction() {
+  try {
+    await addLog('info', 'Starting content seeding...');
+
+    // 1. Seed Blogs
+    const existingBlogs = await getBlogPosts(false);
+    let blogsAdded = 0;
+    
+    for (const seedPost of seedBlogPosts) {
+      // Check if title exists roughly to avoid heavy dups, or just add new ones
+      const exists = existingBlogs.some(b => b.slug === seedPost.slug);
+      if (!exists) {
+        await addBlogPost({
+          ...seedPost,
+          published: true,
+          image: seedPost.image, 
+        });
+        blogsAdded++;
+      }
+    }
+
+    // 2. Seed Community Posts
+    // We don't have a getPosts helper easily available here without importing from store, 
+    // but we can just add. 
+    let postsAdded = 0;
+    for (const seedCP of seedCommunityPosts) {
+        // Random user for the question
+        const questionUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
+        const result = await addCommunityPost(`seed-user-${uuidv4()}`, questionUser.name, seedCP.title, seedCP.content);
+        
+        if (result.success && result.postId) {
+            postsAdded++;
+            // Add answers
+            for (const answerText of seedCP.answers) {
+                const answerUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
+                // Ensure answer user is different if possible, but random is fine for seed
+                await addCommunityAnswer(result.postId, `seed-user-${uuidv4()}`, answerUser.name, answerText);
+            }
+        }
+    }
+
+    await addLog('info', 'Content seeding completed', { blogsAdded, postsAdded });
+    revalidatePath('/');
+    revalidatePath('/blogs');
+    revalidatePath('/community');
+    revalidatePath('/admin');
+    
+    return { success: true, message: `Added ${blogsAdded} blogs and ${postsAdded} community discussions.` };
+  } catch (error: any) {
+    await addLog('error', 'Content seeding failed', { error: error.message });
+    return { success: false, message: error.message };
+  }
 }

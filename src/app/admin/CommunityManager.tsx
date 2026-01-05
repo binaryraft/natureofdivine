@@ -15,12 +15,15 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { cn } from '@/lib/utils';
+import { seedContentAction } from '@/lib/actions';
 
 export function CommunityManager() {
     const { toast } = useToast();
     const [posts, setPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPosting, setIsPosting] = useState(false);
+    const [isSeeding, setIsSeeding] = useState(false);
     
     // Create Post State
     const [postTitle, setPostTitle] = useState('');
@@ -111,6 +114,23 @@ export function CommunityManager() {
         }
     };
 
+    const handleGenerateContent = async () => {
+        setIsSeeding(true);
+        try {
+            const result = await seedContentAction();
+            if (result.success) {
+                toast({ title: 'Content Generated', description: result.message });
+                loadPosts();
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Generation Failed', description: error.message });
+        } finally {
+            setIsSeeding(false);
+        }
+    };
+
     return (
         <Card className="min-h-[600px]">
             <CardHeader>
@@ -119,9 +139,15 @@ export function CommunityManager() {
                          <CardTitle className="flex items-center gap-2"><MessageCircle/> Community Management</CardTitle>
                          <CardDescription>Manage discussions and interact as Admin or other users.</CardDescription>
                     </div>
-                    <Button variant="outline" size="icon" onClick={loadPosts} disabled={isLoading}>
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}/>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" onClick={handleGenerateContent} disabled={isSeeding} className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:opacity-90 border-none">
+                            {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Send className="h-4 w-4 mr-2"/>}
+                            Generate AI Discussion
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={loadPosts} disabled={isLoading}>
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}/>
+                        </Button>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent>

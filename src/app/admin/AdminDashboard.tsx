@@ -29,6 +29,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PricingManager } from './PricingManager';
 import { UsersManager } from './UsersManager';
 import { CommunityManager } from './CommunityManager';
+import { BlogsManager } from './BlogsManager';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -886,9 +887,10 @@ export function AdminDashboard() {
             isSubmitting={isDispatching}
         />
         <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-9 overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-10 overflow-x-auto">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
                 <TabsTrigger value="users">Users</TabsTrigger>
+                <TabsTrigger value="blogs">Blogs</TabsTrigger>
                 <TabsTrigger value="community">Community</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="chapters">Chapters</TabsTrigger>
@@ -954,6 +956,9 @@ export function AdminDashboard() {
             </TabsContent>
             <TabsContent value="users" className="mt-6">
                 <UsersManager orders={orders} />
+            </TabsContent>
+            <TabsContent value="blogs" className="mt-6">
+                <BlogsManager />
             </TabsContent>
             <TabsContent value="community" className="mt-6">
                 <CommunityManager />
