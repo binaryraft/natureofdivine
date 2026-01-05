@@ -79,10 +79,8 @@ export const metadata: Metadata = {
     siteName: "Nature of the Divine",
     images: [
       {
-        url: "https://res.cloudinary.com/dj2w2phri/image/upload/v1761454810/Screenshot_2025-10-12_000041_ji6pkk.png",
-        width: 1200,
-        height: 630,
-        alt: "Cover of Nature of the Divine, a spiritual book by Alfas B.",
+        url: "/logo.svg",
+        alt: "Nature of the Divine Logo",
       },
     ],
     locale: "en_US",
@@ -94,7 +92,7 @@ export const metadata: Metadata = {
     title: "Nature of the Divine | Is God Real? A Spiritual Book by Alfas B",
     description:
       "A philosophical and spiritual book explaining humanity's complex struggles and the elegant path to aligning with our divine nature. Discover how to know God and improve your life.",
-    images: ["https://res.cloudinary.com/dj2w2phri/image/upload/v1761454810/Screenshot_2025-10-12_000041_ji6pkk.png"],
+    images: ["/logo.svg"],
   },
 
   robots: {
@@ -153,7 +151,7 @@ export default function RootLayout({
     description:
       "A spiritual book by Alfas B that explores the mind, the divine, and how to improve in life by aligning with the nature of existence. This work answers questions like 'Is God real?' and explains humanity's complex struggles with an elegant solution.",
     datePublished: "2025-06-01",
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1761454810/Screenshot_2025-10-12_000041_ji6pkk.png",
+    image: `${siteUrl}/logo.svg`,
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: "5",

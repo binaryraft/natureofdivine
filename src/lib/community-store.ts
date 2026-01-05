@@ -14,6 +14,8 @@ export type Answer = {
     createdAt: number;
 };
 
+export type PostType = 'question' | 'article';
+
 export type Post = {
     id: string;
     userId: string;
@@ -23,27 +25,42 @@ export type Post = {
     likes: string[]; // User IDs who liked
     createdAt: number;
     answers: Answer[];
+    type: PostType;
+    tags: string[];
+    isVerified: boolean;
+    coverImage?: string;
 };
 
 const postsCollection = collection(db, 'community_posts');
 
-export async function addPost(userId: string, userName: string, title: string, content: string) {
+export type PostOptions = {
+    type?: PostType;
+    tags?: string[];
+    isVerified?: boolean;
+    coverImage?: string;
+}
+
+export async function addPost(userId: string, userName: string, title: string, content: string, options: PostOptions = {}) {
     try {
-        const newPost = {
+        const newPost: Omit<Post, 'id'> = {
             userId,
             userName,
             title,
             content,
             likes: [],
             answers: [],
-            createdAt: Timestamp.now().toMillis()
+            createdAt: Timestamp.now().toMillis(),
+            type: options.type || 'question',
+            tags: options.tags || [],
+            isVerified: options.isVerified || false,
+            coverImage: options.coverImage
         };
         await addDoc(postsCollection, newPost);
         revalidatePath('/community');
-        return { success: true, message: 'Question posted successfully.' };
+        return { success: true, message: 'Post created successfully.' };
     } catch (error: any) {
         await addLog('error', 'addPost failed', { error: error.message });
-        return { success: false, message: 'Failed to post question.' };
+        return { success: false, message: 'Failed to create post.' };
     }
 }
 

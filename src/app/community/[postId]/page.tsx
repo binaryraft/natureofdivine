@@ -18,14 +18,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         };
     }
 
+    // Strip Markdown for description
+    const plainTextDescription = post.content
+        .replace(/[#*`_\[\]]/g, '') // Remove simple markdown chars
+        .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+        .replace(/\n/g, ' ') // Remove newlines
+        .substring(0, 160)
+        .trim();
+
     return {
-        title: `${post.title} | Community Forum`,
-        description: post.content.substring(0, 160) + '...',
+        title: `${post.title} | Nature of the Divine`,
+        description: plainTextDescription + '...',
         openGraph: {
             title: post.title,
-            description: post.content.substring(0, 160) + '...',
-            type: 'article',
+            description: plainTextDescription + '...',
+            type: post.type === 'article' ? 'article' : 'website',
             authors: [post.userName],
+            images: post.coverImage ? [post.coverImage] : undefined,
         },
     };
 }
