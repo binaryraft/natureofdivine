@@ -67,18 +67,22 @@ export async function addPost(userId: string, userName: string, title: string, c
 
 export async function getPosts(type?: PostType): Promise<Post[]> {
     try {
-        let q;
-        if (type) {
-            q = query(postsCollection, where('type', '==', type), orderBy('createdAt', 'desc'));
-        } else {
-             q = query(postsCollection, orderBy('createdAt', 'desc'));
-        }
+        // Fetch all posts sorted by date
+        // Note: Avoiding 'where' clause with 'orderBy' to prevent Firestore index requirements
+        // Filtering is done in-memory since the dataset is relatively small.
+        const q = query(postsCollection, orderBy('createdAt', 'desc'));
        
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
+        const allPosts = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         } as Post));
+
+        if (type) {
+            return allPosts.filter(post => post.type === type);
+        }
+        
+        return allPosts;
     } catch (error: any) {
         await addLog('error', 'getPosts failed', { error: error.message });
         return [];

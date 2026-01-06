@@ -65,41 +65,15 @@ export function SiteHeader() {
       )}
     >
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="relative h-8 w-8 group-hover:scale-110 transition-transform duration-300">
-               <Image 
-                 src="/logo.svg" 
-                 alt="Nature of the Divine Logo" 
-                 fill
-                 className="object-contain"
-               />
-            </div>
-            <span className="font-bold font-headline text-lg tracking-tight group-hover:text-primary transition-colors">Nature of the Divine</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            {activeLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'transition-all hover:text-primary relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all hover:after:w-full',
-                  pathname === link.href ? 'text-primary after:w-full' : 'text-foreground/70'
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
+        
+        {/* Mobile: Hamburger on Left */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="shrink-0"
+                className="shrink-0 -ml-2"
               >
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle navigation menu</span>
@@ -144,6 +118,36 @@ export function SiteHeader() {
               </nav>
             </SheetContent>
           </Sheet>
+        </div>
+
+        <div className="flex items-center gap-8">
+          {/* Desktop Branding */}
+          <Link href="/" className="hidden md:flex items-center space-x-2 group">
+            <div className="relative h-8 w-8 group-hover:scale-110 transition-transform duration-300">
+               <Image 
+                 src="/logo.svg" 
+                 alt="Nature of the Divine Logo" 
+                 fill
+                 className="object-contain"
+               />
+            </div>
+            <span className="font-bold font-headline text-lg tracking-tight group-hover:text-primary transition-colors">Nature of the Divine</span>
+          </Link>
+          
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+            {activeLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'transition-all hover:text-primary relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all hover:after:w-full',
+                  pathname === link.href ? 'text-primary after:w-full' : 'text-foreground/70'
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         <div className="flex items-center gap-4">
