@@ -908,100 +908,140 @@ export function AdminDashboard() {
             onSubmit={handleDispatchSubmit}
             isSubmitting={isDispatching}
         />
-        <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-10 overflow-x-auto">
-                <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="users">Users</TabsTrigger>
-                <TabsTrigger value="blogs">Blogs</TabsTrigger>
-                <TabsTrigger value="community">Community</TabsTrigger>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                <TabsTrigger value="chapters">Chapters</TabsTrigger>
-                <TabsTrigger value="stock">Stock</TabsTrigger>
-                <TabsTrigger value="discounts">Discounts</TabsTrigger>
-                <TabsTrigger value="pricing">Pricing</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
+        
+        <Tabs defaultValue="operations" className="w-full">
+            <div className="flex justify-center mb-8">
+                <TabsList className="grid w-full max-w-3xl grid-cols-4">
+                    <TabsTrigger value="operations">Operations</TabsTrigger>
+                    <TabsTrigger value="content">Content</TabsTrigger>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                    <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
+            </div>
             
-            <TabsContent value="orders" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                        <div>
-                            <CardTitle className="text-3xl font-headline flex items-center gap-2"><ShieldCheck /> Order Management</CardTitle>
-                            <CardDescription>View and manage all incoming orders.</CardDescription>
-                        </div>
-                        <div className="flex gap-2">
-                             <Button onClick={handleExportOrders} variant="outline">
-                                <Download className="mr-2 h-4 w-4" /> Export CSV
-                            </Button>
-                            <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
-                                <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
-                            </Button>
-                        </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                     {isPending || isBulkUpdating ? (
-                        <div className="flex justify-center items-center p-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="ml-2">{isBulkUpdating ? 'Applying bulk actions...' : 'Loading orders...'}</p>
-                        </div>
-                     ) : (
-                        <Tabs defaultValue="new" className="w-full" onValueChange={() => setSelectedOrders([])}>
-                            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
-                                <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
-                                <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
-                                <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
-                                <TabsTrigger value="pending">Pending ({categorizedOrders.pending.length})</TabsTrigger>
-                                <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
-                            </TabsList>
-                            <BulkActions selectedCount={selectedOrders.length} onAction={handleBulkStatusChange}/>
-                            <TabsContent value="new" className="mt-4">
-                                <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
-                            </TabsContent>
-                            <TabsContent value="dispatched" className="mt-4">
-                                <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
-                            </TabsContent>
-                            <TabsContent value="delivered" className="mt-4">
-                                <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
-                            </TabsContent>
-                             <TabsContent value="pending" className="mt-4">
-                                <OrderTable orders={categorizedOrders.pending} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
-                            </TabsContent>
-                             <TabsContent value="cancelled" className="mt-4">
-                                <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
-                            </TabsContent>
-                        </Tabs>
-                     )}
-                  </CardContent>
-                </Card>
+            {/* OPERATIONS TAB */}
+            <TabsContent value="operations" className="space-y-6">
+                <Tabs defaultValue="orders" className="w-full">
+                    <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 mb-6">
+                        <TabsTrigger value="orders" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Orders</TabsTrigger>
+                        <TabsTrigger value="users" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Users</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="orders">
+                        <Card>
+                          <CardHeader>
+                            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                                <div>
+                                    <CardTitle className="text-3xl font-headline flex items-center gap-2"><ShieldCheck /> Order Management</CardTitle>
+                                    <CardDescription>View and manage all incoming orders.</CardDescription>
+                                </div>
+                                <div className="flex gap-2">
+                                     <Button onClick={handleExportOrders} variant="outline">
+                                        <Download className="mr-2 h-4 w-4" /> Export CSV
+                                    </Button>
+                                    <Button onClick={loadOrders} variant="outline" size="icon" disabled={isPending}>
+                                        <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
+                                    </Button>
+                                </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                             {isPending || isBulkUpdating ? (
+                                <div className="flex justify-center items-center p-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    <p className="ml-2">{isBulkUpdating ? 'Applying bulk actions...' : 'Loading orders...'}</p>
+                                </div>
+                             ) : (
+                                <Tabs defaultValue="new" className="w-full" onValueChange={() => setSelectedOrders([])}>
+                                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+                                        <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
+                                        <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
+                                        <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
+                                        <TabsTrigger value="pending">Pending ({categorizedOrders.pending.length})</TabsTrigger>
+                                        <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
+                                    </TabsList>
+                                    <BulkActions selectedCount={selectedOrders.length} onAction={handleBulkStatusChange}/>
+                                    <TabsContent value="new" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                    <TabsContent value="dispatched" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                    <TabsContent value="delivered" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                     <TabsContent value="pending" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.pending} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                     <TabsContent value="cancelled" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                </Tabs>
+                             )}
+                          </CardContent>
+                        </Card>
+                    </TabsContent>
+                    
+                    <TabsContent value="users">
+                        <UsersManager orders={orders} />
+                    </TabsContent>
+                </Tabs>
             </TabsContent>
-            <TabsContent value="users" className="mt-6">
-                <UsersManager orders={orders} />
+
+            {/* CONTENT TAB */}
+            <TabsContent value="content" className="space-y-6">
+                <Tabs defaultValue="blogs" className="w-full">
+                    <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 mb-6">
+                        <TabsTrigger value="blogs" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Blogs</TabsTrigger>
+                        <TabsTrigger value="community" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Community</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="blogs">
+                        <BlogsManager />
+                    </TabsContent>
+                    
+                    <TabsContent value="community">
+                        <CommunityManager />
+                    </TabsContent>
+                </Tabs>
             </TabsContent>
-            <TabsContent value="blogs" className="mt-6">
-                <BlogsManager />
-            </TabsContent>
-            <TabsContent value="community" className="mt-6">
-                <CommunityManager />
-            </TabsContent>
-             <TabsContent value="analytics" className="mt-6">
+
+            {/* ANALYTICS TAB */}
+            <TabsContent value="analytics" className="space-y-6">
                 <AnalyticsDashboard />
             </TabsContent>
-            <TabsContent value="chapters" className="mt-6">
-                <ChapterManager />
-            </TabsContent>
-            <TabsContent value="stock" className="mt-6">
-                <StockManager />
-            </TabsContent>
-             <TabsContent value="discounts" className="mt-6">
-                <DiscountManager />
-            </TabsContent>
-            <TabsContent value="pricing" className="mt-6">
-                <PricingManager />
-            </TabsContent>
-            <TabsContent value="settings" className="mt-6">
-                <SettingsManager />
+
+            {/* SETTINGS TAB */}
+            <TabsContent value="settings" className="space-y-6">
+                <Tabs defaultValue="general" className="w-full">
+                    <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 mb-6 overflow-x-auto">
+                        <TabsTrigger value="general" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">General</TabsTrigger>
+                        <TabsTrigger value="chapters" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Chapters</TabsTrigger>
+                        <TabsTrigger value="stock" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Stock</TabsTrigger>
+                        <TabsTrigger value="discounts" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Discounts</TabsTrigger>
+                        <TabsTrigger value="pricing" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Pricing</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="general">
+                        <SettingsManager />
+                    </TabsContent>
+                    
+                    <TabsContent value="chapters">
+                        <ChapterManager />
+                    </TabsContent>
+                    
+                    <TabsContent value="stock">
+                        <StockManager />
+                    </TabsContent>
+                    
+                    <TabsContent value="discounts">
+                        <DiscountManager />
+                    </TabsContent>
+                    
+                    <TabsContent value="pricing">
+                        <PricingManager />
+                    </TabsContent>
+                </Tabs>
             </TabsContent>
         </Tabs>
     </div>
