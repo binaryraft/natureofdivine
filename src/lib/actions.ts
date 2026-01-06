@@ -8,7 +8,7 @@ import { addLog } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import { BookVariant, OrderStatus, Review, Order, SampleChapter, GalleryImage } from './definitions';
-import { getDiscount, incrementDiscountUsage, addDiscount } from './discount-store';
+import { getDiscount, incrementDiscountUsage, addDiscount, deleteDiscount } from './discount-store';
 import { addReview as addReviewToStore, getReviews as getReviewsFromStore } from './review-store';
 import { v4 as uuidv4 } from 'uuid';
 import { v2 as cloudinary } from 'cloudinary';
@@ -438,6 +438,12 @@ export async function validateDiscountCode(code: string): Promise<{ success: boo
 
 export async function createDiscount(code: string, percent: number): Promise<{ success: boolean; message: string }> {
   const result = await addDiscount(code, percent);
+  if (result.success) revalidatePath('/admin');
+  return result;
+}
+
+export async function deleteDiscountAction(code: string): Promise<{ success: boolean; message: string }> {
+  const result = await deleteDiscount(code);
   if (result.success) revalidatePath('/admin');
   return result;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, getSettingsAction, updateSettingsAction, dispatchOrderAction } from '@/lib/actions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, getSettingsAction, updateSettingsAction, dispatchOrderAction, deleteDiscountAction } from '@/lib/actions';
 import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData, SampleChapter, SiteSettings } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -449,6 +449,22 @@ function DiscountManager() {
         setIsCreating(false);
     }
 
+    const handleDeleteDiscount = async (code: string) => {
+        if(!confirm(`Are you sure you want to delete discount code ${code}?`)) return;
+        
+        try {
+            const result = await deleteDiscountAction(code);
+            if(result.success) {
+                toast({ title: 'Success', description: result.message });
+                await loadDiscounts();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.message });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete discount.' });
+        }
+    }
+
     return (
         <Card>
              <CardHeader>
@@ -489,15 +505,21 @@ function DiscountManager() {
                                     <TableHead>Code</TableHead>
                                     <TableHead>Percent</TableHead>
                                     <TableHead className="text-right">Usage Count</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {discounts.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No discounts created yet.</TableCell></TableRow>}
+                                {discounts.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No discounts created yet.</TableCell></TableRow>}
                                 {discounts.map(d => (
                                     <TableRow key={d.id}>
                                         <TableCell className="font-mono">{d.id}</TableCell>
                                         <TableCell>{d.percent}%</TableCell>
                                         <TableCell className="text-right">{d.usageCount}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" onClick={() => handleDeleteDiscount(d.id)} className="text-destructive hover:bg-destructive/10">
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

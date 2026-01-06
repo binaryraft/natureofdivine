@@ -1,5 +1,5 @@
 
-import { getPosts } from '@/lib/community-store';
+import { getBlogPosts } from '@/lib/blog-store';
 import { BlogClient } from './BlogClient';
 import { Metadata } from 'next';
 
@@ -9,9 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogsPage() {
-    const posts = await getPosts('article');
+    const posts = await getBlogPosts(true);
 
     return (
-        <BlogClient initialPosts={posts} />
+        <BlogClient initialPosts={posts as any} />
     );
 }

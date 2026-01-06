@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, setDoc, getDoc, getDocs, Timestamp, orderBy, query, increment, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, Timestamp, orderBy, query, increment, writeBatch, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { Discount } from './definitions';
 
 const discountsCollection = collection(db, 'discounts');
@@ -84,5 +84,16 @@ export const incrementDiscountUsage = async (code: string) => {
     } catch (error) {
         // Log error but don't block the main process if this fails
         console.error(`Failed to increment usage for discount code ${code}`, error);
+    }
+}
+
+export const deleteDiscount = async (code: string): Promise<{success: boolean, message: string}> => {
+    if (!code) return { success: false, message: 'Code is required.' };
+    try {
+        await deleteDoc(doc(db, 'discounts', code.toUpperCase()));
+        return { success: true, message: 'Discount deleted successfully.' };
+    } catch (error: any) {
+        console.error("Error deleting discount:", error);
+        return { success: false, message: error.message || 'Failed to delete discount.' };
     }
 }
