@@ -50,7 +50,7 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                     className="absolute inset-0 bg-cover bg-center"
                     style={{ backgroundImage: `url(${post.image || '/placeholder-blog.jpg'})` }}
                 >
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
                 </div>
                 
                 <div className="container relative h-full flex flex-col justify-end pb-12 px-4 md:px-6 max-w-4xl mx-auto text-white">
