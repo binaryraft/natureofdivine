@@ -13,7 +13,8 @@ import { trackEvent, fetchAnalytics } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 import { authorBio, buyLinks, synopsis } from "@/lib/data";
 import { SampleChapter, Stock } from "@/lib/definitions";
-import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles } from "lucide-react";
+import { BlogPost } from "@/lib/blog-store";
+import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').then(mod => mod.Testimonials), {
@@ -66,9 +67,10 @@ function Book3D({ src }: Book3DProps) {
 interface HomeClientProps {
   initialChapters: SampleChapter[];
   stock: Stock;
+  latestBlogs: BlogPost[];
 }
 
-export function HomeClient({ initialChapters, stock }: HomeClientProps) {
+export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientProps) {
   const [analytics, setAnalytics] = useState<any>(null);
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
@@ -395,6 +397,74 @@ export function HomeClient({ initialChapters, stock }: HomeClientProps) {
            </div>
         </section>
 
+        {/* LATEST BLOGS SECTION */}
+        {latestBlogs && latestBlogs.length > 0 && (
+          <section className="py-24 md:py-32 bg-muted/30">
+            <div className="container px-4 md:px-6">
+              <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="space-y-4"
+                >
+                  <h2 className="text-4xl md:text-6xl font-bold font-garamond">Divine <br/><span className="text-primary">Insights</span></h2>
+                  <p className="text-muted-foreground max-w-md">Explore the latest wisdom and reflections from our spiritual community.</p>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                >
+                  <Button asChild variant="outline" className="group">
+                    <Link href="/blogs">
+                      View All Articles <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </Button>
+                </motion.div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-8">
+                {latestBlogs.map((post, index) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
+                      <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6">
+                        <Image 
+                          src={post.image || '/placeholder-blog.jpg'} 
+                          alt={post.title} 
+                          fill 
+                          className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                        />
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm group-hover:bg-black/50 transition-all duration-500" />
+                      </div>
+                      <div className="space-y-3 flex-1">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                          <Calendar className="w-3 h-3" />
+                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <h3 className="text-2xl font-headline font-bold leading-tight group-hover:text-primary transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="text-muted-foreground line-clamp-2 text-sm leading-relaxed">
+                          {post.excerpt || post.content.replace(/<[^>]+>/g, '').substring(0, 100) + '...'}
+                        </p>
+                      </div>
+                      <div className="pt-4 flex items-center gap-2 text-sm font-semibold text-primary">
+                        Read More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* TESTIMONIALS */}
         <DynamicTestimonials />

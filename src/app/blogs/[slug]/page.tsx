@@ -1,5 +1,5 @@
 
-import { getBlogPostBySlug } from '@/lib/blog-store';
+import { getBlogPostBySlug, getBlogPosts } from '@/lib/blog-store';
 import { BlogPostClient } from './BlogPostClient';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
@@ -7,6 +7,13 @@ import { Metadata } from 'next';
 type Props = {
     params: Promise<{ slug: string }>;
 };
+
+export async function generateStaticParams() {
+    const posts = await getBlogPosts(true);
+    return posts.map((post) => ({
+        slug: post.slug,
+    }));
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;

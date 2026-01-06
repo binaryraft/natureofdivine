@@ -1,5 +1,5 @@
 
-import { getPostById } from '@/lib/community-store';
+import { getPostById, getPosts } from '@/lib/community-store';
 import { QuestionClient } from './QuestionClient';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
@@ -7,6 +7,14 @@ import { Metadata } from 'next';
 type Props = {
     params: Promise<{ postId: string }>;
 };
+
+export async function generateStaticParams() {
+    const posts = await getPosts('question');
+    // Pre-render top 20 posts for better build performance
+    return posts.slice(0, 20).map((post) => ({
+        postId: post.id,
+    }));
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { postId } = await params;
