@@ -1,6 +1,14 @@
 
 import { db } from './firebase';
-import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc, Timestamp, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc, Timestamp, query, orderBy, limit, arrayUnion } from 'firebase/firestore';
+
+export interface BlogComment {
+  id: string;
+  userId: string;
+  userName: string;
+  content: string;
+  createdAt: number;
+}
 
 export interface BlogPost {
   id: string;
@@ -14,6 +22,24 @@ export interface BlogPost {
   published: boolean;
   views: number;
   likes: number;
+  comments: BlogComment[];
+}
+
+export async function addComment(blogId: string, comment: Omit<BlogComment, 'id' | 'createdAt'>) {
+  try {
+    const blogRef = doc(db, 'blogs', blogId);
+    const newComment = {
+      ...comment,
+      id: crypto.randomUUID(),
+      createdAt: Date.now()
+    };
+    await updateDoc(blogRef, {
+      comments: arrayUnion(newComment)
+    });
+    return { success: true, message: 'Comment added.' };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
 }
 
 export async function getBlogPosts(onlyPublished = true): Promise<BlogPost[]> {

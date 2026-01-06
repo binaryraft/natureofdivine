@@ -19,9 +19,37 @@ import { getPriceForCountry } from './pricing-store';
 import { getShippingRates as getEnviaShippingRates } from './envia-service';
 import { getSettings, updateSettings } from './settings-store';
 import { SiteSettings } from './definitions';
-import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost } from './blog-store';
+import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost, addComment } from './blog-store';
 import { addPost as addCommunityPost, addAnswer as addCommunityAnswer } from './community-store';
-import { seedBlogPosts, seedCommunityPosts, spiritualBots } from './seed-data';
+import { seedBlogPosts, seedCommunityPosts, spiritualBots, indianBotNames, spiritualComments } from './seed-data';
+
+// ... existing code ...
+
+export async function generateBlogCommentsAction(blogId: string) {
+  try {
+    const numberOfComments = Math.floor(Math.random() * 5) + 3; // Add 3-7 comments
+    let commentsAdded = 0;
+
+    for (let i = 0; i < numberOfComments; i++) {
+        const randomName = indianBotNames[Math.floor(Math.random() * indianBotNames.length)];
+        const randomComment = spiritualComments[Math.floor(Math.random() * spiritualComments.length)];
+        const userId = `bot-${uuidv4()}`;
+
+        await addComment(blogId, {
+            userId,
+            userName: randomName,
+            content: randomComment
+        });
+        commentsAdded++;
+    }
+    
+    revalidatePath('/blogs');
+    revalidatePath('/admin');
+    return { success: true, message: `Added ${commentsAdded} comments to the blog post.` };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
 
 
 cloudinary.config({

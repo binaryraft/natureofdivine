@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { BlogPost } from '@/lib/blog-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Calendar, User, Share2, Heart } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Share2, Heart, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -128,6 +128,34 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                                 </div>
                             </div>
                         )}
+
+                        {/* Comments Section */}
+                        <div className="pt-8 border-t mt-12">
+                            <h3 className="text-xl font-headline font-bold mb-6 flex items-center gap-2">
+                                <MessageCircle className="h-5 w-5 text-primary"/> Comments ({post.comments?.length || 0})
+                            </h3>
+                            
+                            <div className="space-y-6">
+                                {post.comments && post.comments.length > 0 ? (
+                                    post.comments.map(comment => (
+                                        <div key={comment.id} className="flex gap-4">
+                                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground text-xs font-bold uppercase">
+                                                {comment.userName.substring(0, 2)}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-semibold">{comment.userName}</span>
+                                                    <span className="text-xs text-muted-foreground">• {formatDistanceToNow(comment.createdAt)} ago</span>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground leading-relaxed">{comment.content}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-muted-foreground text-sm italic">No comments yet.</p>
+                                )}
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </article>

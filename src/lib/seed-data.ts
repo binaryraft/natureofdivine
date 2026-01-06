@@ -1,3 +1,4 @@
+
 export const spiritualBots = [
   { name: "Sarah J.", bio: "Seeker of truth and inner peace." },
   { name: "David M.", bio: "Exploring the nature of consciousness." },
@@ -19,6 +20,71 @@ export const spiritualBots = [
   { name: "Ethan K.", bio: "Reflecting on the divine nature." },
   { name: "Charlotte A.", bio: "Grateful for every breath." },
   { name: "Benjamin O.", bio: "In awe of creation." }
+];
+
+export const indianBotNames = [
+  "Aarav Patel", "Vihaan Sharma", "Aditya Singh", "Sai Kumar", "Reyan Gupta", "Muhammad Khan", "Arjun Reddy", "Krishna Das", "Ishaan Verma", "Shaureya Mishra",
+  "Ayaan Joshi", "Dhruv Mehta", "Kabir Malhotra", "Rudra Iyer", "Ansh Choudhury", "Atharv Nair", "Ojas Saxena", "Darsh Tiwari", "Shiv Kapoor", "Vivaan Yadav",
+  "Diya Kaur", "Saanvi Bhatt", "Ananya Jain", "Myra Agarwal", "Amaya Thakur", "Pari Rao", "Aadhya Deshmukh", "Kiara Joshi", "Ira Nanda", "Anika Chawla",
+  "Riya Sethi", "Kavya Pandey", "Siya Bose", "Prisha Chauhan", "Hazel Arora", "Fatima Sheikh", "Zainab Ali", "Aisha Siddiqui", "Maryam Ahmed", "Zara Hussain",
+  "Sarthak Biswas", "Veer Sinha", "Aaryan Mukherjee", "Manan Roy", "Yash Dutta", "Dev Ghosh", "Samarth Banerjee", "Rohan Chatterjee", "Aryan Ganguly", "Nirvaan Sen",
+  "Meera Pillai", "Ishita Menon", "Nandini Shetty", "Anvi Nambiar", "Sana Kurup", "Drishya Krishnan", "Anahita Panicker", "Navya Moorthy", "Tarini Ravi", "Vani Suresh",
+  "Raghav Venkatesh", "Madhav Narayan", "Pranav Srinivasan", "Karthik Subramanian", "Varun Ramachandran", "Siddharth Balakrishnan", "Vikram Rajagopal", "Rahul Iyengar", "Akash Sundaram", "Nikhil Vishwanathan",
+  "Aditi Hegde", "Sneha Poojary", "Pooja Shetty", "Rashmi Nayak", "Tanvi Rao", "Sanjana Kamath", "Shruti Pai", "Swati Prabhu", "Neha Bhat", "Shreya Mallya",
+  "Omkar Patil", "Ganesh Kulkarni", "Soham Deshpande", "Vedant Joshi", "Chinmay Jadhav", "Atharva Shinde", "Swaraj Pawar", "Prathamesh Kale", "Yuvraj Gaikwad", "Harsh More",
+  "Radhika Phadke", "Gargi Apte", "Mrunmayee Gokhale", "Sharvari Sathe", "Asawari Limbye", "Spruha Barve", "Ketaki Chitnis", "Mitali Agarkar", "Rujuta Sane", "Janhavi Kulkarni",
+  "Abhimanyu Rathore", "Ranveer Singh", "Yuvraj Chauhan", "Digvijay Sisodia", "Vikramaditya Shekhawat", "Prithviraj Solanki", "Jaivardhan Gehlot", "Suryapratim Jhala", "Manvendra Bhati", "Raghvendra Tanwar",
+  "Anjali Meena", "Sunita Bishnoi", "Kiran Gurjar", "Rekha Jat", "Suman Choudhary", "Anita Mali", "Saroj Saini", "Mamta Yadav", "Sushila Dewasi", "Geeta Godara",
+  "Gurpreet Singh", "Harpreet Kaur", "Jaspreet Singh", "Manpreet Kaur", "Simranjeet Singh", "Amritpal Kaur", "Rajinder Singh", "Kuldeep Kaur", "Balwinder Singh", "Surinder Kaur",
+  "Amit Trivedi", "Sumit Pathak", "Rajat Upadhyay", "Alok Shukla", "Vikas Dubey", "Vivek Pandey", "Sanjay Mishra", "Rajeev Tiwari", "Deepak Chaubey", "Manoj Awasthi",
+  "Shilpa Srivastava", "Richa Bajpai", "Priyanka Tripathi", "Preeti Pandey", "Seema Mishra", "Nisha Shukla", "Archana Dwivedi", "Jyoti Agnihotri", "Neetu Pathak", "Ritu Tiwari",
+  "Ramesh Kumar", "Suresh Kumar", "Mahesh Kumar", "Dinesh Kumar", "Naresh Kumar", "Rajesh Kumar", "Mukesh Kumar", "Rakesh Kumar", "Brijesh Kumar", "Satish Kumar",
+  "Sita Devi", "Gita Devi", "Rita Devi", "Anita Devi", "Sunita Devi", "Saroj Devi", "Vimla Devi", "Kamla Devi", "Shanti Devi", "Savitri Devi",
+  "Chirag Doshi", "Jigar Shah", "Bhavik Patel", "Hardik Mehta", "Pratik Parikh", "Ronak Desai", "Kunal Shah", "Sagar Patel", "Mayur Mehta", "Vishal Parikh",
+  "Kinjal Shah", "Bhumika Patel", "Dhara Mehta", "Hetal Parikh", "Jigna Desai", "Kajal Shah", "Mittal Patel", "Nidhi Mehta", "Payal Parikh", "Rupal Desai"
+];
+
+export const spiritualComments = [
+  "This is exactly what I needed to read today. Thank you for sharing this wisdom.",
+  "Beautifully written. The concept of oneness resonates deeply with me.",
+  "I've been struggling with this lately, and your words have brought so much clarity.",
+  "Nature truly is the visible face of the Divine. I feel that connection every time I walk in the woods.",
+  "Such a profound perspective. It shifts everything from fear to love.",
+  "I love the practical tips. I'm going to try the morning silence practice tomorrow.",
+  "This reminds me of the teachings of Ramana Maharshi. Very aligned with non-duality.",
+  "Acceptance is indeed the key. Fighting reality is so exhausting.",
+  "The distinction between ego and soul is so helpful. I often get them confused.",
+  "Thank you for simplifying these complex spiritual concepts. Very accessible.",
+  "I felt a shift in my energy just reading this. Blessings to you.",
+  "Is this from the new book? I definitely need to buy a copy now.",
+  "The part about karma being physics rather than punishment changed my whole view.",
+  "I've shared this with my meditation group. We are all discussing it.",
+  "So true. Silence isn't empty; it's full of answers.",
+  "I struggle with consistency, but this motivates me to get back on the cushion.",
+  "The idea that we are the universe experiencing itself is mind-blowing.",
+  "I appreciate the inclusive approach. God is beyond religion.",
+  "This article feels like a warm hug for the soul.",
+  "Please write more about the dark night of the soul. It's a tough topic but necessary.",
+  "Jai Shree Krishna. This wisdom is timeless.",
+  "Har Har Mahadev. Truth is one, paths are many.",
+  "Om Shanti. Peace to all beings.",
+  "Grateful for this community and these insights.",
+  "This resonates with my own experiences in deep meditation.",
+  "The analogy of the wave and the ocean is perfect.",
+  "I've been seeing 11:11 everywhere too! Synchronicity is real.",
+  "Forgiveness is so hard, but you are right, it's for our own freedom.",
+  "I never thought about money as energy before. That removes a lot of guilt.",
+  "Thank you for validating the path of the 'spiritual but not religious'.",
+  "Beautiful content. God bless.",
+  "Very insightful. Looking forward to the next post.",
+  "This helps me deal with my anxiety so much better.",
+  "Surrender is the hardest but most rewarding step.",
+  "I feel so much lighter after reading this.",
+  "Keep shining your light! The world needs this.",
+  "Simple, profound, and transformative.",
+  "I'm going to journal about this tonight.",
+  "This answers the exact question I asked the universe this morning.",
+  "Sat Nam. Truth is my identity."
 ];
 
 export const seedBlogPosts = [

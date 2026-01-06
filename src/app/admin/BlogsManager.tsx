@@ -1,16 +1,15 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
 import { BlogPost } from '@/lib/blog-store';
-import { fetchBlogPostsAction, createBlogPostAction, updateBlogPostAction, deleteBlogPostAction, seedContentAction } from '@/lib/actions';
+import { fetchBlogPostsAction, createBlogPostAction, updateBlogPostAction, deleteBlogPostAction, seedContentAction, generateBlogCommentsAction } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, RefreshCw, PlusCircle, Edit, Trash2, BookOpen, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Loader2, RefreshCw, PlusCircle, Edit, Trash2, BookOpen, Sparkles, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import Image from 'next/image';
@@ -21,6 +20,7 @@ export function BlogsManager() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, startTransition] = useTransition();
     const [isSeeding, setIsSeeding] = useState(false);
+    const [generatingComments, setGeneratingComments] = useState<string | null>(null);
 
     // Edit/Create State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -139,6 +139,23 @@ export function BlogsManager() {
         }
     };
 
+    const handleGenerateComments = async (blogId: string) => {
+        setGeneratingComments(blogId);
+        try {
+            const result = await generateBlogCommentsAction(blogId);
+            if (result.success) {
+                toast({ title: 'Success', description: result.message });
+                loadPosts();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.message });
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to generate comments.' });
+        } finally {
+            setGeneratingComments(null);
+        }
+    };
+
     return (
         <Card className="min-h-[600px]">
             <CardHeader>
@@ -184,11 +201,14 @@ export function BlogsManager() {
                                     <CardTitle className="text-lg line-clamp-1" title={post.title}>{post.title}</CardTitle>
                                     <CardDescription className="line-clamp-2 text-xs">{post.excerpt}</CardDescription>
                                 </CardHeader>
-                                <CardFooter className="p-4 pt-0 mt-auto flex justify-between">
+                                <CardFooter className="p-4 pt-0 mt-auto flex justify-between items-center">
                                     <div className="text-xs text-muted-foreground">
-                                        {post.views} views • {post.likes} likes
+                                        {post.views} views • {post.likes} likes • {post.comments?.length || 0} comments
                                     </div>
                                     <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => handleGenerateComments(post.id)} disabled={generatingComments === post.id} title="Generate Comments">
+                                            {generatingComments === post.id ? <Loader2 className="h-3 w-3 animate-spin"/> : <MessageCircle className="h-3 w-3"/>}
+                                        </Button>
                                         <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(post)}><Edit className="h-4 w-4"/></Button>
                                         <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(post.id)}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
