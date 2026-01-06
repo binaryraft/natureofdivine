@@ -14,7 +14,65 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import Image from 'next/image';
 
+// ... imports
+
+const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingComments }: { 
+    post: BlogPost, 
+    onEdit: (p: BlogPost) => void, 
+    onDelete: (id: string) => void, 
+    onGenerateComments: (id: string) => void,
+    generatingComments: string | null 
+}) => {
+    const [imgSrc, setImgSrc] = useState(post.image);
+    const [imgError, setImgError] = useState(false);
+
+    useEffect(() => {
+        setImgSrc(post.image);
+        setImgError(false);
+    }, [post.image]);
+
+    return (
+        <Card className="overflow-hidden flex flex-col">
+            <div className="aspect-video relative bg-muted">
+                {imgSrc && !imgError ? (
+                    <Image 
+                        src={imgSrc} 
+                        alt={post.title} 
+                        fill 
+                        className="object-cover" 
+                        onError={() => setImgError(true)}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground bg-muted">
+                        <ImageIcon className="h-8 w-8" />
+                    </div>
+                )}
+                {!post.published && (
+                    <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">DRAFT</div>
+                )}
+            </div>
+            <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-lg line-clamp-1" title={post.title}>{post.title}</CardTitle>
+                <CardDescription className="line-clamp-2 text-xs">{post.excerpt}</CardDescription>
+            </CardHeader>
+            <CardFooter className="p-4 pt-0 mt-auto flex justify-between items-center">
+                <div className="text-xs text-muted-foreground">
+                    {post.views} views • {post.likes} likes • {post.comments?.length || 0} comments
+                </div>
+                <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => onGenerateComments(post.id)} disabled={generatingComments === post.id} title="Generate Comments">
+                        {generatingComments === post.id ? <Loader2 className="h-3 w-3 animate-spin"/> : <MessageCircle className="h-3 w-3"/>}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => onEdit(post)}><Edit className="h-4 w-4"/></Button>
+                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => onDelete(post.id)}><Trash2 className="h-4 w-4"/></Button>
+                </div>
+            </CardFooter>
+        </Card>
+    );
+};
+
 export function BlogsManager() {
+    // ... existing state ...
     const { toast } = useToast();
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -184,36 +242,14 @@ export function BlogsManager() {
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {posts.map(post => (
-                            <Card key={post.id} className="overflow-hidden flex flex-col">
-                                <div className="aspect-video relative bg-muted">
-                                    {post.image ? (
-                                        <Image src={post.image} alt={post.title} fill className="object-cover" />
-                                    ) : (
-                                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                                            <ImageIcon className="h-8 w-8" />
-                                        </div>
-                                    )}
-                                    {!post.published && (
-                                        <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">DRAFT</div>
-                                    )}
-                                </div>
-                                <CardHeader className="p-4 pb-2">
-                                    <CardTitle className="text-lg line-clamp-1" title={post.title}>{post.title}</CardTitle>
-                                    <CardDescription className="line-clamp-2 text-xs">{post.excerpt}</CardDescription>
-                                </CardHeader>
-                                <CardFooter className="p-4 pt-0 mt-auto flex justify-between items-center">
-                                    <div className="text-xs text-muted-foreground">
-                                        {post.views} views • {post.likes} likes • {post.comments?.length || 0} comments
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => handleGenerateComments(post.id)} disabled={generatingComments === post.id} title="Generate Comments">
-                                            {generatingComments === post.id ? <Loader2 className="h-3 w-3 animate-spin"/> : <MessageCircle className="h-3 w-3"/>}
-                                        </Button>
-                                        <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(post)}><Edit className="h-4 w-4"/></Button>
-                                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(post.id)}><Trash2 className="h-4 w-4"/></Button>
-                                    </div>
-                                </CardFooter>
-                            </Card>
+                            <BlogCard 
+                                key={post.id} 
+                                post={post} 
+                                onEdit={handleOpenEdit} 
+                                onDelete={handleDelete}
+                                onGenerateComments={handleGenerateComments}
+                                generatingComments={generatingComments}
+                            />
                         ))}
                     </div>
                 )}
