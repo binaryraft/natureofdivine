@@ -563,12 +563,16 @@ export async function seedContentAction() {
       // Check if title exists roughly to avoid heavy dups, or just add new ones
       const exists = existingBlogs.some(b => b.slug === seedPost.slug);
       if (!exists) {
-        await addBlogPost({
+        const result = await addBlogPost({
           ...seedPost,
           published: true,
           image: seedPost.image, 
         });
-        blogsAdded++;
+        if (result.success) {
+            blogsAdded++;
+        } else {
+            console.error(`Failed to add blog post ${seedPost.title}:`, result.message);
+        }
       }
     }
 
@@ -598,6 +602,10 @@ export async function seedContentAction() {
     revalidatePath('/community');
     revalidatePath('/admin');
     
+    if (blogsAdded === 0 && postsAdded === 0) {
+        return { success: false, message: 'No content was added. Check server logs for DB errors or duplicates.' };
+    }
+
     return { success: true, message: `Added ${blogsAdded} blogs and ${postsAdded} community discussions.` };
   } catch (error: any) {
     await addLog('error', 'Content seeding failed', { error: error.message });
