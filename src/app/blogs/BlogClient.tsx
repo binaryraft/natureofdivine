@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Post } from '@/lib/community-store';
+import { BlogPost } from '@/lib/blog-store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/actions';
 
-export function BlogClient({ initialPosts }: { initialPosts: Post[] }) {
+export function BlogClient({ initialPosts }: { initialPosts: BlogPost[] }) {
     const [search, setSearch] = useState('');
 
     const filteredPosts = initialPosts.filter(p => 
@@ -44,9 +44,9 @@ export function BlogClient({ initialPosts }: { initialPosts: Post[] }) {
             {/* Featured Article (First one) */}
             {filteredPosts.length > 0 && !search && (
                 <div className="mb-16">
-                    <Link href={`/blogs/${filteredPosts[0].id}`} className="group block">
+                    <Link href={`/blogs/${filteredPosts[0].slug}`} className="group block">
                         <div className="grid md:grid-cols-2 gap-8 items-center bg-muted/20 rounded-2xl overflow-hidden border border-border/50 hover:shadow-lg transition-all duration-300">
-                            <div className="h-64 md:h-full min-h-[400px] w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${filteredPosts[0].coverImage})` }}>
+                            <div className="h-64 md:h-full min-h-[400px] w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${filteredPosts[0].image})` }}>
                                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                             </div>
                             <div className="p-8 md:p-12 space-y-6">
@@ -59,7 +59,7 @@ export function BlogClient({ initialPosts }: { initialPosts: Post[] }) {
                                     {filteredPosts[0].title}
                                 </h2>
                                 <p className="text-muted-foreground line-clamp-3 text-lg leading-relaxed">
-                                    {filteredPosts[0].content.replace(/[#*`_\[\]]/g, '').substring(0, 200)}...
+                                    {filteredPosts[0].excerpt || filteredPosts[0].content.replace(/<[^>]+>/g, '').substring(0, 200)}...
                                 </p>
                                 <div className="flex items-center gap-2 text-sm font-medium pt-4">
                                     Read Article <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -73,19 +73,17 @@ export function BlogClient({ initialPosts }: { initialPosts: Post[] }) {
             {/* Article Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {(search ? filteredPosts : filteredPosts.slice(1)).map(post => (
-                    <Link href={`/blogs/${post.id}`} key={post.id} className="group flex flex-col h-full">
+                    <Link href={`/blogs/${post.slug}`} key={post.id} className="group flex flex-col h-full">
                         <Card className="h-full border-none shadow-none bg-transparent hover:bg-muted/30 transition-colors rounded-xl overflow-hidden">
                             <div className="aspect-[16/9] w-full overflow-hidden rounded-xl mb-4 relative">
                                 <div 
                                     className="w-full h-full bg-cover bg-center transform group-hover:scale-105 transition-transform duration-500"
-                                    style={{ backgroundImage: `url(${post.coverImage || '/placeholder-blog.jpg'})` }}
+                                    style={{ backgroundImage: `url(${post.image || '/placeholder-blog.jpg'})` }}
                                 />
                             </div>
                             <CardHeader className="p-0 mb-2">
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/> {formatDistanceToNow(post.createdAt)} ago</span>
-                                    <span>•</span>
-                                    <span className="flex items-center gap-1"><User className="h-3 w-3"/> {post.userName}</span>
                                 </div>
                                 <CardTitle className="font-headline text-xl leading-snug group-hover:text-primary transition-colors">
                                     {post.title}
@@ -93,7 +91,7 @@ export function BlogClient({ initialPosts }: { initialPosts: Post[] }) {
                             </CardHeader>
                             <CardContent className="p-0 mt-auto">
                                 <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
-                                     {post.content.replace(/[#*`_\[\]]/g, '').substring(0, 120)}...
+                                     {post.excerpt || post.content.replace(/<[^>]+>/g, '').substring(0, 120)}...
                                 </p>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-primary/80 group-hover:text-primary">
                                     Read More <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />

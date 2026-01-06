@@ -17,6 +17,18 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+// Simple Markdown Renderer (similar to QuestionClient but simplified for preview)
+function MarkdownPreview({ content }: { content: string }) {
+    if (!content) return null;
+    // Just take the first few lines or characters, stripping markdown syntax for the preview card
+    const plainText = content
+        .replace(/[#*`_\[\]]/g, '') // Remove simple markdown chars
+        .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+        .substring(0, 300); // Limit length
+    
+    return <p className="whitespace-pre-wrap text-sm leading-relaxed line-clamp-3 text-muted-foreground">{plainText}</p>;
+}
+
 export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
     const { user } = useAuth();
     const { toast } = useToast();
@@ -234,9 +246,7 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                                         </div>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="whitespace-pre-wrap text-sm leading-relaxed line-clamp-3 text-muted-foreground">
-                                            {post.content.replace(/[#*`_\[\]]/g, '')}
-                                        </p>
+                                        <MarkdownPreview content={post.content} />
                                         <div className="mt-4 pt-4 border-t flex items-center text-sm text-muted-foreground">
                                             <MessageCircle className="h-4 w-4 mr-2"/> 
                                             {post.answers.length} {post.answers.length !== 1 ? 'Answers' : 'Answer'}
