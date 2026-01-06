@@ -79,7 +79,11 @@ export async function getPosts(type?: PostType): Promise<Post[]> {
         } as Post));
 
         if (type) {
-            return allPosts.filter(post => post.type === type);
+            return allPosts.filter(post => {
+                // Treat undefined type as 'question' for legacy posts
+                const postType = post.type || 'question';
+                return postType === type;
+            });
         }
         
         return allPosts;

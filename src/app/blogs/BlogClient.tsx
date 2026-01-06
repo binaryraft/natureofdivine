@@ -47,7 +47,7 @@ export function BlogClient({ initialPosts }: { initialPosts: BlogPost[] }) {
                     <Link href={`/blogs/${filteredPosts[0].slug}`} className="group block">
                         <div className="grid md:grid-cols-2 gap-8 items-center bg-muted/20 rounded-2xl overflow-hidden border border-border/50 hover:shadow-lg transition-all duration-300">
                             <div className="h-64 md:h-full min-h-[400px] w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${filteredPosts[0].image})` }}>
-                                <div className="absolute inset-0 bg-black/60 backdrop-blur-md group-hover:bg-black/50 transition-all duration-500" />
+                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                             </div>
                             <div className="p-8 md:p-12 space-y-6">
                                 <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-primary uppercase">

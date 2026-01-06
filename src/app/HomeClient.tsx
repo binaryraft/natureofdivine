@@ -441,7 +441,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                           fill 
                           className="object-cover transition-transform duration-500 group-hover:scale-105" 
                         />
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm group-hover:bg-black/50 transition-all duration-500" />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                       </div>
                       <div className="space-y-3 flex-1">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider">
