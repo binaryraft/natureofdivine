@@ -581,13 +581,13 @@ export async function seedContentAction() {
         const questionUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
         const result = await addCommunityPost(`seed-user-${uuidv4()}`, questionUser.name, seedCP.title, seedCP.content);
         
-        if (result.success && result.postId) {
+        if (result.success && result.id) {
             postsAdded++;
             // Add answers
             for (const answerText of seedCP.answers) {
                 const answerUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
                 // Ensure answer user is different if possible, but random is fine for seed
-                await addCommunityAnswer(result.postId, `seed-user-${uuidv4()}`, answerUser.name, answerText);
+                await addCommunityAnswer(result.id, `seed-user-${uuidv4()}`, answerUser.name, answerText);
             }
         }
     }
