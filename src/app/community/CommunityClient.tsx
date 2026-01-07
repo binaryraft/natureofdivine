@@ -180,25 +180,6 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                     <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                         <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
                         <p className="mb-4">No questions found. Be the first to ask!</p>
-                        <Button 
-                            variant="outline" 
-                            onClick={async () => {
-                                setIsPosting(true);
-                                try {
-                                    await fetch('/api/seed-content');
-                                    toast({ title: "Content Loaded", description: "Discussion topics have been added." });
-                                    window.location.reload();
-                                } catch (e) {
-                                    toast({ variant: "destructive", title: "Error", description: "Failed to load content." });
-                                } finally {
-                                    setIsPosting(false);
-                                }
-                            }}
-                            disabled={isPosting}
-                        >
-                            {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4"/>}
-                            Load Topics
-                        </Button>
                     </div>
                 ) : (
                     filteredPosts.map(post => {
