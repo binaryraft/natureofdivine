@@ -30,6 +30,7 @@ import { PricingManager } from './PricingManager';
 import { UsersManager } from './UsersManager';
 import { CommunityManager } from './CommunityManager';
 import { BlogsManager } from './BlogsManager';
+import { LogsManager } from './LogsManager';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -925,6 +926,7 @@ export function AdminDashboard() {
                     <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 mb-6">
                         <TabsTrigger value="orders" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Orders</TabsTrigger>
                         <TabsTrigger value="users" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Users</TabsTrigger>
+                        <TabsTrigger value="logs" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">System Logs</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="orders">
@@ -984,6 +986,10 @@ export function AdminDashboard() {
                     
                     <TabsContent value="users">
                         <UsersManager orders={orders} />
+                    </TabsContent>
+
+                    <TabsContent value="logs">
+                        <LogsManager />
                     </TabsContent>
                 </Tabs>
             </TabsContent>

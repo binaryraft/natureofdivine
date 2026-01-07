@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import axios from 'axios';
 import { getOrders, getOrdersByUserId, updateOrderStatus, addOrder, getOrderById, updateOrderPaymentStatus, updateOrderShippingDetails } from './order-store';
 import { revalidatePath } from 'next/cache';
-import { addLog } from './log-store';
+import { addLog, logAction } from './log-store';
 import { decreaseStock } from './stock-store';
 import { fetchLocationAndPrice } from './fetch-location-price';
 import { BookVariant, OrderStatus, Review, Order, SampleChapter, GalleryImage } from './definitions';
@@ -22,6 +22,12 @@ import { SiteSettings } from './definitions';
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost, addComment } from './blog-store';
 import { addPost as addCommunityPost, addAnswer as addCommunityAnswer, deletePost as deleteCommunityPost } from './community-store';
 import { seedBlogPosts, seedCommunityPosts, spiritualBots, indianBotNames, spiritualComments } from './seed-data';
+
+import { getLogs } from './log-store';
+
+export async function fetchLogs(limit = 100) {
+  return await getLogs(limit);
+}
 
 // ... existing code ...
 
@@ -553,7 +559,9 @@ export async function getSettingsAction(): Promise<SiteSettings> {
 }
 
 export async function updateSettingsAction(settings: Partial<SiteSettings>) {
-    await updateSettings(settings);
+    await logAction('updateSettings', async () => {
+        await updateSettings(settings);
+    });
 }
 
 // --- BLOG ACTIONS ---
@@ -563,24 +571,30 @@ export async function fetchBlogPostsAction(onlyPublished = true): Promise<BlogPo
 }
 
 export async function createBlogPostAction(postData: any) {
-  const result = await addBlogPost(postData);
-  revalidatePath('/blogs');
-  revalidatePath('/admin');
-  return result;
+  return await logAction('createBlogPost', async () => {
+    const result = await addBlogPost(postData);
+    revalidatePath('/blogs');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 export async function updateBlogPostAction(post: BlogPost) {
-  const result = await updateBlogPost(post);
-  revalidatePath('/blogs');
-  revalidatePath('/admin');
-  return result;
+  return await logAction('updateBlogPost', async () => {
+      const result = await updateBlogPost(post);
+      revalidatePath('/blogs');
+      revalidatePath('/admin');
+      return result;
+  });
 }
 
 export async function deleteBlogPostAction(id: string) {
-  const result = await deleteBlogPost(id);
-  revalidatePath('/blogs');
-  revalidatePath('/admin');
-  return result;
+  return await logAction('deleteBlogPost', async () => {
+      const result = await deleteBlogPost(id);
+      revalidatePath('/blogs');
+      revalidatePath('/admin');
+      return result;
+  });
 }
 
 export async function deleteBlogPostsBulkAction(ids: string[]) {
