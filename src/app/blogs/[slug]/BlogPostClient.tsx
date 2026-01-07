@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
 export function BlogPostClient({ post }: { post: BlogPost }) {
     const { user } = useAuth();
@@ -104,16 +105,10 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                             </div>
                         </div>
 
-                        {/* HTML Content Renderer */}
-                        <div 
-                            className="prose prose-lg prose-stone dark:prose-invert max-w-none 
-                                prose-headings:font-headline prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
-                                prose-p:leading-relaxed prose-p:mb-6 prose-p:text-muted-foreground
-                                prose-blockquote:border-l-primary prose-blockquote:bg-muted/30 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg
-                                prose-img:rounded-xl prose-img:shadow-md
-                                prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
-                            dangerouslySetInnerHTML={{ __html: post.content }}
-                        />
+                        {/* Content Renderer */}
+                        <div className="prose prose-lg prose-stone dark:prose-invert max-w-none prose-headings:font-headline prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+                            <MarkdownRenderer content={post.content} />
+                        </div>
                         
                         {/* Tags */}
                         {post.tags && post.tags.length > 0 && (
