@@ -19,8 +19,8 @@ import { getPriceForCountry } from './pricing-store';
 import { getShippingRates as getEnviaShippingRates } from './envia-service';
 import { getSettings, updateSettings } from './settings-store';
 import { SiteSettings } from './definitions';
-import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost, addComment } from './blog-store';
-import { addPost as addCommunityPost, addAnswer as addCommunityAnswer, deletePost as deleteCommunityPost } from './community-store';
+import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost, addComment, deleteComment, updateComment } from './blog-store';
+import { addPost as addCommunityPost, addAnswer as addCommunityAnswer, deletePost as deleteCommunityPost, deleteAnswer, updateAnswer } from './community-store';
 import { seedBlogPosts, seedCommunityPosts, spiritualBots, indianBotNames, spiritualComments } from './seed-data';
 
 import { getLogs } from './log-store';
@@ -625,6 +625,42 @@ export async function deleteCommunityPostsBulkAction(ids: string[]) {
     } catch (error: any) {
         return { success: false, message: 'Failed to delete some discussions.' };
     }
+}
+
+export async function deleteCommunityAnswerAction(postId: string, answerId: string) {
+    return await logAction('deleteAnswer', async () => {
+        const result = await deleteAnswer(postId, answerId);
+        revalidatePath('/community');
+        revalidatePath('/admin');
+        return result;
+    });
+}
+
+export async function updateCommunityAnswerAction(postId: string, answerId: string, content: string) {
+    return await logAction('updateAnswer', async () => {
+        const result = await updateAnswer(postId, answerId, content);
+        revalidatePath('/community');
+        revalidatePath('/admin');
+        return result;
+    });
+}
+
+export async function deleteBlogCommentAction(blogId: string, commentId: string) {
+    return await logAction('deleteComment', async () => {
+        const result = await deleteComment(blogId, commentId);
+        revalidatePath('/blogs');
+        revalidatePath('/admin');
+        return result;
+    });
+}
+
+export async function updateBlogCommentAction(blogId: string, commentId: string, content: string) {
+    return await logAction('updateComment', async () => {
+        const result = await updateComment(blogId, commentId, content);
+        revalidatePath('/blogs');
+        revalidatePath('/admin');
+        return result;
+    });
 }
 
 // --- SEED CONTENT ACTION ---

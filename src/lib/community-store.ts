@@ -128,6 +128,44 @@ export async function addAnswer(postId: string, userId: string, userName: string
     }
 }
 
+export async function deleteAnswer(postId: string, answerId: string) {
+    try {
+        const postRef = doc(postsCollection, postId);
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) throw new Error('Post not found');
+        
+        const post = postSnap.data() as Post;
+        const updatedAnswers = post.answers.filter(a => a.id !== answerId);
+        
+        await updateDoc(postRef, { answers: updatedAnswers });
+        revalidatePath('/community');
+        return { success: true, message: 'Answer deleted.' };
+    } catch (error: any) {
+        await addLog('error', 'deleteAnswer failed', { error: error.message });
+        return { success: false, message: 'Failed to delete answer.' };
+    }
+}
+
+export async function updateAnswer(postId: string, answerId: string, newContent: string) {
+    try {
+        const postRef = doc(postsCollection, postId);
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) throw new Error('Post not found');
+
+        const post = postSnap.data() as Post;
+        const updatedAnswers = post.answers.map(a => 
+            a.id === answerId ? { ...a, content: newContent } : a
+        );
+
+        await updateDoc(postRef, { answers: updatedAnswers });
+        revalidatePath('/community');
+        return { success: true, message: 'Answer updated.' };
+    } catch (error: any) {
+        await addLog('error', 'updateAnswer failed', { error: error.message });
+        return { success: false, message: 'Failed to update answer.' };
+    }
+}
+
 export async function toggleLike(postId: string, userId: string, isLiked: boolean) {
     try {
         const postRef = doc(postsCollection, postId);

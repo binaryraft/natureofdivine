@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { BlogPost } from '@/lib/blog-store';
-import { fetchBlogPostsAction, createBlogPostAction, updateBlogPostAction, deleteBlogPostAction, seedContentAction, generateBlogCommentsAction, deleteBlogPostsBulkAction } from '@/lib/actions';
+import { BlogPost, BlogComment } from '@/lib/blog-store';
+import { fetchBlogPostsAction, createBlogPostAction, updateBlogPostAction, deleteBlogPostAction, seedContentAction, generateBlogCommentsAction, deleteBlogPostsBulkAction, deleteBlogCommentAction, updateBlogCommentAction } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,21 +10,108 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, RefreshCw, PlusCircle, Edit, Trash2, BookOpen, Sparkles, Image as ImageIcon, MessageCircle, X } from 'lucide-react';
+import { Loader2, RefreshCw, PlusCircle, Edit, Trash2, BookOpen, Sparkles, Image as ImageIcon, MessageCircle, X, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import Image from 'next/image';
+import { formatDistanceToNow } from 'date-fns';
 
 // ... imports
 
-const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingComments, isSelected, onToggleSelect }: { 
+const CommentManagerDialog = ({ post, isOpen, onClose, onUpdate }: { post: BlogPost, isOpen: boolean, onClose: () => void, onUpdate: () => void }) => {
+    const { toast } = useToast();
+    const [editingComment, setEditingComment] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleEdit = (comment: BlogComment) => {
+        setEditingComment(comment.id);
+        setEditContent(comment.content);
+    };
+
+    const handleSave = async (commentId: string) => {
+        setIsProcessing(true);
+        try {
+            await updateBlogCommentAction(post.id, commentId, editContent);
+            toast({ title: 'Success', description: 'Comment updated.' });
+            setEditingComment(null);
+            onUpdate();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update comment.' });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleDelete = async (commentId: string) => {
+        if (!confirm('Delete this comment?')) return;
+        setIsProcessing(true);
+        try {
+            await deleteBlogCommentAction(post.id, commentId);
+            toast({ title: 'Success', description: 'Comment deleted.' });
+            onUpdate();
+        } catch (e: any) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete comment.' });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Manage Comments</DialogTitle>
+                    <DialogDescription>View, edit, or delete comments for "{post.title}".</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    {post.comments && post.comments.length > 0 ? (
+                        post.comments.map(comment => (
+                            <div key={comment.id} className="border p-3 rounded-md space-y-2 bg-muted/20">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-sm">{comment.userName}</span>
+                                        <span className="text-xs text-muted-foreground">{formatDistanceToNow(comment.createdAt)} ago</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        {editingComment === comment.id ? (
+                                            <>
+                                                <Button size="sm" variant="ghost" onClick={() => handleSave(comment.id)} disabled={isProcessing} className="h-6 w-6 p-0 text-green-600"><Save className="h-3 w-3"/></Button>
+                                                <Button size="sm" variant="ghost" onClick={() => setEditingComment(null)} className="h-6 w-6 p-0"><X className="h-3 w-3"/></Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Button size="sm" variant="ghost" onClick={() => handleEdit(comment)} className="h-6 w-6 p-0"><Edit className="h-3 w-3"/></Button>
+                                                <Button size="sm" variant="ghost" onClick={() => handleDelete(comment.id)} disabled={isProcessing} className="h-6 w-6 p-0 text-red-600"><Trash2 className="h-3 w-3"/></Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                {editingComment === comment.id ? (
+                                    <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} className="min-h-[60px] text-sm" />
+                                ) : (
+                                    <p className="text-sm text-foreground/90">{comment.content}</p>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">No comments yet.</p>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingComments, isSelected, onToggleSelect, onManageComments }: { 
     post: BlogPost, 
     onEdit: (p: BlogPost) => void, 
     onDelete: (id: string) => void, 
     onGenerateComments: (id: string) => void,
     generatingComments: string | null,
     isSelected: boolean,
-    onToggleSelect: (id: string) => void
+    onToggleSelect: (id: string) => void,
+    onManageComments: (p: BlogPost) => void
 }) => {
     const [imgSrc, setImgSrc] = useState(post.image);
     const [imgError, setImgError] = useState(false);
@@ -65,11 +152,14 @@ const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingCommen
                 <CardTitle className="text-lg line-clamp-1" title={post.title}>{post.title}</CardTitle>
                 <CardDescription className="line-clamp-2 text-xs">{post.excerpt}</CardDescription>
             </CardHeader>
-            <CardFooter className="p-4 pt-0 mt-auto flex justify-between items-center">
-                <div className="text-xs text-muted-foreground">
-                    {post.views} views • {post.likes} likes • {post.comments?.length || 0} comments
+            <CardFooter className="p-4 pt-0 mt-auto flex flex-col gap-3 items-start">
+                <div className="text-xs text-muted-foreground w-full flex justify-between">
+                   <span>{post.views} views • {post.likes} likes</span>
+                   <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onManageComments(post)}>
+                        {post.comments?.length || 0} comments
+                   </Button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full justify-end">
                     <Button size="sm" variant="outline" onClick={() => onGenerateComments(post.id)} disabled={generatingComments === post.id} title="Generate Comments">
                         {generatingComments === post.id ? <Loader2 className="h-3 w-3 animate-spin"/> : <MessageCircle className="h-3 w-3"/>}
                     </Button>
@@ -89,6 +179,9 @@ export function BlogsManager() {
     const [isSaving, startTransition] = useTransition();
     const [isSeeding, setIsSeeding] = useState(false);
     const [generatingComments, setGeneratingComments] = useState<string | null>(null);
+    
+    // Comment Management State
+    const [managingCommentsPost, setManagingCommentsPost] = useState<BlogPost | null>(null);
 
     // Selection State
     const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
@@ -325,9 +418,19 @@ export function BlogsManager() {
                                 generatingComments={generatingComments}
                                 isSelected={selectedPosts.has(post.id)}
                                 onToggleSelect={toggleSelect}
+                                onManageComments={setManagingCommentsPost}
                             />
                         ))}
                     </div>
+                )}
+
+                {managingCommentsPost && (
+                    <CommentManagerDialog 
+                        post={managingCommentsPost} 
+                        isOpen={!!managingCommentsPost} 
+                        onClose={() => setManagingCommentsPost(null)}
+                        onUpdate={loadPosts}
+                    />
                 )}
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

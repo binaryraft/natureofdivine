@@ -42,6 +42,46 @@ export async function addComment(blogId: string, comment: Omit<BlogComment, 'id'
   }
 }
 
+export async function deleteComment(blogId: string, commentId: string) {
+  try {
+    const blogRef = doc(db, 'blogs', blogId);
+    const blogSnap = await getDocs(query(collection(db, 'blogs')));
+    // Since we need the full object to remove from array, we first fetch the blog
+    // Optimization: In a real app, we might store comments in a subcollection.
+    // Here we have to fetch, filter, and update.
+    // Actually, arrayRemove requires the EXACT object. Without subcollections, this is tricky if we only have ID.
+    // So we read the doc, filter the array, and write it back.
+    
+    // NOTE: For this simple store, we iterate to find the blog.
+    const blog = (await getBlogPosts(false)).find(b => b.id === blogId);
+    if (!blog) throw new Error('Blog not found');
+
+    const updatedComments = blog.comments.filter(c => c.id !== commentId);
+    
+    await updateDoc(blogRef, { comments: updatedComments });
+    return { success: true, message: 'Comment deleted.' };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function updateComment(blogId: string, commentId: string, newContent: string) {
+  try {
+    const blogRef = doc(db, 'blogs', blogId);
+    const blog = (await getBlogPosts(false)).find(b => b.id === blogId);
+    if (!blog) throw new Error('Blog not found');
+
+    const updatedComments = blog.comments.map(c => 
+      c.id === commentId ? { ...c, content: newContent } : c
+    );
+
+    await updateDoc(blogRef, { comments: updatedComments });
+    return { success: true, message: 'Comment updated.' };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
 export async function getBlogPosts(onlyPublished = true): Promise<BlogPost[]> {
   try {
     let q = query(collection(db, 'blogs'), orderBy('createdAt', 'desc'));

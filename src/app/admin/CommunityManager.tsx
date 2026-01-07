@@ -10,14 +10,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, MessageCircle, ShieldCheck, Send, RefreshCw, User, Reply, Trash2, X } from 'lucide-react';
+import { Loader2, MessageCircle, ShieldCheck, Send, RefreshCw, User, Reply, Trash2, X, Edit, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { seedContentAction, deleteCommunityPostsBulkAction } from '@/lib/actions';
+import { seedContentAction, deleteCommunityPostsBulkAction, deleteCommunityAnswerAction, updateCommunityAnswerAction } from '@/lib/actions';
 
 export function CommunityManager() {
     const { toast } = useToast();
@@ -42,6 +42,11 @@ export function CommunityManager() {
     const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
+    // Editing Answers State
+    const [editingAnswer, setEditingAnswer] = useState<string | null>(null);
+    const [editAnswerContent, setEditAnswerContent] = useState('');
+    const [isUpdatingAnswer, setIsUpdatingAnswer] = useState(false);
+
     const loadPosts = async () => {
         setIsLoading(true);
         try {
@@ -52,6 +57,39 @@ export function CommunityManager() {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load posts.' });
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleEditAnswer = (answer: Answer) => {
+        setEditingAnswer(answer.id);
+        setEditAnswerContent(answer.content);
+    };
+
+    const handleSaveAnswer = async (postId: string, answerId: string) => {
+        setIsUpdatingAnswer(true);
+        try {
+            await updateCommunityAnswerAction(postId, answerId, editAnswerContent);
+            toast({ title: 'Success', description: 'Reply updated.' });
+            setEditingAnswer(null);
+            loadPosts();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update reply.' });
+        } finally {
+            setIsUpdatingAnswer(false);
+        }
+    };
+
+    const handleDeleteAnswer = async (postId: string, answerId: string) => {
+        if (!confirm('Delete this reply?')) return;
+        setIsUpdatingAnswer(true);
+        try {
+            await deleteCommunityAnswerAction(postId, answerId);
+            toast({ title: 'Success', description: 'Reply deleted.' });
+            loadPosts();
+        } catch (e: any) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete reply.' });
+        } finally {
+            setIsUpdatingAnswer(false);
         }
     };
 
@@ -321,15 +359,34 @@ export function CommunityManager() {
                                                 <div className="space-y-4 pl-4 border-l-2 border-muted">
                                                     <h4 className="font-medium text-sm text-muted-foreground">Replies</h4>
                                                     {post.answers.map(answer => (
-                                                        <div key={answer.id} className="space-y-1">
-                                                            <div className="flex items-center gap-2 text-sm">
-                                                                <span className={cn("font-semibold", answer.userId === 'admin' && "text-primary flex items-center gap-1")}>
-                                                                    {answer.userName}
-                                                                    {answer.userId === 'admin' && <ShieldCheck className="h-3 w-3"/>}
-                                                                </span>
-                                                                <span className="text-muted-foreground text-xs">{formatDistanceToNow(answer.createdAt)} ago</span>
+                                                        <div key={answer.id} className="space-y-1 group">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2 text-sm">
+                                                                    <span className={cn("font-semibold", answer.userId === 'admin' && "text-primary flex items-center gap-1")}>
+                                                                        {answer.userName}
+                                                                        {answer.userId === 'admin' && <ShieldCheck className="h-3 w-3"/>}
+                                                                    </span>
+                                                                    <span className="text-muted-foreground text-xs">{formatDistanceToNow(answer.createdAt)} ago</span>
+                                                                </div>
+                                                                <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    {editingAnswer === answer.id ? (
+                                                                        <>
+                                                                            <Button size="sm" variant="ghost" onClick={() => handleSaveAnswer(post.id, answer.id)} disabled={isUpdatingAnswer} className="h-6 w-6 p-0 text-green-600"><Save className="h-3 w-3"/></Button>
+                                                                            <Button size="sm" variant="ghost" onClick={() => setEditingAnswer(null)} className="h-6 w-6 p-0"><X className="h-3 w-3"/></Button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Button size="sm" variant="ghost" onClick={() => handleEditAnswer(answer)} className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"><Edit className="h-3 w-3"/></Button>
+                                                                            <Button size="sm" variant="ghost" onClick={() => handleDeleteAnswer(post.id, answer.id)} disabled={isUpdatingAnswer} className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"><Trash2 className="h-3 w-3"/></Button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <p className="text-sm">{answer.content}</p>
+                                                            {editingAnswer === answer.id ? (
+                                                                <Textarea value={editAnswerContent} onChange={e => setEditAnswerContent(e.target.value)} className="min-h-[60px] text-sm mt-1" />
+                                                            ) : (
+                                                                <p className="text-sm">{answer.content}</p>
+                                                            )}
                                                         </div>
                                                     ))}
                                                     {post.answers.length === 0 && <p className="text-xs text-muted-foreground italic">No replies yet.</p>}
