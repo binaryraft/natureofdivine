@@ -460,11 +460,10 @@ export function BlogsManager() {
                                     </div>
                                     {formData.image && (
                                         <div className="relative h-20 w-32 rounded-md overflow-hidden bg-muted border shrink-0">
-                                            <Image 
+                                            <img 
                                                 src={formData.image} 
                                                 alt="Preview" 
-                                                fill 
-                                                className="object-cover" 
+                                                className="h-full w-full object-cover" 
                                                 onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/e2e2e2/1a1a1a?text=Invalid+Image' }}
                                             />
                                         </div>
