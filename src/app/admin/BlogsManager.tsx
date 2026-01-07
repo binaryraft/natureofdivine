@@ -453,7 +453,23 @@ export function BlogsManager() {
                             
                             <div className="space-y-2">
                                 <Label htmlFor="image">Cover Image URL</Label>
-                                <Input id="image" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://..." />
+                                <div className="flex gap-4 items-start">
+                                    <div className="flex-1 space-y-2">
+                                        <Input id="image" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://..." />
+                                        <p className="text-xs text-muted-foreground">Provide a direct URL to the image.</p>
+                                    </div>
+                                    {formData.image && (
+                                        <div className="relative h-20 w-32 rounded-md overflow-hidden bg-muted border shrink-0">
+                                            <Image 
+                                                src={formData.image} 
+                                                alt="Preview" 
+                                                fill 
+                                                className="object-cover" 
+                                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/e2e2e2/1a1a1a?text=Invalid+Image' }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="space-y-2">
