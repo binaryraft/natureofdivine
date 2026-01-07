@@ -42,6 +42,13 @@ export function MarkdownRenderer({ content }: { content: string }) {
                 
                 if (!trimmed) return null;
 
+                // HTML Block (Basic check for common block-level tags)
+                // If the block starts with <, we assume it's HTML and render it directly.
+                // This allows users to paste HTML content from other sources.
+                if (trimmed.startsWith('<')) {
+                    return <div key={idx} dangerouslySetInnerHTML={{ __html: trimmed }} className="mb-4" />;
+                }
+
                 // Headers
                 if (trimmed.startsWith('# ')) return <h1 key={idx} className="text-3xl font-headline font-bold mt-8 mb-4">{trimmed.replace('# ', '')}</h1>;
                 if (trimmed.startsWith('## ')) return <h2 key={idx} className="text-2xl font-headline font-bold mt-8 mb-4">{trimmed.replace('## ', '')}</h2>;

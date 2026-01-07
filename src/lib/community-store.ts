@@ -53,7 +53,7 @@ export async function addPost(userId: string, userName: string, title: string, c
             type: options.type || 'question',
             tags: options.tags || [],
             isVerified: options.isVerified || false,
-            coverImage: options.coverImage
+            ...(options.coverImage ? { coverImage: options.coverImage } : {})
         };
         const docRef = await addDoc(postsCollection, newPost);
         revalidatePath('/community');
@@ -61,7 +61,7 @@ export async function addPost(userId: string, userName: string, title: string, c
         return { success: true, message: 'Post created successfully.', id: docRef.id };
     } catch (error: any) {
         await addLog('error', 'addPost failed', { error: error.message });
-        return { success: false, message: 'Failed to create post.' };
+        return { success: false, message: `Failed to create post: ${error.message}` };
     }
 }
 
