@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 export default async function CommunityPage() {
-    const posts = await getPosts('question');
+    const posts = await getPosts();
 
     return (
         <CommunityClient initialPosts={posts} />
