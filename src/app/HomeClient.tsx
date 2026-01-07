@@ -131,7 +131,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/50 backdrop-blur-md shadow-lg"
                    >
                      <Sparkles className="w-3 h-3 text-primary" />
-                     <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">A Spiritual Masterpiece</span>
+                     <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">A Guide to Clarity</span>
                    </motion.div>
 
                    {/* Main Title */}
@@ -147,7 +147,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                    </div>
 
                    <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light">
-                     An eye-opening philosophical journey into the nature of God and spiritual awakening. Discover the complex struggles of humanity and the elegant path to aligning with divine existence.
+                     A grounded guide to <strong className="text-foreground font-medium">spiritual awakening</strong> and <strong className="text-foreground font-medium">divine intelligence</strong>. Discover the science of the soul and find <strong className="text-foreground font-medium">inner peace</strong> without abandoning logic.
                    </p>
                    
                    {/* Buttons */}
@@ -265,7 +265,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                  className="space-y-4"
                >
                   <h2 className="text-4xl md:text-6xl font-bold font-garamond">Sample <br/><span className="text-primary">Chapters</span></h2>
-                  <p className="text-muted-foreground max-w-md">Experience the wisdom contained within before you commit to the journey.</p>
+                  <p className="text-muted-foreground max-w-md">Read the first two chapters for free. No email required. Just pure <strong className="text-foreground">wisdom</strong>.</p>
                </motion.div>
                <motion.div
                  initial={{ opacity: 0, x: 20 }}
@@ -408,8 +408,8 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                   viewport={{ once: true }}
                   className="space-y-4"
                 >
-                  <h2 className="text-4xl md:text-6xl font-bold font-garamond">Divine <br/><span className="text-primary">Insights</span></h2>
-                  <p className="text-muted-foreground max-w-md">Explore the latest wisdom and reflections from our spiritual community.</p>
+                  <h2 className="text-4xl md:text-6xl font-bold font-garamond">Wisdom for the <br/><span className="text-primary">Modern Seeker</span></h2>
+                  <p className="text-muted-foreground max-w-md">Practical spirituality, meditation tips, and philosophical inquiries.</p>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
@@ -469,6 +469,50 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
         {/* TESTIMONIALS */}
         <DynamicTestimonials />
 
+        {/* NEWSLETTER SECTION */}
+        <section id="newsletter" className="py-24 relative overflow-hidden">
+           <div className="absolute inset-0 bg-secondary/20" />
+           <div className="container px-4 md:px-6 relative z-10">
+              <div className="max-w-2xl mx-auto text-center space-y-8">
+                 <motion.div
+                   initial={{ opacity: 0, y: 20 }}
+                   whileInView={{ opacity: 1, y: 0 }}
+                   viewport={{ once: true }}
+                 >
+                    <h2 className="text-3xl md:text-5xl font-bold font-garamond mb-4">Quiet Guidance for Your Inbox</h2>
+                    <p className="text-muted-foreground text-lg">
+                      Join 10,000+ seekers receiving weekly reflections on <strong className="text-foreground font-medium">mindfulness</strong>, <strong className="text-foreground font-medium">nature</strong>, and <strong className="text-foreground font-medium">God</strong>. No spam, just peace.
+                    </p>
+                 </motion.div>
+
+                 <motion.form 
+                   initial={{ opacity: 0, y: 20 }}
+                   whileInView={{ opacity: 1, y: 0 }}
+                   viewport={{ once: true }}
+                   transition={{ delay: 0.1 }}
+                   className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+                   onSubmit={(e) => {
+                      e.preventDefault();
+                      trackEvent('newsletter_subscribe', { location: 'home_footer' });
+                      // @ts-ignore
+                      alert("Thank you for subscribing! Your journey to clarity begins."); 
+                   }}
+                 >
+                    <input 
+                      type="email" 
+                      placeholder="Your email address" 
+                      required
+                      className="flex-1 h-12 px-4 rounded-full bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                    <Button type="submit" size="lg" className="rounded-full px-8">
+                       Subscribe
+                    </Button>
+                 </motion.form>
+                 <p className="text-xs text-muted-foreground">Unsubscribe at any time.</p>
+              </div>
+           </div>
+        </section>
+
         {/* CTA / FOOTER HERO */}
         <section id="buy" className="py-32 relative bg-primary text-primary-foreground overflow-hidden">
            <div className="absolute inset-0 bg-noise opacity-20 mix-blend-overlay" />
@@ -481,9 +525,9 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                 viewport={{ once: true }}
               >
                  <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary-foreground/80" />
-                 <h2 className="text-5xl md:text-7xl font-bold font-garamond tracking-tight">Begin Your Awakening</h2>
+                 <h2 className="text-5xl md:text-7xl font-bold font-garamond tracking-tight">Ready to Transform Your Life?</h2>
                  <p className="text-xl md:text-2xl text-primary-foreground/90 max-w-2xl mx-auto mt-6 font-light">
-                   The path to the divine is waiting. Order your signed copy today and transform your understanding of existence.
+                   The path to <strong className="font-semibold">clarity</strong> is waiting. Order your signed copy today and align with your true nature.
                  </p>
               </motion.div>
 

@@ -1,7 +1,17 @@
 
-export const synopsis = `This <i class="font-garamond">new eye-opening spiritual book</i> delves into the core of human <i class="font-garamond">existence</i>, explaining our complex struggles and revealing an elegant <i class="font-garamond">solution</i> for spiritual awakening. It is a guide to understanding the true <i class="font-garamond">nature of reality</i>, answering deep questions like "<i class="font-garamond">Is God real?</i>" and teaching readers how to know God by unlocking the <i class="font-garamond">divine</i> code within their own minds. By aligning with this divine nature, this book offers a genuine path to transformation, allowing one to ascend to a state of brilliance and radiate with the wisdom of the creator.`;
+export const synopsis = `
+<p class="mb-4">Are you seeking <i class="font-garamond">clarity</i> in a chaotic world? <i class="font-garamond">The Nature of the Divine</i> is more than a book; it is a practical guide to <i class="font-garamond">spiritual awakening</i> and personal transformation. It invites you to look beyond religious dogma and discover the <i class="font-garamond">divine intelligence</i> that weaves through all of existence.</p>
 
-export const authorBio = `Alfas B, a computer engineer with a <i class="font-garamond">vision</i> of a world steeped in the divine, discovered that the most powerful personal transformation is a journey with God. Through years of <i class="font-garamond">disciplined</i> <i class="font-garamond">self-monitoring</i>, he uncovered a path that, while demanding, feels as light as a feather. Upon reading, one can move mountains with the effort of lifting a single quill. After reading you will awaken into your higher being and learn how to keep at that state everyday.`;
+<p class="mb-4">For the logic-minded seeker and the open-hearted skeptic, this book bridges the gap between <i class="font-garamond">science</i> and <i class="font-garamond">spirituality</i>. It tackles the profound question—"<i class="font-garamond">Is God real?</i>"—not with blind faith, but with grounded philosophical inquiry and tangible methods for <i class="font-garamond">mind purification</i>.</p>
+
+<p>Unlock the <i class="font-garamond">divine code</i> within your own mind. Learn to align your thoughts with the cosmic flow, dissolve unnecessary struggle, and step into a life of <i class="font-garamond">inner peace</i> and brilliance. Your journey to the soul begins here.</p>
+`;
+
+export const authorBio = `
+<p class="mb-4">Alfas B. is a spiritual philosopher and computer engineer who bridges the worlds of <i class="font-garamond">logic</i> and <i class="font-garamond">divine consciousness</i>. Unsatisfied with vague platitudes, he applied the rigor of engineering to the study of the soul, uncovering a consistent mechanics of <i class="font-garamond">spiritual growth</i>.</p>
+
+<p>He writes for the modern seeker—those who value <i class="font-garamond">reason</i> as much as <i class="font-garamond">intuition</i>. His work offers a path that is demanding yet "light as a feather," guiding readers to strip away the heavy layers of the ego and reveal the <i class="font-garamond">brilliant</i> existence waiting within.</p>
+`;
 
 export const sampleChapters = [
   {

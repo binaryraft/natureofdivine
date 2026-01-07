@@ -114,8 +114,8 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
         <div className="container mx-auto py-8 md:py-12 max-w-4xl space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-headline flex items-center gap-2"><MessageCircle className="h-8 w-8 text-primary"/> Community Forum</h1>
-                    <p className="text-muted-foreground">Ask questions, share insights, and connect with others.</p>
+                    <h1 className="text-3xl font-headline flex items-center gap-2"><MessageCircle className="h-8 w-8 text-primary"/> Seeker's Circle</h1>
+                    <p className="text-muted-foreground">A space for <strong className="text-foreground font-medium">shared exploration</strong>, not debate. Share your <strong className="text-foreground font-medium">experiences</strong> with the Divine.</p>
                 </div>
                 <Dialog open={newPostOpen} onOpenChange={setNewPostOpen}>
                     <DialogTrigger asChild>
@@ -179,7 +179,7 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                 {filteredPosts.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                         <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p className="mb-4">No questions found. Be the first to ask!</p>
+                        <p className="mb-4">The circle is quiet. Be the first to share a reflection or ask a question.</p>
                     </div>
                 ) : (
                     filteredPosts.map(post => {
