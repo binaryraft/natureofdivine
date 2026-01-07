@@ -2,26 +2,29 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { BlogPost } from '@/lib/blog-store';
-import { fetchBlogPostsAction, createBlogPostAction, updateBlogPostAction, deleteBlogPostAction, seedContentAction, generateBlogCommentsAction } from '@/lib/actions';
+import { fetchBlogPostsAction, createBlogPostAction, updateBlogPostAction, deleteBlogPostAction, seedContentAction, generateBlogCommentsAction, deleteBlogPostsBulkAction } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, RefreshCw, PlusCircle, Edit, Trash2, BookOpen, Sparkles, Image as ImageIcon, MessageCircle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, RefreshCw, PlusCircle, Edit, Trash2, BookOpen, Sparkles, Image as ImageIcon, MessageCircle, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import Image from 'next/image';
 
 // ... imports
 
-const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingComments }: { 
+const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingComments, isSelected, onToggleSelect }: { 
     post: BlogPost, 
     onEdit: (p: BlogPost) => void, 
     onDelete: (id: string) => void, 
     onGenerateComments: (id: string) => void,
-    generatingComments: string | null 
+    generatingComments: string | null,
+    isSelected: boolean,
+    onToggleSelect: (id: string) => void
 }) => {
     const [imgSrc, setImgSrc] = useState(post.image);
     const [imgError, setImgError] = useState(false);
@@ -32,8 +35,15 @@ const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingCommen
     }, [post.image]);
 
     return (
-        <Card className="overflow-hidden flex flex-col">
-            <div className="aspect-video relative bg-muted">
+        <Card className={`overflow-hidden flex flex-col relative transition-all duration-200 ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}>
+            <div className="absolute top-2 left-2 z-10">
+                <Checkbox 
+                    checked={isSelected} 
+                    onCheckedChange={() => onToggleSelect(post.id)}
+                    className="bg-background/80 backdrop-blur-sm border-primary"
+                />
+            </div>
+            <div className="aspect-video relative bg-muted cursor-pointer" onClick={() => onToggleSelect(post.id)}>
                 {imgSrc && !imgError ? (
                     <Image 
                         src={imgSrc} 
@@ -80,6 +90,10 @@ export function BlogsManager() {
     const [isSeeding, setIsSeeding] = useState(false);
     const [generatingComments, setGeneratingComments] = useState<string | null>(null);
 
+    // Selection State
+    const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
     // Edit/Create State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
@@ -98,6 +112,7 @@ export function BlogsManager() {
         try {
             const fetchedPosts = await fetchBlogPostsAction(false); // Fetch all including drafts
             setPosts(fetchedPosts);
+            setSelectedPosts(new Set()); // Clear selection on reload
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load blog posts.' });
         } finally {
@@ -108,6 +123,45 @@ export function BlogsManager() {
     useEffect(() => {
         loadPosts();
     }, []);
+
+    const toggleSelect = (id: string) => {
+        const newSelected = new Set(selectedPosts);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedPosts(newSelected);
+    };
+
+    const handleSelectAll = () => {
+        if (selectedPosts.size === posts.length) {
+            setSelectedPosts(new Set());
+        } else {
+            setSelectedPosts(new Set(posts.map(p => p.id)));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedPosts.size === 0) return;
+        if (!confirm(`Are you sure you want to delete ${selectedPosts.size} posts?`)) return;
+
+        setIsBulkDeleting(true);
+        try {
+            const result = await deleteBlogPostsBulkAction(Array.from(selectedPosts));
+            if (result.success) {
+                toast({ title: 'Success', description: result.message });
+                loadPosts();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.message });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete posts.' });
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
 
     const handleOpenCreate = () => {
         setEditingPost(null);
@@ -222,7 +276,19 @@ export function BlogsManager() {
                          <CardTitle className="flex items-center gap-2"><BookOpen/> Blog Management</CardTitle>
                          <CardDescription>Manage articles, wisdom, and updates.</CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        {selectedPosts.size > 0 && (
+                            <div className="flex items-center gap-2 mr-2 animate-in fade-in slide-in-from-right-4">
+                                <span className="text-sm font-medium text-muted-foreground">{selectedPosts.size} selected</span>
+                                <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+                                    {isBulkDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Trash2 className="h-4 w-4 mr-2"/>}
+                                    Delete Selected
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setSelectedPosts(new Set())} title="Clear Selection">
+                                    <X className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        )}
                         <Button variant="secondary" onClick={handleGenerateContent} disabled={isSeeding} className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 border-none">
                             {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Sparkles className="h-4 w-4 mr-2"/>}
                             Generate AI Content
@@ -234,6 +300,14 @@ export function BlogsManager() {
                             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}/>
                         </Button>
                     </div>
+                </div>
+                <div className="mt-4 flex items-center space-x-2">
+                     <Checkbox 
+                        id="select-all" 
+                        checked={posts.length > 0 && selectedPosts.size === posts.length} 
+                        onCheckedChange={handleSelectAll}
+                     />
+                     <Label htmlFor="select-all" className="cursor-pointer">Select All Posts</Label>
                 </div>
             </CardHeader>
             <CardContent>
@@ -249,6 +323,8 @@ export function BlogsManager() {
                                 onDelete={handleDelete}
                                 onGenerateComments={handleGenerateComments}
                                 generatingComments={generatingComments}
+                                isSelected={selectedPosts.has(post.id)}
+                                onToggleSelect={toggleSelect}
                             />
                         ))}
                     </div>

@@ -20,7 +20,7 @@ import { getShippingRates as getEnviaShippingRates } from './envia-service';
 import { getSettings, updateSettings } from './settings-store';
 import { SiteSettings } from './definitions';
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost, addComment } from './blog-store';
-import { addPost as addCommunityPost, addAnswer as addCommunityAnswer } from './community-store';
+import { addPost as addCommunityPost, addAnswer as addCommunityAnswer, deletePost as deleteCommunityPost } from './community-store';
 import { seedBlogPosts, seedCommunityPosts, spiritualBots, indianBotNames, spiritualComments } from './seed-data';
 
 // ... existing code ...
@@ -581,6 +581,36 @@ export async function deleteBlogPostAction(id: string) {
   revalidatePath('/blogs');
   revalidatePath('/admin');
   return result;
+}
+
+export async function deleteBlogPostsBulkAction(ids: string[]) {
+  try {
+    // Parallelize deletions
+    await Promise.all(ids.map(id => deleteBlogPost(id)));
+    revalidatePath('/blogs');
+    revalidatePath('/admin');
+    return { success: true, message: `${ids.length} posts deleted.` };
+  } catch (error: any) {
+    return { success: false, message: 'Failed to delete some posts.' };
+  }
+}
+
+export async function deleteCommunityPostAction(id: string) {
+    const result = await deleteCommunityPost(id);
+    revalidatePath('/community');
+    revalidatePath('/admin');
+    return result;
+}
+
+export async function deleteCommunityPostsBulkAction(ids: string[]) {
+    try {
+        await Promise.all(ids.map(id => deleteCommunityPost(id)));
+        revalidatePath('/community');
+        revalidatePath('/admin');
+        return { success: true, message: `${ids.length} discussions deleted.` };
+    } catch (error: any) {
+        return { success: false, message: 'Failed to delete some discussions.' };
+    }
 }
 
 // --- SEED CONTENT ACTION ---

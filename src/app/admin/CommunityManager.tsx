@@ -10,13 +10,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, MessageCircle, ShieldCheck, Send, RefreshCw, User, Reply } from 'lucide-react';
+import { Loader2, MessageCircle, ShieldCheck, Send, RefreshCw, User, Reply, Trash2, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { seedContentAction } from '@/lib/actions';
+import { seedContentAction, deleteCommunityPostsBulkAction } from '@/lib/actions';
 
 export function CommunityManager() {
     const { toast } = useToast();
@@ -37,11 +38,16 @@ export function CommunityManager() {
     const [replyFakeName, setReplyFakeName] = useState<Record<string, string>>({});
     const [isReplying, setIsReplying] = useState<Record<string, boolean>>({});
 
+    // Bulk Delete State
+    const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
     const loadPosts = async () => {
         setIsLoading(true);
         try {
             const fetchedPosts = await getPosts();
             setPosts(fetchedPosts);
+            setSelectedPosts(new Set());
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load posts.' });
         } finally {
@@ -52,6 +58,45 @@ export function CommunityManager() {
     useEffect(() => {
         loadPosts();
     }, []);
+
+    const toggleSelect = (id: string) => {
+        const newSelected = new Set(selectedPosts);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedPosts(newSelected);
+    };
+
+    const handleSelectAll = () => {
+        if (selectedPosts.size === posts.length) {
+            setSelectedPosts(new Set());
+        } else {
+            setSelectedPosts(new Set(posts.map(p => p.id)));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedPosts.size === 0) return;
+        if (!confirm(`Are you sure you want to delete ${selectedPosts.size} discussions?`)) return;
+
+        setIsBulkDeleting(true);
+        try {
+            const result = await deleteCommunityPostsBulkAction(Array.from(selectedPosts));
+            if (result.success) {
+                toast({ title: 'Success', description: result.message });
+                loadPosts();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.message });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete discussions.' });
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
 
     const handleCreatePost = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -139,7 +184,19 @@ export function CommunityManager() {
                          <CardTitle className="flex items-center gap-2"><MessageCircle/> Community Management</CardTitle>
                          <CardDescription>Manage discussions and interact as Admin or other users.</CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        {selectedPosts.size > 0 && (
+                            <div className="flex items-center gap-2 mr-2 animate-in fade-in slide-in-from-right-4">
+                                <span className="text-sm font-medium text-muted-foreground">{selectedPosts.size} selected</span>
+                                <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+                                    {isBulkDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Trash2 className="h-4 w-4 mr-2"/>}
+                                    Delete
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setSelectedPosts(new Set())} title="Clear Selection">
+                                    <X className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        )}
                         <Button variant="secondary" onClick={handleGenerateContent} disabled={isSeeding} className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:opacity-90 border-none">
                             {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Send className="h-4 w-4 mr-2"/>}
                             Generate AI Discussion
@@ -216,6 +273,15 @@ export function CommunityManager() {
                     </TabsContent>
 
                     <TabsContent value="manage" className="space-y-4">
+                         <div className="flex items-center space-x-2 pb-2 pl-1">
+                             <Checkbox 
+                                id="select-all-comm" 
+                                checked={posts.length > 0 && selectedPosts.size === posts.length} 
+                                onCheckedChange={handleSelectAll}
+                             />
+                             <Label htmlFor="select-all-comm" className="cursor-pointer">Select All Discussions</Label>
+                        </div>
+
                         {isLoading ? (
                             <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div>
                         ) : posts.length === 0 ? (
@@ -223,89 +289,97 @@ export function CommunityManager() {
                         ) : (
                             <Accordion type="single" collapsible className="w-full">
                                 {posts.map(post => (
-                                    <AccordionItem key={post.id} value={post.id} className="border rounded-lg mb-4 px-4">
-                                        <AccordionTrigger className="hover:no-underline">
-                                            <div className="flex flex-col items-start text-left gap-1 w-full">
-                                                <div className="flex items-center gap-2 w-full">
-                                                    <span className="font-medium text-lg">{post.title}</span>
-                                                    <span className="ml-auto text-xs text-muted-foreground font-normal whitespace-nowrap mr-2">
-                                                        {formatDistanceToNow(post.createdAt)} ago
-                                                    </span>
+                                    <div key={post.id} className="flex items-start gap-2 mb-4">
+                                        <Checkbox 
+                                            className="mt-4"
+                                            checked={selectedPosts.has(post.id)}
+                                            onCheckedChange={() => toggleSelect(post.id)}
+                                        />
+                                        <AccordionItem value={post.id} className={`border rounded-lg px-4 w-full ${selectedPosts.has(post.id) ? 'border-primary bg-primary/5' : ''}`}>
+                                            <AccordionTrigger className="hover:no-underline">
+                                                <div className="flex flex-col items-start text-left gap-1 w-full">
+                                                    <div className="flex items-center gap-2 w-full">
+                                                        <span className="font-medium text-lg">{post.title}</span>
+                                                        <span className="ml-auto text-xs text-muted-foreground font-normal whitespace-nowrap mr-2">
+                                                            {formatDistanceToNow(post.createdAt)} ago
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                        <span className={post.userId === 'admin' ? 'text-primary font-bold flex items-center gap-1' : ''}>
+                                                            {post.userName} {post.userId === 'admin' && <ShieldCheck className="h-3 w-3"/>}
+                                                        </span>
+                                                        <span>•</span>
+                                                        <span>{post.answers.length} replies</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <span className={post.userId === 'admin' ? 'text-primary font-bold flex items-center gap-1' : ''}>
-                                                        {post.userName} {post.userId === 'admin' && <ShieldCheck className="h-3 w-3"/>}
-                                                    </span>
-                                                    <span>•</span>
-                                                    <span>{post.answers.length} replies</span>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="pt-4 border-t mt-2 space-y-6">
+                                                <div className="bg-muted/20 p-4 rounded-md text-sm">
+                                                    {post.content}
                                                 </div>
-                                            </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent className="pt-4 border-t mt-2 space-y-6">
-                                            <div className="bg-muted/20 p-4 rounded-md text-sm">
-                                                {post.content}
-                                            </div>
 
-                                            <div className="space-y-4 pl-4 border-l-2 border-muted">
-                                                <h4 className="font-medium text-sm text-muted-foreground">Replies</h4>
-                                                {post.answers.map(answer => (
-                                                    <div key={answer.id} className="space-y-1">
-                                                        <div className="flex items-center gap-2 text-sm">
-                                                            <span className={cn("font-semibold", answer.userId === 'admin' && "text-primary flex items-center gap-1")}>
-                                                                {answer.userName}
-                                                                {answer.userId === 'admin' && <ShieldCheck className="h-3 w-3"/>}
-                                                            </span>
-                                                            <span className="text-muted-foreground text-xs">{formatDistanceToNow(answer.createdAt)} ago</span>
+                                                <div className="space-y-4 pl-4 border-l-2 border-muted">
+                                                    <h4 className="font-medium text-sm text-muted-foreground">Replies</h4>
+                                                    {post.answers.map(answer => (
+                                                        <div key={answer.id} className="space-y-1">
+                                                            <div className="flex items-center gap-2 text-sm">
+                                                                <span className={cn("font-semibold", answer.userId === 'admin' && "text-primary flex items-center gap-1")}>
+                                                                    {answer.userName}
+                                                                    {answer.userId === 'admin' && <ShieldCheck className="h-3 w-3"/>}
+                                                                </span>
+                                                                <span className="text-muted-foreground text-xs">{formatDistanceToNow(answer.createdAt)} ago</span>
+                                                            </div>
+                                                            <p className="text-sm">{answer.content}</p>
                                                         </div>
-                                                        <p className="text-sm">{answer.content}</p>
-                                                    </div>
-                                                ))}
-                                                {post.answers.length === 0 && <p className="text-xs text-muted-foreground italic">No replies yet.</p>}
-                                            </div>
+                                                    ))}
+                                                    {post.answers.length === 0 && <p className="text-xs text-muted-foreground italic">No replies yet.</p>}
+                                                </div>
 
-                                            <div className="bg-muted/10 p-4 rounded-md border space-y-4">
-                                                <h4 className="font-medium text-sm flex items-center gap-2"><Reply className="h-4 w-4"/> Add Reply</h4>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="flex items-center space-x-2">
-                                                        <Switch 
-                                                            id={`reply-admin-${post.id}`} 
-                                                            checked={replyAsAdmin[post.id] || false} 
-                                                            onCheckedChange={(checked) => setReplyAsAdmin(prev => ({...prev, [post.id]: checked}))} 
-                                                        />
-                                                        <Label htmlFor={`reply-admin-${post.id}`} className="text-xs">As Admin</Label>
+                                                <div className="bg-muted/10 p-4 rounded-md border space-y-4">
+                                                    <h4 className="font-medium text-sm flex items-center gap-2"><Reply className="h-4 w-4"/> Add Reply</h4>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Switch 
+                                                                id={`reply-admin-${post.id}`} 
+                                                                checked={replyAsAdmin[post.id] || false} 
+                                                                onCheckedChange={(checked) => setReplyAsAdmin(prev => ({...prev, [post.id]: checked}))} 
+                                                            />
+                                                            <Label htmlFor={`reply-admin-${post.id}`} className="text-xs">As Admin</Label>
+                                                        </div>
+                                                        {!(replyAsAdmin[post.id]) && (
+                                                            <Input 
+                                                                placeholder="Replier Name" 
+                                                                className="h-8 w-40" 
+                                                                value={replyFakeName[post.id] || ''}
+                                                                onChange={e => setReplyFakeName(prev => ({...prev, [post.id]: e.target.value}))}
+                                                            />
+                                                        )}
                                                     </div>
-                                                    {!(replyAsAdmin[post.id]) && (
-                                                        <Input 
-                                                            placeholder="Replier Name" 
-                                                            className="h-8 w-40" 
-                                                            value={replyFakeName[post.id] || ''}
-                                                            onChange={e => setReplyFakeName(prev => ({...prev, [post.id]: e.target.value}))}
+                                                    <div className="flex gap-2">
+                                                        <Textarea 
+                                                            placeholder="Write a reply..." 
+                                                            value={replyContent[post.id] || ''}
+                                                            onChange={e => setReplyContent(prev => ({...prev, [post.id]: e.target.value}))}
+                                                            rows={2}
                                                         />
-                                                    )}
+                                                        <Button 
+                                                            className="self-end" 
+                                                            size="icon" 
+                                                            onClick={() => handleReply(post.id)}
+                                                            disabled={isReplying[post.id]}
+                                                        >
+                                                            {isReplying[post.id] ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4"/>}
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Textarea 
-                                                        placeholder="Write a reply..." 
-                                                        value={replyContent[post.id] || ''}
-                                                        onChange={e => setReplyContent(prev => ({...prev, [post.id]: e.target.value}))}
-                                                        rows={2}
-                                                    />
-                                                    <Button 
-                                                        className="self-end" 
-                                                        size="icon" 
-                                                        onClick={() => handleReply(post.id)}
-                                                        disabled={isReplying[post.id]}
-                                                    >
-                                                        {isReplying[post.id] ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4"/>}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </div>
                                 ))}
                             </Accordion>
                         )}
                     </TabsContent>
+
                 </Tabs>
             </CardContent>
         </Card>

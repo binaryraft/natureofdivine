@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, updateDoc, doc, arrayUnion, arrayRemove, query, orderBy, getDoc, Timestamp, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc, arrayUnion, arrayRemove, query, orderBy, getDoc, Timestamp, where } from 'firebase/firestore';
 import { addLog } from './log-store';
 import { revalidatePath } from 'next/cache';
 
@@ -145,5 +145,16 @@ export async function toggleLike(postId: string, userId: string, isLiked: boolea
     } catch (error: any) {
         await addLog('error', 'toggleLike failed', { error: error.message });
         return { success: false };
+    }
+}
+
+export async function deletePost(postId: string) {
+    try {
+        await deleteDoc(doc(postsCollection, postId));
+        revalidatePath('/community');
+        return { success: true, message: 'Post deleted.' };
+    } catch (error: any) {
+        await addLog('error', 'deletePost failed', { error: error.message });
+        return { success: false, message: 'Failed to delete post.' };
     }
 }
