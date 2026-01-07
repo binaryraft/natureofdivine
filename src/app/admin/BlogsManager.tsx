@@ -132,11 +132,10 @@ const BlogCard = ({ post, onEdit, onDelete, onGenerateComments, generatingCommen
             </div>
             <div className="aspect-video relative bg-muted cursor-pointer" onClick={() => onToggleSelect(post.id)}>
                 {imgSrc && !imgError ? (
-                    <Image 
+                    <img 
                         src={imgSrc} 
                         alt={post.title} 
-                        fill 
-                        className="object-cover" 
+                        className="object-cover w-full h-full"
                         onError={() => setImgError(true)}
                     />
                 ) : (
