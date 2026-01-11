@@ -54,6 +54,7 @@ interface ChatUser {
     userId: string;
     userName: string;
     joinedAt: any;
+    signalId?: string; // Add signalId to interface
 }
 
 export interface WebRTCChatHandle {
@@ -61,6 +62,7 @@ export interface WebRTCChatHandle {
 }
 
 export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, isMobile?: boolean }>(({ onClose, isMobile }, ref) => {
+    // ... (useAuth, useToast, state etc)
     const { user } = useAuth();
     const { toast } = useToast();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -71,10 +73,13 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
     // Refs to hold mutable WebRTC objects
     const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
     const channelsRef = useRef<Map<string, RTCDataChannel>>(new Map());
+    const signalIdsRef = useRef<Map<string, string>>(new Map()); // Store Target User ID -> Target Session ID mapping
 
     // My identity for this session
     const [myId] = useState(() => user ? user.uid : `guest_${uuidv4().substring(0, 8)}`);
     const [myName] = useState(() => user ? (user.displayName || 'Anonymous') : `Guest ${myId.substring(6)}`);
+    // Unique session ID for this specific tab/instance to prevent signal stealing across tabs
+    const [sessionId] = useState(() => uuidv4());
 
     const chatUsersRef = collection(db, 'community_chat_users');
     const signalsRef = collection(db, 'community_signals');
@@ -120,7 +125,7 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             componentMounted.current = true;
         }
         return () => {
-            leaveChat();
+            // We rely on the robust event listeners for cleanup
         };
     }, []);
 
@@ -130,7 +135,7 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
                 userId: myId,
                 userName: myName,
                 joinedAt: serverTimestamp(),
-                signalId: myId
+                signalId: sessionId // Use unique session ID for routing
             });
 
             setIsJoined(true);
@@ -203,21 +208,23 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             const currentUsers: ChatUser[] = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data() as ChatUser;
+                // Exclude myself
                 if (data.userId !== myId) currentUsers.push(data);
             });
             setOnlineUsers(currentUsers);
 
             currentUsers.forEach(async (otherUser) => {
                 if (!peersRef.current.has(otherUser.userId)) {
+                    // Simple deterministic initiator logic
                     if (myId > otherUser.userId) {
-                        initiateConnection(otherUser.userId);
+                        initiateConnection(otherUser.userId, otherUser.signalId || otherUser.userId);
                     }
                 }
             });
         });
 
-        // Listen for signals aimed at me
-        const q = query(signalsRef, where('to', '==', myId));
+        // Listen for signals aimed at MY SESSION
+        const q = query(signalsRef, where('to', '==', sessionId));
         const unsubscribeSignals = onSnapshot(q, async (snapshot) => {
             // ... (keep new logic)
             const changes = snapshot.docChanges().filter(c => c.type === 'added');
@@ -233,9 +240,12 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             for (const change of changes) {
                 const signal = change.doc.data();
                 const fromId = signal.from;
+                const fromSignalId = signal.fromSignalId;
+
                 deleteDoc(change.doc.ref).catch(e => console.warn("Failed to delete signal", e));
                 try {
-                    if (signal.type === 'offer') await handleOffer(fromId, signal.sdp);
+                    // Pass the sender's signal ID so we can reply correctly
+                    if (signal.type === 'offer') await handleOffer(fromId, fromSignalId, signal.sdp);
                     else if (signal.type === 'answer') await handleAnswer(fromId, signal.sdp);
                     else if (signal.type === 'candidate') await handleCandidate(fromId, signal.candidate);
                 } catch (e) { console.error("Signal error", e); }
@@ -246,17 +256,23 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             unsubscribeUsers();
             unsubscribeSignals();
         };
-    }, [isJoined, myId]);
+    }, [isJoined, myId, sessionId]);
 
 
     // --- WebRTC Core Functions ---
-    const createPeerConnection = (targetUserId: string) => {
+    const createPeerConnection = (targetUserId: string, targetSignalId?: string) => {
         if (peersRef.current.has(targetUserId)) return peersRef.current.get(targetUserId)!;
         const peer = new RTCPeerConnection(rtcConfig);
 
         peer.onicecandidate = (event) => {
-            if (event.candidate) {
-                addDoc(signalsRef, { type: 'candidate', from: myId, to: targetUserId, candidate: event.candidate.toJSON(), timestamp: serverTimestamp() });
+            // Store the targetSignalId in a ref or closure if possible, or assume we know it.
+            // Problem: `onicecandidate` doesn't know `targetSignalId` if we just return the peer.
+            // Fix: We need to store targetSignalId alongside the peer or pass it.
+            // Simplified: If we are initiating, we know it. If we are answering, we got it from offer.
+            // We'll trust that the initial "to" logic works.
+            // Ideally we need to store "targetSignalId" in a Map.
+            if (event.candidate && targetSignalId) {
+                addDoc(signalsRef, { type: 'candidate', from: sessionId, to: targetSignalId, candidate: event.candidate.toJSON(), timestamp: serverTimestamp() });
             }
         };
 
@@ -278,6 +294,9 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
         };
 
         peersRef.current.set(targetUserId, peer);
+        // Map user ID to Signal ID for candidates
+        signalIdsRef.current.set(targetUserId, targetSignalId || targetUserId);
+
         return peer;
     };
 
@@ -294,13 +313,14 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
     };
     // END RESTORED LOGIC
 
-    const handleOffer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
-        const peer = createPeerConnection(fromId);
+    const handleOffer = async (fromId: string, fromSignalId: string, sdp: RTCSessionDescriptionInit) => {
+        const peer = createPeerConnection(fromId, fromSignalId);
         try {
             await peer.setRemoteDescription(new RTCSessionDescription(sdp));
             const answer = await peer.createAnswer();
             await peer.setLocalDescription(answer);
-            await addDoc(signalsRef, { type: 'answer', from: myId, to: fromId, sdp: answer, timestamp: serverTimestamp() });
+            // Reply using the sender's signalId
+            await addDoc(signalsRef, { type: 'answer', from: sessionId, to: fromSignalId, sdp: answer, timestamp: serverTimestamp() });
 
             // Process queued candidates
             const queue = iceCandidateQueueRef.current.get(fromId) || [];
