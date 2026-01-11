@@ -31,7 +31,9 @@ function MarkdownPreview({ content }: { content: string }) {
     return <p className="whitespace-pre-wrap text-sm leading-relaxed line-clamp-3 text-muted-foreground">{plainText}</p>;
 }
 
-export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
+import { DonationHero } from '@/components/community/DonationHero';
+
+export function CommunityClient({ initialPosts, initialDonations }: { initialPosts: Post[], initialDonations: number }) {
     const { user } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
@@ -112,12 +114,16 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
         await toggleLike(post.id, user.uid, isLiked);
     };
 
+    const [liveMessage, setLiveMessage] = useState<{ name: string, text: string } | null>(null);
+
     return (
-        <div className="container mx-auto py-8 md:py-12 max-w-5xl space-y-8">
+        <div className="container mx-auto py-8 md:py-12 max-w-5xl space-y-12">
+            <DonationHero initialTotal={initialDonations} liveMessage={liveMessage} />
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-headline flex items-center gap-2"><MessageCircle className="h-8 w-8 text-primary" /> Seeker's Circle</h1>
-                    <p className="text-muted-foreground">A space for <strong className="text-foreground font-medium">shared exploration</strong> and realtime connection.</p>
+                    <h1 className="text-3xl font-headline flex items-center gap-2"><MessageCircle className="h-8 w-8 text-primary" /> Discussion Boards</h1>
+                    <p className="text-muted-foreground">Share your <strong className="text-foreground font-medium">experiences</strong> and insights.</p>
                 </div>
                 <Dialog open={newPostOpen} onOpenChange={setNewPostOpen}>
                     <DialogTrigger asChild>
@@ -251,7 +257,7 @@ export function CommunityClient({ initialPosts }: { initialPosts: Post[] }) {
                 </TabsContent>
 
                 <TabsContent value="live">
-                    <WebRTCChat />
+                    <WebRTCChat onMessageReceived={(name, text) => setLiveMessage({ name, text })} />
                 </TabsContent>
             </Tabs>
         </div>

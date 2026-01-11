@@ -50,8 +50,9 @@ interface ChatUser {
     joinedAt: any;
 }
 
-export function WebRTCChat() {
+export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: string, text: string) => void }) {
     const { user } = useAuth();
+
     const { toast } = useToast();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -268,6 +269,11 @@ export function WebRTCChat() {
         channel.onmessage = (event) => {
             try {
                 const msg: ChatMessage = JSON.parse(event.data);
+
+                if (onMessageReceived) {
+                    onMessageReceived(msg.senderName, msg.text);
+                }
+
                 setMessages(prev => {
                     // Dedup just in case
                     if (prev.some(m => m.id === msg.id)) return prev;

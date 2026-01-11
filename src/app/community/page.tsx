@@ -1,5 +1,6 @@
 
 import { getPosts } from '@/lib/community-store';
+import { getTotalDonations } from '@/lib/donation-store';
 import { CommunityClient } from './CommunityClient';
 
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,9 @@ export const metadata = {
 
 export default async function CommunityPage() {
     const posts = await getPosts();
+    const totalDonations = await getTotalDonations();
 
     return (
-        <CommunityClient initialPosts={posts} />
+        <CommunityClient initialPosts={posts} initialDonations={totalDonations} />
     );
 }
