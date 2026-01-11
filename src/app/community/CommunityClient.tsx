@@ -217,172 +217,166 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
 
             {/* Fullscreen Chat Overlay */}
             <AnimatePresence>
-                {/* ... existing chat code ... */}
+                {isChatOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: '100%' }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: '100%' }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        className="fixed inset-0 z-[200] bg-background flex flex-col"
+                    >
+                        {/* Header */}
+                        <div className="h-16 border-b border-border/40 flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10">
+
+                            <div className="flex items-center gap-4">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Raised</span>
+                                    <span className="text-lg font-mono font-medium flex items-center text-foreground">
+                                        <span className="text-muted-foreground text-sm mr-0.5">{currency}</span>
+                                        {totalDonations.toLocaleString()}
+                                    </span>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className="h-8 w-8 rounded-full p-0 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                                    onClick={() => setIsDonateOpen(true)}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-semibold hidden md:block opacity-50">Community Signal</h3>
+                                <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)} className="rounded-full">
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Chat Body */}
+                        <div className="flex-1 overflow-hidden relative">
+                            <WebRTCChat ref={chatRef} onClose={() => setIsChatOpen(false)} />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
 
+            {/* Donate Popup (Global Overlay) */}
+            <Dialog open={isDonateOpen} onOpenChange={setIsDonateOpen}>
+                <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 p-0 overflow-hidden gap-0 z-[210] shadow-2xl shadow-indigo-500/10">
+                    <VisuallyHidden>
+                        <DialogTitle>Make a Donation</DialogTitle>
+                    </VisuallyHidden>
 
-                {/* Fullscreen Chat Overlay */}
-                <AnimatePresence>
-                    {isChatOpen && (
+                    {/* Hero Graphic Area */}
+                    <div className="relative h-32 bg-gradient-to-br from-indigo-900/50 via-purple-900/30 to-zinc-950 flex flex-col items-center justify-center p-6 text-center border-b border-white/5">
+                        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 bg-repeat mix-blend-overlay"></div>
                         <motion.div
-                            initial={{ opacity: 0, y: '100%' }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed inset-0 z-[200] bg-background flex flex-col"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-indigo-500/20 p-3 rounded-full border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.3)] mb-2"
                         >
-                            {/* Header */}
-                            <div className="h-16 border-b border-border/40 flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10">
-
-                                <div className="flex items-center gap-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Raised</span>
-                                        <span className="text-lg font-mono font-medium flex items-center text-foreground">
-                                            <span className="text-muted-foreground text-sm mr-0.5">{currency}</span>
-                                            {totalDonations.toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        className="h-8 w-8 rounded-full p-0 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                                        onClick={() => setIsDonateOpen(true)}
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-semibold hidden md:block opacity-50">Community Signal</h3>
-                                    <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)} className="rounded-full">
-                                        <X className="h-5 w-5" />
-                                    </Button>
-                                </div>
-                            </div>
-
-                            {/* Chat Body */}
-                            <div className="flex-1 overflow-hidden relative">
-                                <WebRTCChat ref={chatRef} onClose={() => setIsChatOpen(false)} />
-                            </div>
+                            <Heart className="h-6 w-6 text-indigo-400 fill-indigo-400/50" />
                         </motion.div>
-                    )}
-                </AnimatePresence>
+                        <h2 className="text-xl font-medium text-white tracking-wide">Your money nurtures our community</h2>
+                    </div>
 
+                    <div className="p-6 space-y-6">
 
-                {/* Donate Popup (Global Overlay) */}
-                <Dialog open={isDonateOpen} onOpenChange={setIsDonateOpen}>
-                    <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 p-0 overflow-hidden gap-0 z-[210] shadow-2xl shadow-indigo-500/10">
-                        <VisuallyHidden>
-                            <DialogTitle>Make a Donation</DialogTitle>
-                        </VisuallyHidden>
-
-                        {/* Hero Graphic Area */}
-                        <div className="relative h-32 bg-gradient-to-br from-indigo-900/50 via-purple-900/30 to-zinc-950 flex flex-col items-center justify-center p-6 text-center border-b border-white/5">
-                            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 bg-repeat mix-blend-overlay"></div>
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="bg-indigo-500/20 p-3 rounded-full border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.3)] mb-2"
-                            >
-                                <Heart className="h-6 w-6 text-indigo-400 fill-indigo-400/50" />
-                            </motion.div>
-                            <h2 className="text-xl font-medium text-white tracking-wide">Your money nurtures our community</h2>
+                        {/* Name Input */}
+                        <div className="space-y-2 text-left">
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold ml-1">Your Name (Optional)</label>
+                            <Input
+                                placeholder="Enter your name..."
+                                className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 h-12"
+                                value={donorName}
+                                onChange={(e) => setDonorName(e.target.value)}
+                            />
                         </div>
 
-                        <div className="p-6 space-y-6">
+                        {/* Preset Buttons */}
+                        <div className="grid grid-cols-3 gap-3">
+                            {[
+                                { label: 'Seed', amount: 101, icon: '🌱' },
+                                { label: 'Sapling', amount: 501, icon: '🌿' },
+                                { label: 'Tree', amount: 1001, icon: '🌳' },
+                            ].map((item) => (
+                                <button
+                                    key={item.label}
+                                    className={cn(
+                                        "flex flex-col items-center justify-center p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95",
+                                        donationAmount === item.amount.toString()
+                                            ? "bg-indigo-600/20 border-indigo-500/50 ring-1 ring-indigo-500/50 text-indigo-300"
+                                            : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50 text-zinc-400"
+                                    )}
+                                    onClick={() => setDonationAmount(item.amount.toString())}
+                                >
+                                    <span className="text-2xl mb-1">{item.icon}</span>
+                                    <span className="text-xs font-medium uppercase tracking-wider opacity-70">{item.label}</span>
+                                    <span className="text-sm font-bold text-white mt-1">{currency}{item.amount}</span>
+                                </button>
+                            ))}
+                        </div>
 
-                            {/* Name Input */}
-                            <div className="space-y-2 text-left">
-                                <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold ml-1">Your Name (Optional)</label>
-                                <Input
-                                    placeholder="Enter your name..."
-                                    className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 h-12"
-                                    value={donorName}
-                                    onChange={(e) => setDonorName(e.target.value)}
-                                />
+                        {/* Custom Amount Input */}
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                <span className="text-zinc-500 text-lg font-light mr-2">Custom {currency}</span>
                             </div>
+                            <Input
+                                type="number"
+                                value={donationAmount}
+                                onChange={e => setDonationAmount(e.target.value)}
+                                className="h-14 pl-28 pr-4 text-right text-2xl font-light bg-zinc-900/50 border-zinc-800 rounded-xl focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 placeholder:text-zinc-700"
+                                placeholder="..."
+                            />
+                        </div>
 
-                            {/* Preset Buttons */}
-                            <div className="grid grid-cols-3 gap-3">
-                                {[
-                                    { label: 'Seed', amount: 101, icon: '🌱' },
-                                    { label: 'Sapling', amount: 501, icon: '🌿' },
-                                    { label: 'Tree', amount: 1001, icon: '🌳' },
-                                ].map((item) => (
-                                    <button
-                                        key={item.label}
-                                        className={cn(
-                                            "flex flex-col items-center justify-center p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95",
-                                            donationAmount === item.amount.toString()
-                                                ? "bg-indigo-600/20 border-indigo-500/50 ring-1 ring-indigo-500/50 text-indigo-300"
-                                                : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50 text-zinc-400"
-                                        )}
-                                        onClick={() => setDonationAmount(item.amount.toString())}
-                                    >
-                                        <span className="text-2xl mb-1">{item.icon}</span>
-                                        <span className="text-xs font-medium uppercase tracking-wider opacity-70">{item.label}</span>
-                                        <span className="text-sm font-bold text-white mt-1">{currency}{item.amount}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Custom Amount Input */}
-                            <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-                                    <span className="text-zinc-500 text-lg font-light mr-2">Custom {currency}</span>
+                        <Button
+                            size="lg"
+                            className={cn("w-full h-14 text-lg font-medium tracking-wide transition-all shadow-lg rounded-xl",
+                                donationStatus === 'success' ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20" :
+                                    donationStatus === 'error' ? "bg-red-600 hover:bg-red-700 text-white" :
+                                        "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40"
+                            )}
+                            onClick={handleDonation}
+                            disabled={donationStatus !== 'idle'}
+                        >
+                            {donationStatus === 'idle' && (
+                                <div className="flex items-center gap-2">
+                                    <span>Nurture Now</span>
+                                    <Heart className="h-4 w-4 fill-white/20" />
                                 </div>
-                                <Input
-                                    type="number"
-                                    value={donationAmount}
-                                    onChange={e => setDonationAmount(e.target.value)}
-                                    className="h-14 pl-28 pr-4 text-right text-2xl font-light bg-zinc-900/50 border-zinc-800 rounded-xl focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 placeholder:text-zinc-700"
-                                    placeholder="..."
-                                />
-                            </div>
+                            )}
+                            {donationStatus === 'processing' && (
+                                <div className="flex items-center gap-2">
+                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Processing...</span>
+                                </div>
+                            )}
+                            {donationStatus === 'success' && (
+                                <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-5 w-5" />
+                                    <span>Thank You</span>
+                                </div>
+                            )}
+                            {donationStatus === 'error' && (
+                                <div className="flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5" />
+                                    <span>Failed</span>
+                                </div>
+                            )}
+                        </Button>
 
-                            <Button
-                                size="lg"
-                                className={cn("w-full h-14 text-lg font-medium tracking-wide transition-all shadow-lg rounded-xl",
-                                    donationStatus === 'success' ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20" :
-                                        donationStatus === 'error' ? "bg-red-600 hover:bg-red-700 text-white" :
-                                            "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40"
-                                )}
-                                onClick={handleDonation}
-                                disabled={donationStatus !== 'idle'}
-                            >
-                                {donationStatus === 'idle' && (
-                                    <div className="flex items-center gap-2">
-                                        <span>Nurture Now</span>
-                                        <Heart className="h-4 w-4 fill-white/20" />
-                                    </div>
-                                )}
-                                {donationStatus === 'processing' && (
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>Processing...</span>
-                                    </div>
-                                )}
-                                {donationStatus === 'success' && (
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-5 w-5" />
-                                        <span>Thank You</span>
-                                    </div>
-                                )}
-                                {donationStatus === 'error' && (
-                                    <div className="flex items-center gap-2">
-                                        <AlertCircle className="h-5 w-5" />
-                                        <span>Failed</span>
-                                    </div>
-                                )}
-                            </Button>
+                        <p className="text-center text-xs text-zinc-500">
+                            Secure payment powered by PhonePe.
+                        </p>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
-                            <p className="text-center text-xs text-zinc-500">
-                                Secure payment powered by PhonePe.
-                            </p>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-            </>
-            );
+        </>
+    );
 }

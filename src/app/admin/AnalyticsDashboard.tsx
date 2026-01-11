@@ -332,7 +332,7 @@ export function AnalyticsDashboard() {
                 </CardContent>
             </Card>
         </div>
-        </div >
+
     );
 }
 
