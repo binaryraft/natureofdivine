@@ -731,11 +731,23 @@ export async function seedContentAction() {
   }
 }
 
-export async function initiateDonationPayment(amount: number, userId: string) {
+import { createDonationRecord, updateDonationPaymentStatus, getDonationById, getTopDonors } from './donation-store';
+
+// ... (existing imports)
+
+export async function fetchLeaderboardAction() {
+  try {
+    return await getTopDonors(10);
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function initiateDonationPayment(amount: number, userId: string, userName?: string) {
   try {
     // 1. Create Donation Record
     await addLog('info', 'Initiating donation', { userId, amount });
-    const donation = await createDonationRecord(userId, amount, 'INR'); // Default to INR for now as Payment Gateway requires it
+    const donation = await createDonationRecord(userId, amount, 'INR', userName); // Default to INR for now as Payment Gateway requires it
     if (!donation) throw new Error("Failed to create donation record.");
 
     // 2. Prepare PhonePe Payload
