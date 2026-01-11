@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BadgeDollarSign, Heart, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -28,10 +28,7 @@ export function DonationHero({
         if (!val || val <= 0) return;
 
         setStatus('processing');
-
-        // Simulate API call
         await new Promise(r => setTimeout(r, 1500));
-
         const isSuccess = Math.random() > 0.1;
 
         if (isSuccess) {
@@ -47,81 +44,114 @@ export function DonationHero({
     };
 
     return (
-        <div className="relative w-full rounded-xl overflow-hidden bg-background border border-border/50 shadow-md">
-            <div className="relative z-10 flex flex-col lg:flex-row justify-between items-stretch">
-                {/* Left: Donation Counter & Messaging */}
-                <div className="flex-1 p-8 md:p-12 flex flex-col justify-center space-y-8 bg-muted/5">
-                    <div className="space-y-2">
-                        <h2 className="text-xs font-bold tracking-[0.2em] text-primary uppercase">Community Distribution</h2>
-                        <div className="text-4xl md:text-6xl font-headline font-medium text-foreground tracking-tight tabular-nums flex items-baseline gap-1">
-                            <span className="text-2xl md:text-3xl font-light text-muted-foreground self-start mt-2">{currency}</span>
-                            {total.toLocaleString()}
-                        </div>
-                        <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-                            Your contributions directly sustain the mesh network and server infrastructure.
-                        </p>
-                    </div>
+        <div className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-background to-muted/20 border border-white/10 shadow-2xl">
+            {/* Ambient Background */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/5 rounded-full blur-[100px]" />
+                <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-indigo-500/5 rounded-full blur-[100px]" />
+            </div>
 
-                    <div className="space-y-4 max-w-sm">
-                        <div className="flex gap-2 relative">
-                            <div className="relative flex-1">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/70 font-medium">{currency}</span>
+            <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row gap-12 items-center justify-between">
+
+                {/* Left: Ticker & Message Feed (Visual Interest) */}
+                <div className="w-full md:w-1/2 space-y-8 order-2 md:order-1">
+                    <div className="relative h-[200px] flex flex-col justify-center">
+                        <div className="absolute top-0 left-0 text-[10px] font-bold tracking-[0.3em] text-muted-foreground uppercase opacity-70">
+                            Live Community Signal
+                        </div>
+
+                        {liveMessage ? (
+                            <motion.div
+                                key={liveMessage.text}
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                className="relative pl-6 border-l-2 border-primary/30"
+                            >
+                                <div className="text-xs font-bold uppercase tracking-wider text-primary mb-2">
+                                    {liveMessage.name}
+                                </div>
+                                <div className="text-2xl md:text-3xl font-light text-foreground leading-tight italic">
+                                    "{liveMessage.text}"
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <div className="text-muted-foreground/40 italic pl-6 border-l-2 border-white/5 space-y-2">
+                                <p>Awaiting transmission...</p>
+                                <div className="flex gap-1">
+                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce delay-0" />
+                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce delay-100" />
+                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce delay-200" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right: Donation Action (The Hook) */}
+                <div className="w-full md:w-[420px] order-1 md:order-2">
+                    <div className="bg-muted/10 backdrop-blur-sm border border-white/5 rounded-2xl p-8 text-center space-y-6 relative overflow-hidden group hover:border-white/10 transition-colors">
+
+                        {/* Status Indicator */}
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-20" />
+
+                        <div>
+                            <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 mb-4 animate-pulse-slow">
+                                <Heart className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="text-5xl md:text-6xl font-headline font-bold tracking-tight text-foreground flex justify-center items-baseline gap-1">
+                                <span className="text-2xl text-muted-foreground font-light px-1">{currency}</span>
+                                {total.toLocaleString()}
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground leading-relaxed px-4">
+                            Hello, we took a step forward expanding as a space for sharing thoughts about divinity.
+                            A community of true and real people. Spending time here actually aligns people to the center.
+                            Something valuable.
+                        </p>
+
+                        <div className="space-y-3 pt-2">
+                            <div className="relative group/input">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within/input:text-primary transition-colors">{currency}</span>
                                 <Input
                                     type="number"
-                                    placeholder="Amount"
+                                    placeholder="Contribution amount..."
                                     value={amount}
                                     onChange={e => setAmount(e.target.value)}
-                                    className="pl-8 bg-background border-input h-12 text-lg shadow-sm"
+                                    className="h-12 pl-8 bg-background/50 border-white/10 focus:border-primary/50 text-center text-lg" // Center text for focus
                                 />
                             </div>
 
                             <AnimatePresence mode="wait">
                                 {status === 'idle' && (
-                                    <motion.div
-                                        key="idle"
-                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                    >
+                                    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                                         <Button
                                             size="lg"
-                                            className="h-12 w-32 font-bold tracking-wide shadow-sm"
+                                            className="w-full h-12 font-bold tracking-wide shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all"
                                             onClick={handleDonation}
                                         >
-                                            Donate
+                                            Fuel the Server
                                         </Button>
                                     </motion.div>
                                 )}
-
                                 {status === 'processing' && (
-                                    <motion.div
-                                        key="processing"
-                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                    >
-                                        <Button size="lg" disabled className="h-12 w-32 cursor-not-allowed bg-muted text-muted-foreground">
-                                            <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                        <Button size="lg" disabled className="w-full h-12">
+                                            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                         </Button>
                                     </motion.div>
                                 )}
-
                                 {status === 'success' && (
-                                    <motion.div
-                                        key="success"
-                                        initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
-                                    >
-                                        <Button size="lg" disabled className="h-12 w-32 bg-green-600/90 text-white hover:bg-green-700">
-                                            <CheckCircle2 className="h-5 w-5" />
+                                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}>
+                                        <Button size="lg" disabled className="w-full h-12 bg-green-600">
+                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Received with Gratitude
                                         </Button>
                                     </motion.div>
                                 )}
-
                                 {status === 'error' && (
-                                    <motion.div
-                                        key="error"
-                                        initial={{ x: 0 }}
-                                        animate={{ x: [0, -5, 5, -5, 5, 0], backgroundColor: ["#ef4444", "#dc2626", "#ef4444"] }}
-                                        transition={{ duration: 0.4 }}
-                                    >
-                                        <Button size="lg" className="h-12 w-32 bg-red-600 hover:bg-red-700 text-white border-0">
-                                            <AlertCircle className="h-5 w-5" />
+                                    <motion.div animate={{ x: [-5, 5, -5, 5, 0] }}>
+                                        <Button size="lg" className="w-full h-12 bg-red-600 hover:bg-red-700">
+                                            <AlertCircle className="mr-2 h-4 w-4" /> Try Again
                                         </Button>
                                     </motion.div>
                                 )}
@@ -130,50 +160,6 @@ export function DonationHero({
                     </div>
                 </div>
 
-                {/* Right: Live Data Ticker */}
-                <div className="w-full lg:w-[420px] bg-muted/20 border-t lg:border-t-0 lg:border-l border-border min-h-[200px] flex flex-col p-6 md:p-8 justify-center relative overflow-hidden">
-                    <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-80">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                        </span>
-                        <span className="text-[10px] font-bold tracking-widest text-primary uppercase">Live Feed</span>
-                    </div>
-
-                    {liveMessage ? (
-                        <motion.div
-                            key={liveMessage.text}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="space-y-2 z-10"
-                        >
-                            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                <span className="h-0.5 w-4 bg-primary/50"></span>
-                                {liveMessage.name}
-                            </div>
-                            <div className="text-lg md:text-xl font-medium text-foreground leading-relaxed italic">
-                                "{liveMessage.text}"
-                            </div>
-                        </motion.div>
-                    ) : (
-                        <div className="text-center space-y-3 opacity-30 z-10">
-                            <div className="text-sm font-medium">Waiting for transmission...</div>
-                            <div className="flex justify-center gap-1">
-                                <div className="h-1 w-1 bg-foreground rounded-full animate-bounce delay-0" />
-                                <div className="h-1 w-1 bg-foreground rounded-full animate-bounce delay-100" />
-                                <div className="h-1 w-1 bg-foreground rounded-full animate-bounce delay-200" />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Subtle BG Pattern */}
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-                        style={{
-                            backgroundImage: 'radial-gradient(circle at 10% 20%, currentColor 1px, transparent 1px)',
-                            backgroundSize: '20px 20px'
-                        }}
-                    />
-                </div>
             </div>
         </div>
     );

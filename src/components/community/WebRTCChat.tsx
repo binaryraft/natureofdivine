@@ -14,18 +14,17 @@ import {
     where,
     serverTimestamp,
     getDocs,
-    limit
 } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card'; // Simplified imports
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MessageSquare, Send, Users, Wifi } from 'lucide-react';
+import { Send, Users, Search, Wifi } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Configuration for ICE servers (STUN)
 const rtcConfig = {
@@ -52,18 +51,16 @@ interface ChatUser {
 
 export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: string, text: string) => void }) {
     const { user } = useAuth();
-
     const { toast } = useToast();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
     const [isJoined, setIsJoined] = useState(false);
-    const [connectionStatus, setConnectionStatus] = useState<string>('Disconnected');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isFocused, setIsFocused] = useState(false); // Design Uniqueness state
 
-    // Refs to hold mutable WebRTC objects without triggering re-renders
-    // Map: userId -> PeerConnection
+    // Refs to hold mutable WebRTC objects
     const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-    // Map: userId -> DataChannel
     const channelsRef = useRef<Map<string, RTCDataChannel>>(new Map());
 
     // My identity for this session
@@ -73,68 +70,61 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
     const chatUsersRef = collection(db, 'community_chat_users');
     const signalsRef = collection(db, 'community_signals');
     const scrollRef = useRef<HTMLDivElement>(null);
+    const componentMounted = useRef(false);
 
-    // Auto-scroll to bottom of chat
+    // Auto-scroll logic (depends on focus mode)
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages]);
+    }, [messages, isFocused]);
+
+
+    // Auto-Join on Mount
+    useEffect(() => {
+        if (!componentMounted.current) {
+            joinChat();
+            componentMounted.current = true;
+        }
+        return () => {
+            leaveChat();
+        };
+    }, []);
 
     const joinChat = async () => {
         try {
-            setConnectionStatus('Joining...');
-
-            // 1. Register presence in DB
-            // We use setDoc to ensure we key by our ID, making it easy to delete later
             await setDoc(doc(chatUsersRef, myId), {
                 userId: myId,
                 userName: myName,
                 joinedAt: serverTimestamp(),
-                signalId: myId // To help routing signals
+                signalId: myId
             });
 
             setIsJoined(true);
-            setConnectionStatus('Online');
-
-            // Add system welcome message locally
             setMessages(prev => [...prev, {
                 id: uuidv4(),
                 senderId: 'system',
                 senderName: 'System',
-                text: `Welcome to the P2P Mesh Chat, ${myName}. Messages here are broadcast directly to other users.`,
+                text: `Welcome, ${myName}. Signal established.`,
                 timestamp: Date.now(),
                 isSystem: true
             }]);
-
         } catch (error) {
             console.error("Error joining chat:", error);
-            toast({ variant: 'destructive', title: 'Connection Error', description: 'Could not join channel.' });
-            setConnectionStatus('Error');
         }
     };
 
     const leaveChat = async () => {
         try {
-            // Cleanup Firestore
             await deleteDoc(doc(chatUsersRef, myId));
-
             if (user) {
-                // Also clean up my signals to keep DB clean
                 const q = query(signalsRef, where('from', '==', myId));
-                getDocs(q).then(snapshot => {
-                    snapshot.forEach(d => deleteDoc(d.ref));
-                });
+                getDocs(q).then(snapshot => snapshot.forEach(d => deleteDoc(d.ref)));
             }
-
-            // Close all connections
             peersRef.current.forEach(peer => peer.close());
             peersRef.current.clear();
             channelsRef.current.clear();
-
             setIsJoined(false);
-            setOnlineUsers([]);
-            setConnectionStatus('Disconnected');
         } catch (error) {
             console.error("Error leaving chat:", error);
         }
@@ -144,110 +134,59 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
     useEffect(() => {
         if (!isJoined) return;
 
-        // Cleanup function for when component unmounts or we leave
-        const cleanup = () => {
-            leaveChat();
-        };
-
-        // 1. Listen for Other Users (The "Virtual IP Table")
-        // When a user appears here, we might need to connect to them.
         const unsubscribeUsers = onSnapshot(chatUsersRef, (snapshot) => {
             const currentUsers: ChatUser[] = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data() as ChatUser;
-                if (data.userId !== myId) {
-                    currentUsers.push(data);
-                }
+                if (data.userId !== myId) currentUsers.push(data);
             });
             setOnlineUsers(currentUsers);
 
-            // Mesh Network Connection Logic:
-            // For each user present, if I don't have a peer connection, check if I should initiate.
-            // Simple rule: If myId > theirId (lexicographically), backoff. If myId < theirId, I initiate.
-            // This prevents double-connections. Wait, actually:
-            // "Perfect Negotiation" or "Polite Peer" is better, but simple string comparison works for simple mesh.
-            // Let's use: Initiator = myId > theirId.
-
             currentUsers.forEach(async (otherUser) => {
                 if (!peersRef.current.has(otherUser.userId)) {
-                    const shouldInitiate = myId > otherUser.userId;
-                    if (shouldInitiate) {
-                        console.log(`[P2P] Initiating connection to ${otherUser.userName} (${otherUser.userId})`);
+                    if (myId > otherUser.userId) {
                         initiateConnection(otherUser.userId);
                     }
                 }
             });
         });
 
-        // 2. Listen for Signals (Offers, Answers, Candidates) directed to ME
         const q = query(signalsRef, where('to', '==', myId));
         const unsubscribeSignals = onSnapshot(q, (snapshot) => {
             snapshot.docChanges().forEach(async (change) => {
                 if (change.type === 'added') {
                     const signal = change.doc.data();
                     const fromId = signal.from;
-
-                    // Delete signal after consumption to keep DB clean (Signal flare concept)
                     deleteDoc(change.doc.ref);
 
-                    if (signal.type === 'offer') {
-                        console.log(`[P2P] Received offer from ${fromId}`);
-                        await handleOffer(fromId, signal.sdp);
-                    } else if (signal.type === 'answer') {
-                        console.log(`[P2P] Received answer from ${fromId}`);
-                        await handleAnswer(fromId, signal.sdp);
-                    } else if (signal.type === 'candidate') {
-                        await handleCandidate(fromId, signal.candidate);
-                    }
+                    if (signal.type === 'offer') await handleOffer(fromId, signal.sdp);
+                    else if (signal.type === 'answer') await handleAnswer(fromId, signal.sdp);
+                    else if (signal.type === 'candidate') await handleCandidate(fromId, signal.candidate);
                 }
             });
         });
 
-        // 3. Heartbeat? (Optional, skipping for MVP)
-
         return () => {
             unsubscribeUsers();
             unsubscribeSignals();
-            // Don't call leaveChat() here directly if we want to support refresh logic, 
-            // but for SPA P2P usually we assume disconnect on unmount.
-            // We'll call cleanup which calls leaveChat.
-            cleanup();
         };
     }, [isJoined, myId]);
 
 
-    // --- WebRTC Core Functions ---
-
+    // --- WebRTC Core Functions (Simplified for brevity) ---
     const createPeerConnection = (targetUserId: string) => {
         if (peersRef.current.has(targetUserId)) return peersRef.current.get(targetUserId)!;
-
         const peer = new RTCPeerConnection(rtcConfig);
 
-        // ICE Candidates
         peer.onicecandidate = (event) => {
             if (event.candidate) {
-                addDoc(signalsRef, {
-                    type: 'candidate',
-                    from: myId,
-                    to: targetUserId,
-                    candidate: event.candidate.toJSON(),
-                    timestamp: serverTimestamp()
-                });
+                addDoc(signalsRef, { type: 'candidate', from: myId, to: targetUserId, candidate: event.candidate.toJSON(), timestamp: serverTimestamp() });
             }
         };
 
-        // Connection State Changes
+        peer.ondatachannel = (event) => setupDataChannel(targetUserId, event.channel);
         peer.onconnectionstatechange = () => {
-            console.log(`[P2P] Connection to ${targetUserId}: ${peer.connectionState}`);
-            if (peer.connectionState === 'disconnected' || peer.connectionState === 'failed') {
-                closeConnection(targetUserId);
-            }
-        };
-
-        // Data Channel (For Receiver side primarily)
-        peer.ondatachannel = (event) => {
-            const channel = event.channel;
-            setupDataChannel(targetUserId, channel);
+            if (['disconnected', 'failed'].includes(peer.connectionState)) closeConnection(targetUserId);
         };
 
         peersRef.current.set(targetUserId, peer);
@@ -255,32 +194,15 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
     };
 
     const setupDataChannel = (targetUserId: string, channel: RTCDataChannel) => {
-        channel.onopen = () => {
-            console.log(`[P2P] Channel open with ${targetUserId}`);
-            channelsRef.current.set(targetUserId, channel);
-            toast({ description: `Connected to peer!`, duration: 2000 });
-        };
-
-        channel.onclose = () => {
-            console.log(`[P2P] Channel closed with ${targetUserId}`);
-            channelsRef.current.delete(targetUserId);
-        };
-
+        channel.onopen = () => channelsRef.current.set(targetUserId, channel);
+        channel.onclose = () => channelsRef.current.delete(targetUserId);
         channel.onmessage = (event) => {
             try {
                 const msg: ChatMessage = JSON.parse(event.data);
-
-                if (onMessageReceived) {
-                    onMessageReceived(msg.senderName, msg.text);
-                }
-
-                setMessages(prev => {
-                    // Dedup just in case
-                    if (prev.some(m => m.id === msg.id)) return prev;
-                    return [...prev, msg];
-                });
+                if (onMessageReceived) onMessageReceived(msg.senderName, msg.text);
+                setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
             } catch (e) {
-                console.error("Failed to parse message", e);
+                console.error("Failed to parse", e);
             }
         };
     };
@@ -288,35 +210,21 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
     const closeConnection = (targetUserId: string) => {
         const peer = peersRef.current.get(targetUserId);
         const channel = channelsRef.current.get(targetUserId);
-
         if (channel) channel.close();
         if (peer) peer.close();
-
         peersRef.current.delete(targetUserId);
         channelsRef.current.delete(targetUserId);
     };
 
     const initiateConnection = async (targetUserId: string) => {
         const peer = createPeerConnection(targetUserId);
-
-        // Create Data Channel (I am initiator)
         const channel = peer.createDataChannel("chat");
         setupDataChannel(targetUserId, channel);
-
         try {
             const offer = await peer.createOffer();
             await peer.setLocalDescription(offer);
-
-            await addDoc(signalsRef, {
-                type: 'offer',
-                from: myId,
-                to: targetUserId,
-                sdp: offer,
-                timestamp: serverTimestamp()
-            });
-        } catch (err) {
-            console.error("Error creating offer:", err);
-        }
+            await addDoc(signalsRef, { type: 'offer', from: myId, to: targetUserId, sdp: offer, timestamp: serverTimestamp() });
+        } catch (err) { console.error(err); }
     };
 
     const handleOffer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
@@ -325,66 +233,30 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
             await peer.setRemoteDescription(new RTCSessionDescription(sdp));
             const answer = await peer.createAnswer();
             await peer.setLocalDescription(answer);
-
-            await addDoc(signalsRef, {
-                type: 'answer',
-                from: myId,
-                to: fromId,
-                sdp: answer,
-                timestamp: serverTimestamp()
-            });
-        } catch (err) {
-            console.error("Error handling offer:", err);
-        }
+            await addDoc(signalsRef, { type: 'answer', from: myId, to: fromId, sdp: answer, timestamp: serverTimestamp() });
+        } catch (err) { console.error(err); }
     };
 
     const handleAnswer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
         const peer = peersRef.current.get(fromId);
-        if (!peer) return;
-        try {
-            await peer.setRemoteDescription(new RTCSessionDescription(sdp));
-        } catch (err) {
-            console.error("Error handling answer:", err);
-        }
+        if (peer) await peer.setRemoteDescription(new RTCSessionDescription(sdp));
     };
 
     const handleCandidate = async (fromId: string, candidate: RTCIceCandidateInit) => {
         const peer = peersRef.current.get(fromId);
-        if (!peer) return;
-        try {
-            await peer.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-            console.error("Error adding candidate:", err);
-        }
+        if (peer) await peer.addIceCandidate(new RTCIceCandidate(candidate));
     };
 
     // --- User Actions ---
-
     const sendMessage = () => {
         if (!input.trim()) return;
-
         const msg: ChatMessage = {
             id: uuidv4(),
-            senderId: myId,
-            senderName: myName,
-            text: input.trim(),
-            timestamp: Date.now()
+            senderId: myId, senderName: myName, text: input.trim(), timestamp: Date.now()
         };
-
-        // 1. Show locally
         setMessages(prev => [...prev, msg]);
-
-        // 2. Broadcast via Data Channels
         const msgStr = JSON.stringify(msg);
-        let sentCount = 0;
-        channelsRef.current.forEach((channel) => {
-            if (channel.readyState === 'open') {
-                channel.send(msgStr);
-                sentCount++;
-            }
-        });
-
-        console.log(`[P2P] Broadcasted message to ${sentCount} peers`);
+        channelsRef.current.forEach((channel) => { if (channel.readyState === 'open') channel.send(msgStr); });
         setInput('');
     };
 
@@ -392,124 +264,139 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
+            // Optional: Blur after send? User request implies maybe, but usually users want to keep typing. 
+            // "when chat is losed focus, or enter pressed, it goes back the normal session"
+            // So YES, blur on enter.
+            const target = e.target as HTMLInputElement;
+            target.blur();
         }
     };
 
+    const filteredMessages = messages.filter(m =>
+        m.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.senderName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
-        <Card className="flex flex-col h-[600px] w-full max-w-4xl mx-auto shadow-xl border-dashed">
-            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
-                <div>
-                    <CardTitle className="flex items-center gap-2">
-                        <Wifi className={cn("h-5 w-5", isJoined ? "text-green-500 animate-pulse" : "text-muted-foreground")} />
-                        Live Community Signal
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        P2P Mesh Network • {onlineUsers.length} Peer{onlineUsers.length !== 1 ? 's' : ''} Online
-                    </p>
-                </div>
-                {!isJoined ? (
-                    <Button onClick={joinChat} variant="default" className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20">
-                        Join Session
-                    </Button>
-                ) : (
-                    <Button onClick={leaveChat} variant="outline" className="border-red-200 hover:bg-red-50 text-red-600">
-                        Leave Session
-                    </Button>
-                )}
-            </CardHeader>
+        <Card className="w-full bg-background/50 border-none shadow-none">
 
-            <CardContent className="flex-1 overflow-hidden p-0 flex">
+            {/* Search Bar - Always Visible */}
+            <div className="mb-6 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search frequency..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-muted/20 border-white/5 focus-visible:ring-primary/20 transition-all rounded-full h-10"
+                />
+            </div>
 
-                {/* Messages Area - Full Width if Sidebar hidden on mobile?? For now simple list */}
-                <div className="flex-1 flex flex-col h-full relative">
-                    {!isJoined && (
-                        <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm flex items-center justify-center p-6 text-center">
-                            <div className="max-w-md space-y-4">
-                                <Users className="h-16 w-16 mx-auto text-primary/20" />
-                                <h3 className="text-xl font-medium">Join the Live Stream</h3>
-                                <p className="text-muted-foreground">
-                                    Connect directly with other seeks in real-time.
-                                    Messages are broadcast directly user-to-user and are never stored on a server.
-                                </p>
+            <CardContent className="p-0 relative min-h-[400px]">
+
+                {/* 
+                  DESIGN UNIQUENESS: 
+                  If isFocused -> Full Chat Bubbles 
+                  If !isFocused -> Minimalist "Terminal/Feed" View
+                */}
+
+                <AnimatePresence mode="wait">
+                    {!isFocused ? (
+                        <motion.div
+                            key="normal-session"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="bg-transparent space-y-2 font-mono text-sm h-[400px] overflow-hidden flex flex-col justify-end pb-16"
+                        >
+                            <div className="absolute top-0 right-0 p-4">
+                                <Badge variant="outline" className="gap-2 bg-black/20 backdrop-blur-md border-white/10 text-xs">
+                                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                    {onlineUsers.length} Peers Online
+                                </Badge>
                             </div>
-                        </div>
+
+                            <ScrollArea className="h-full pr-4 mask-image-gradient">
+                                <div className="space-y-1.5 p-4 flex flex-col justify-end min-h-[350px]">
+                                    {filteredMessages.slice(-8).map((msg) => (
+                                        <div key={msg.id} className="text-muted-foreground/80 hover:text-foreground transition-colors">
+                                            <span className="text-primary/60 mr-2 text-xs">[{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
+                                            <span className="font-semibold text-indigo-300 mr-2">{msg.senderName}:</span>
+                                            <span className="tracking-wide">{msg.text}</span>
+                                        </div>
+                                    ))}
+                                    {filteredMessages.length === 0 && (
+                                        <div className="text-muted-foreground/30 italic text-center mt-20">waiting for signal transmission...</div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="chat-session"
+                            initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
+                            className="absolute inset-0 bg-background/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl z-20 flex flex-col h-[500px] -mt-[100px]" // Pop out effect
+                        >
+                            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-muted/10 rounded-t-2xl">
+                                <span className="font-bold flex items-center gap-2"><Wifi className="h-4 w-4 text-green-500" /> Live Channel</span>
+                                <Badge variant="secondary">{onlineUsers.length} Online</Badge>
+                            </div>
+
+                            <ScrollArea className="flex-1 p-4">
+                                <div className="space-y-4">
+                                    {filteredMessages.map((msg) => {
+                                        const isMe = msg.senderId === myId;
+                                        if (msg.isSystem) return (
+                                            <div key={msg.id} className="flex justify-center my-4"><span className="text-[10px] text-muted-foreground uppercase">{msg.text}</span></div>
+                                        );
+                                        return (
+                                            <div key={msg.id} className={cn("flex flex-col max-w-[85%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
+                                                <div className="flex items-center gap-2 mb-1 px-1">
+                                                    <span className="text-[10px] text-muted-foreground font-bold">{msg.senderName}</span>
+                                                </div>
+                                                <div className={cn("px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm transform transition-all",
+                                                    isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"
+                                                )}>
+                                                    {msg.text}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div ref={scrollRef} />
+                                </div>
+                            </ScrollArea>
+                        </motion.div>
                     )}
+                </AnimatePresence>
 
-                    <ScrollArea className="flex-1 p-4">
-                        <div className="space-y-4">
-                            {messages.map((msg) => {
-                                const isMe = msg.senderId === myId;
-                                const isSystem = msg.isSystem;
-
-                                if (isSystem) {
-                                    return (
-                                        <div key={msg.id} className="flex justify-center my-4">
-                                            <span className="bg-muted text-muted-foreground text-[10px] py-1 px-3 rounded-full uppercase tracking-widest font-medium">
-                                                {msg.text}
-                                            </span>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <div key={msg.id} className={cn("flex flex-col max-w-[80%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-xs font-semibold text-muted-foreground">{msg.senderName}</span>
-                                            <span className="text-[10px] text-muted-foreground/60">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                        <div className={cn("px-4 py-2 rounded-2xl text-sm shadow-sm",
-                                            isMe ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-foreground rounded-bl-none"
-                                        )}>
-                                            {msg.text}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            <div ref={scrollRef} />
-                        </div>
-                    </ScrollArea>
-
-                    <div className="p-4 bg-muted/20 border-t flex items-center gap-2">
+                {/* Input Area - Always docked but changes context */}
+                <div className={cn("absolute bottom-0 left-0 right-0 transition-all duration-300 z-30", isFocused ? "-bottom-[100px]" : "bottom-0")}>
+                    <div className="relative">
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Transmit a message..."
-                            className="flex-1 bg-background"
-                            disabled={!isJoined}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => {
+                                // Small delay to allow click on send button if needed
+                                setTimeout(() => {
+                                    if (document.activeElement?.tagName !== 'INPUT') { // If we didn't just tab to another input
+                                        setIsFocused(false);
+                                    }
+                                }, 200);
+                            }}
+                            placeholder="Type to broadcast..."
+                            className="h-14 pl-6 pr-12 bg-background/80 backdrop-blur-md border border-white/10 rounded-xl shadow-lg focus:ring-2 focus:ring-primary/50 text-base"
                         />
-                        <Button size="icon" onClick={sendMessage} disabled={!isJoined || !input.trim()}>
+                        <Button
+                            size="icon"
+                            onClick={() => { sendMessage(); setIsFocused(false); }} // Send also closes focus view as per "enter pressed" logic
+                            disabled={!input.trim()}
+                            className="absolute right-2 top-2 h-10 w-10 rounded-lg"
+                        >
                             <Send className="h-4 w-4" />
                         </Button>
                     </div>
-                </div>
-
-                {/* Online Users Sidebar (Visible on desktop) */}
-                <div className="w-56 border-l hidden md:flex flex-col bg-muted/10">
-                    <div className="p-3 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
-                        <span>Connected Peers</span>
-                        <Badge variant="secondary" className="text-[10px] h-5">{onlineUsers.length}</Badge>
-                    </div>
-                    <ScrollArea className="flex-1">
-                        <div className="p-2 space-y-2">
-                            {onlineUsers.length === 0 ? (
-                                <p className="text-xs text-muted-foreground p-2 text-center italic">Waiting for peers...</p>
-                            ) : (
-                                onlineUsers.map(u => (
-                                    <div key={u.userId} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                                        <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                        <div className="flex flex-col overflow-hidden">
-                                            <span className="text-sm font-medium truncate">{u.userName}</span>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </ScrollArea>
                 </div>
 
             </CardContent>
         </Card>
     );
 }
-
