@@ -230,9 +230,25 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
         return peer;
     };
 
+    const [connectedPeers, setConnectedPeers] = useState(0);
+
+    const updateConnectedPeers = () => {
+        let count = 0;
+        channelsRef.current.forEach(channel => {
+            if (channel.readyState === 'open') count++;
+        });
+        setConnectedPeers(count);
+    };
+
     const setupDataChannel = (targetUserId: string, channel: RTCDataChannel) => {
-        channel.onopen = () => channelsRef.current.set(targetUserId, channel);
-        channel.onclose = () => channelsRef.current.delete(targetUserId);
+        channel.onopen = () => {
+            channelsRef.current.set(targetUserId, channel);
+            updateConnectedPeers();
+        };
+        channel.onclose = () => {
+            channelsRef.current.delete(targetUserId);
+            updateConnectedPeers();
+        };
         channel.onmessage = (event) => {
             try {
                 const msg: ChatMessage = JSON.parse(event.data);
@@ -250,6 +266,7 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
         if (peer) peer.close();
         peersRef.current.delete(targetUserId);
         channelsRef.current.delete(targetUserId);
+        updateConnectedPeers();
     };
 
     const initiateConnection = async (targetUserId: string) => {
@@ -283,9 +300,19 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
         if (peer) await peer.addIceCandidate(new RTCIceCandidate(candidate));
     };
 
-    // --- User Actions ---
     const sendMessage = () => {
         if (!input.trim()) return;
+
+        // Warn if not connected
+        if (onlineUsers.length > 0 && connectedPeers === 0) {
+            toast({
+                title: "Not Connected",
+                description: "Establishing connection to peers... please wait a moment.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         const msg: ChatMessage = {
             id: uuidv4(),
             senderId: myId, senderName: myName, text: input.trim(), timestamp: Date.now(), type: 'text'
@@ -361,8 +388,12 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             </ScrollArea>
 
             {/* Input - Sticky Bottom */}
-            <div className="p-4 md:p-6 bg-background/80 backdrop-blur-lg border-t border-white/5">
-                <div className="max-w-4xl mx-auto relative flex items-center gap-3">
+            <div className="p-4 md:p-6 bg-background/80 backdrop-blur-lg border-t border-white/5 relative">
+                <div className="absolute top-1 left-6 text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <div className={cn("h-1.5 w-1.5 rounded-full transition-colors", connectedPeers > 0 ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-yellow-500 animate-pulse")} />
+                    {connectedPeers === 0 && onlineUsers.length > 0 ? "Connecting..." : `${connectedPeers} peers connected`}
+                </div>
+                <div className="max-w-4xl mx-auto relative flex items-center gap-3 mt-3">
                     <Input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
