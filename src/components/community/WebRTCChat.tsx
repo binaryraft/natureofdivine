@@ -282,11 +282,13 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
 
             // Process queued candidates
             const queue = iceCandidateQueueRef.current.get(fromId) || [];
+            console.log(`Draining ${queue.length} candidates for ${fromId} after Offer`);
             for (const candidate of queue) {
-                await peer.addIceCandidate(new RTCIceCandidate(candidate));
+                try {
+                    await peer.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (e) { console.error("Error draining candidate in Offer", e); }
             }
             iceCandidateQueueRef.current.delete(fromId);
-
         } catch (err) { console.error(err); }
     };
 
@@ -322,10 +324,12 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
 
     const setupDataChannel = (targetUserId: string, channel: RTCDataChannel) => {
         channel.onopen = () => {
+            console.log(`Data Channel OPEN with ${targetUserId}`);
             channelsRef.current.set(targetUserId, channel);
             updateConnectedPeers();
         };
         channel.onclose = () => {
+            console.log(`Data Channel CLOSED with ${targetUserId}`);
             channelsRef.current.delete(targetUserId);
             updateConnectedPeers();
         };
