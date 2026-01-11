@@ -27,11 +27,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Configuration for ICE servers (STUN)
+// Configuration for ICE servers (STUN)
+// Note: For 100% reliability on mobile networks (Symmetric NAT), a TURN server is required.
 const rtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-    ]
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+    ],
+    iceCandidatePoolSize: 10,
 };
 
 interface ChatMessage {
@@ -234,7 +240,19 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
 
         peer.ondatachannel = (event) => setupDataChannel(targetUserId, event.channel);
         peer.onconnectionstatechange = () => {
-            if (['disconnected', 'failed'].includes(peer.connectionState)) closeConnection(targetUserId);
+            console.log(`Connection state with ${targetUserId}: ${peer.connectionState}`);
+            if (['disconnected', 'failed', 'closed'].includes(peer.connectionState)) {
+                closeConnection(targetUserId);
+            }
+            // Trigger re-render or update status
+            updateConnectedPeers();
+        };
+
+        peer.oniceconnectionstatechange = () => {
+            console.log(`ICE state with ${targetUserId}: ${peer.iceConnectionState}`);
+            if (peer.iceConnectionState === 'failed') {
+                // Should restart ICE?
+            }
         };
 
         peersRef.current.set(targetUserId, peer);
