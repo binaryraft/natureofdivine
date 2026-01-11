@@ -292,7 +292,18 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
 
     const handleAnswer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
         const peer = peersRef.current.get(fromId);
-        if (peer) await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+        if (peer) {
+            await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+            // Connection established (for initiator), drain queue
+            const queue = iceCandidateQueueRef.current.get(fromId) || [];
+            console.log(`Draining ${queue.length} candidates for ${fromId} after Answer`);
+            for (const candidate of queue) {
+                try {
+                    await peer.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (e) { console.error("Error draining candidate", e); }
+            }
+            iceCandidateQueueRef.current.delete(fromId);
+        }
     };
 
     const handleCandidate = async (fromId: string, candidate: RTCIceCandidateInit) => {
