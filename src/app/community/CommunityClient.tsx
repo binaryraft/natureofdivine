@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Post } from '@/lib/community-store';
 import { trackEvent, initiateDonationPayment, checkDonationStatusAction, fetchLeaderboardAction } from '@/lib/actions';
 import { LeaderboardEntry } from '@/lib/donation-store';
-import { MessageCircle, Heart, X, Plus, CheckCircle2, AlertCircle, BadgeDollarSign, Crown } from 'lucide-react';
+import { MessageCircle, Heart, X, Plus, CheckCircle2, AlertCircle, BadgeDollarSign, Crown, Feather, Scroll, BookOpen } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { WebRTCChat, WebRTCChatHandle } from '@/components/community/WebRTCChat';
 import { useLocation } from '@/hooks/useLocation';
@@ -163,7 +163,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         <div className="pt-12 max-w-md mx-auto w-full">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-6 flex items-center justify-center gap-2">
                                 <Crown className="h-4 w-4 text-amber-500" />
-                                Guardians of the Light
+                                Keepers of the Wisdom
                             </h3>
                             <div className="space-y-3">
                                 {leaderboard.map((entry, index) => {
@@ -278,9 +278,10 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                             animate={{ scale: 1, opacity: 1 }}
                             className="bg-indigo-500/20 p-3 rounded-full border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.3)] mb-2"
                         >
-                            <Heart className="h-6 w-6 text-indigo-400 fill-indigo-400/50" />
+                            <Scroll className="h-6 w-6 text-indigo-400 fill-indigo-400/20" />
                         </motion.div>
-                        <h2 className="text-xl font-medium text-white tracking-wide">Your money nurtures our community</h2>
+                        <h2 className="text-xl font-medium text-white tracking-wide">Preserve the Divine Wisdom</h2>
+                        <p className="text-xs text-zinc-400 mt-1 max-w-xs">Helping children understand the unity of all religions.</p>
                     </div>
 
                     <div className="p-6 space-y-6">
@@ -299,9 +300,9 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         {/* Preset Buttons */}
                         <div className="grid grid-cols-3 gap-3">
                             {[
-                                { label: 'Seed', amount: 101, icon: '🌱' },
-                                { label: 'Sapling', amount: 501, icon: '🌿' },
-                                { label: 'Tree', amount: 1001, icon: '🌳' },
+                                { label: 'Ink', amount: 101, icon: <Feather className="w-6 h-6 text-zinc-400" /> },
+                                { label: 'Page', amount: 501, icon: <Scroll className="w-6 h-6 text-zinc-300" /> },
+                                { label: 'Book', amount: 1001, icon: <BookOpen className="w-6 h-6 text-zinc-100" /> },
                             ].map((item) => (
                                 <button
                                     key={item.label}
@@ -313,7 +314,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                                     )}
                                     onClick={() => setDonationAmount(item.amount.toString())}
                                 >
-                                    <span className="text-2xl mb-1">{item.icon}</span>
+                                    <span className="mb-1">{item.icon}</span>
                                     <span className="text-xs font-medium uppercase tracking-wider opacity-70">{item.label}</span>
                                     <span className="text-sm font-bold text-white mt-1">{currency}{item.amount}</span>
                                 </button>
