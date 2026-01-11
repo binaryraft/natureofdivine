@@ -795,8 +795,11 @@ export async function initiateDonationPayment(amount: number, userId: string) {
 
     const data = response.data as any;
 
-    if ((data.code === 'PAYMENT_INITIATED' || data.success) && data.data?.instrumentResponse?.redirectInfo?.url) {
-      const redirectUrl = data.data.instrumentResponse.redirectInfo.url;
+    const instrumentResponse = data?.data?.instrumentResponse;
+    const redirectInfo = instrumentResponse?.redirectInfo;
+    const redirectUrl = redirectInfo?.url;
+
+    if ((data.code === 'PAYMENT_INITIATED' || data.success) && redirectUrl) {
       await addLog('info', 'Donation payment initiated', { donationId: donation.id, redirectUrl });
       return { success: true, redirectUrl };
     }
