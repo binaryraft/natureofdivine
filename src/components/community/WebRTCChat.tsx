@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
 import {
@@ -18,9 +18,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent } from '@/components/ui/card'; // Simplified imports
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Send, Users, Search, Wifi } from 'lucide-react';
+import { Send, Wifi, Heart, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
@@ -39,8 +39,9 @@ interface ChatMessage {
     senderId: string;
     senderName: string;
     text: string;
+    amount?: number;
     timestamp: number;
-    isSystem?: boolean;
+    type: 'text' | 'system' | 'donation';
 }
 
 interface ChatUser {
@@ -49,15 +50,17 @@ interface ChatUser {
     joinedAt: any;
 }
 
-export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: string, text: string) => void }) {
+export interface WebRTCChatHandle {
+    broadcastDonation: (amount: number, currency: string) => void;
+}
+
+export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, isMobile?: boolean }>(({ onClose, isMobile }, ref) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
     const [isJoined, setIsJoined] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isFocused, setIsFocused] = useState(false); // Design Uniqueness state
 
     // Refs to hold mutable WebRTC objects
     const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -72,12 +75,36 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
     const scrollRef = useRef<HTMLDivElement>(null);
     const componentMounted = useRef(false);
 
-    // Auto-scroll logic (depends on focus mode)
+    // Initial System Message
+    const initialMessage = "Hello, we took a step forward expanding as a space for sharing thoughts about divinity.";
+
+    // Expose broadcast method
+    useImperativeHandle(ref, () => ({
+        broadcastDonation: (amount: number, currency: string) => {
+            const msg: ChatMessage = {
+                id: uuidv4(),
+                senderId: myId,
+                senderName: myName,
+                text: `${myName} contributed ${currency}${amount}`,
+                amount: amount,
+                timestamp: Date.now(),
+                type: 'donation'
+            };
+
+            // Show locally
+            setMessages(prev => [...prev, msg]);
+            // Broadcast
+            const msgStr = JSON.stringify(msg);
+            channelsRef.current.forEach((channel) => { if (channel.readyState === 'open') channel.send(msgStr); });
+        }
+    }));
+
+    // Auto-scroll logic
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages, isFocused]);
+    }, [messages]);
 
 
     // Auto-Join on Mount
@@ -101,14 +128,24 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
             });
 
             setIsJoined(true);
-            setMessages(prev => [...prev, {
-                id: uuidv4(),
-                senderId: 'system',
-                senderName: 'System',
-                text: `Welcome, ${myName}. Signal established.`,
-                timestamp: Date.now(),
-                isSystem: true
-            }]);
+            setMessages(prev => [
+                {
+                    id: uuidv4(),
+                    senderId: 'system',
+                    senderName: 'Nature of the Divine',
+                    text: initialMessage, // Initial System Message
+                    timestamp: Date.now(),
+                    type: 'system'
+                },
+                {
+                    id: uuidv4(),
+                    senderId: 'system',
+                    senderName: 'System',
+                    text: `Welcome, ${myName}. Signal established.`,
+                    timestamp: Date.now(),
+                    type: 'system'
+                }
+            ]);
         } catch (error) {
             console.error("Error joining chat:", error);
         }
@@ -173,7 +210,7 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
     }, [isJoined, myId]);
 
 
-    // --- WebRTC Core Functions (Simplified for brevity) ---
+    // --- WebRTC Core Functions ---
     const createPeerConnection = (targetUserId: string) => {
         if (peersRef.current.has(targetUserId)) return peersRef.current.get(targetUserId)!;
         const peer = new RTCPeerConnection(rtcConfig);
@@ -199,7 +236,6 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
         channel.onmessage = (event) => {
             try {
                 const msg: ChatMessage = JSON.parse(event.data);
-                if (onMessageReceived) onMessageReceived(msg.senderName, msg.text);
                 setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
             } catch (e) {
                 console.error("Failed to parse", e);
@@ -252,7 +288,7 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
         if (!input.trim()) return;
         const msg: ChatMessage = {
             id: uuidv4(),
-            senderId: myId, senderName: myName, text: input.trim(), timestamp: Date.now()
+            senderId: myId, senderName: myName, text: input.trim(), timestamp: Date.now(), type: 'text'
         };
         setMessages(prev => [...prev, msg]);
         const msgStr = JSON.stringify(msg);
@@ -264,139 +300,89 @@ export function WebRTCChat({ onMessageReceived }: { onMessageReceived?: (name: s
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
-            // Optional: Blur after send? User request implies maybe, but usually users want to keep typing. 
-            // "when chat is losed focus, or enter pressed, it goes back the normal session"
-            // So YES, blur on enter.
-            const target = e.target as HTMLInputElement;
-            target.blur();
         }
     };
 
-    const filteredMessages = messages.filter(m =>
-        m.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.senderName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
     return (
-        <Card className="w-full bg-background/50 border-none shadow-none">
+        <Card className="w-full h-full bg-background border-none shadow-none rounded-none flex flex-col">
+            {/* Minimal Chat Interface */}
+            <ScrollArea className="flex-1 p-4 md:p-6" h-full>
+                <div className="space-y-6 max-w-4xl mx-auto">
+                    {messages.map((msg) => {
+                        const isMe = msg.senderId === myId;
 
-            {/* Search Bar - Always Visible */}
-            <div className="mb-6 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Search frequency..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-muted/20 border-white/5 focus-visible:ring-primary/20 transition-all rounded-full h-10"
-                />
-            </div>
+                        if (msg.type === 'donation') {
+                            return (
+                                <motion.div
+                                    key={msg.id}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="flex justify-center my-8"
+                                >
+                                    <div className="bg-primary/5 border border-primary/20 backdrop-blur-sm rounded-full px-6 py-2 flex items-center gap-3 shadow-lg shadow-primary/5">
+                                        <Heart className="h-4 w-4 text-primary fill-primary animate-pulse" />
+                                        <span className="text-sm font-medium text-foreground">
+                                            <span className="font-bold text-primary">{msg.senderName}</span> contributed to the light.
+                                        </span>
+                                    </div>
+                                </motion.div>
+                            );
+                        }
 
-            <CardContent className="p-0 relative min-h-[400px]">
-
-                {/* 
-                  DESIGN UNIQUENESS: 
-                  If isFocused -> Full Chat Bubbles 
-                  If !isFocused -> Minimalist "Terminal/Feed" View
-                */}
-
-                <AnimatePresence mode="wait">
-                    {!isFocused ? (
-                        <motion.div
-                            key="normal-session"
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="bg-transparent space-y-2 font-mono text-sm h-[400px] overflow-hidden flex flex-col justify-end pb-16"
-                        >
-                            <div className="absolute top-0 right-0 p-4">
-                                <Badge variant="outline" className="gap-2 bg-black/20 backdrop-blur-md border-white/10 text-xs">
-                                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                    {onlineUsers.length} Peers Online
-                                </Badge>
-                            </div>
-
-                            <ScrollArea className="h-full pr-4 mask-image-gradient">
-                                <div className="space-y-1.5 p-4 flex flex-col justify-end min-h-[350px]">
-                                    {filteredMessages.slice(-8).map((msg) => (
-                                        <div key={msg.id} className="text-muted-foreground/80 hover:text-foreground transition-colors">
-                                            <span className="text-primary/60 mr-2 text-xs">[{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
-                                            <span className="font-semibold text-indigo-300 mr-2">{msg.senderName}:</span>
-                                            <span className="tracking-wide">{msg.text}</span>
-                                        </div>
-                                    ))}
-                                    {filteredMessages.length === 0 && (
-                                        <div className="text-muted-foreground/30 italic text-center mt-20">waiting for signal transmission...</div>
-                                    )}
+                        if (msg.type === 'system') {
+                            return (
+                                <div key={msg.id} className="flex justify-center my-6">
+                                    <div className="text-xs text-muted-foreground bg-muted/20 px-4 py-1.5 rounded-full border border-white/5 text-center max-w-[80%]">
+                                        {msg.text}
+                                    </div>
                                 </div>
-                            </ScrollArea>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="chat-session"
-                            initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
-                            className="absolute inset-0 bg-background/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl z-20 flex flex-col h-[500px] -mt-[100px]" // Pop out effect
-                        >
-                            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-muted/10 rounded-t-2xl">
-                                <span className="font-bold flex items-center gap-2"><Wifi className="h-4 w-4 text-green-500" /> Live Channel</span>
-                                <Badge variant="secondary">{onlineUsers.length} Online</Badge>
-                            </div>
+                            );
+                        }
 
-                            <ScrollArea className="flex-1 p-4">
-                                <div className="space-y-4">
-                                    {filteredMessages.map((msg) => {
-                                        const isMe = msg.senderId === myId;
-                                        if (msg.isSystem) return (
-                                            <div key={msg.id} className="flex justify-center my-4"><span className="text-[10px] text-muted-foreground uppercase">{msg.text}</span></div>
-                                        );
-                                        return (
-                                            <div key={msg.id} className={cn("flex flex-col max-w-[85%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
-                                                <div className="flex items-center gap-2 mb-1 px-1">
-                                                    <span className="text-[10px] text-muted-foreground font-bold">{msg.senderName}</span>
-                                                </div>
-                                                <div className={cn("px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm transform transition-all",
-                                                    isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"
-                                                )}>
-                                                    {msg.text}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                    <div ref={scrollRef} />
+                        // Normal Message
+                        return (
+                            <div key={msg.id} className={cn("flex flex-col max-w-[85%] md:max-w-[70%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
+                                <div className="flex items-center gap-2 mb-1 px-1">
+                                    <span className={cn("text-[10px] font-bold tracking-wide uppercase", isMe ? "text-primary/70" : "text-muted-foreground")}>
+                                        {msg.senderName}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground/40">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                            </ScrollArea>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Input Area - Always docked but changes context */}
-                <div className={cn("absolute bottom-0 left-0 right-0 transition-all duration-300 z-30", isFocused ? "-bottom-[100px]" : "bottom-0")}>
-                    <div className="relative">
-                        <Input
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            onFocus={() => setIsFocused(true)}
-                            onBlur={() => {
-                                // Small delay to allow click on send button if needed
-                                setTimeout(() => {
-                                    if (document.activeElement?.tagName !== 'INPUT') { // If we didn't just tab to another input
-                                        setIsFocused(false);
-                                    }
-                                }, 200);
-                            }}
-                            placeholder="Type to broadcast..."
-                            className="h-14 pl-6 pr-12 bg-background/80 backdrop-blur-md border border-white/10 rounded-xl shadow-lg focus:ring-2 focus:ring-primary/50 text-base"
-                        />
-                        <Button
-                            size="icon"
-                            onClick={() => { sendMessage(); setIsFocused(false); }} // Send also closes focus view as per "enter pressed" logic
-                            disabled={!input.trim()}
-                            className="absolute right-2 top-2 h-10 w-10 rounded-lg"
-                        >
-                            <Send className="h-4 w-4" />
-                        </Button>
-                    </div>
+                                <div className={cn("px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm",
+                                    isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted/50 border border-white/5 text-foreground rounded-bl-sm"
+                                )}>
+                                    {msg.text}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    <div ref={scrollRef} />
                 </div>
+            </ScrollArea>
 
-            </CardContent>
+            {/* Input - Sticky Bottom */}
+            <div className="p-4 md:p-6 bg-background/80 backdrop-blur-lg border-t border-white/5">
+                <div className="max-w-4xl mx-auto relative flex items-center gap-3">
+                    <Input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Share your thoughts..."
+                        className="h-14 pl-6 pr-14 bg-muted/20 border-white/10 hover:border-white/20 focus:border-primary/50 text-base rounded-full shadow-inner transition-all"
+                        autoFocus={!isMobile}
+                    />
+                    <Button
+                        size="icon"
+                        onClick={sendMessage}
+                        disabled={!input.trim()}
+                        className="absolute right-2 top-2 h-10 w-10 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                    >
+                        <Send className="h-4 w-4 ml-0.5" />
+                    </Button>
+                </div>
+            </div>
         </Card>
     );
-}
+});
+
+WebRTCChat.displayName = 'WebRTCChat';
