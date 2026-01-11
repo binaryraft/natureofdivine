@@ -64,15 +64,15 @@ function TimeSeriesChart({ data, title, description, color, yLabel, formatter }:
                     <AreaChart data={data}>
                         <defs>
                             <linearGradient id={`color${yLabel.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                                <stop offset="5%" stopColor={color} stopOpacity={0.8} />
+                                <stop offset="95%" stopColor={color} stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <XAxis 
-                            dataKey="date" 
-                            stroke="#888888" 
-                            fontSize={12} 
-                            tickLine={false} 
+                        <XAxis
+                            dataKey="date"
+                            stroke="#888888"
+                            fontSize={12}
+                            tickLine={false}
                             axisLine={false}
                             tickFormatter={(value) => {
                                 // For hourly data
@@ -85,8 +85,8 @@ function TimeSeriesChart({ data, title, description, color, yLabel, formatter }:
                             }}
                         />
                         <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatter} />
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" opacity={0.4}/>
-                        <Tooltip 
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" opacity={0.4} />
+                        <Tooltip
                             contentStyle={{
                                 background: "hsl(var(--background))",
                                 border: "1px solid hsl(var(--border))",
@@ -107,7 +107,7 @@ function TimeSeriesChart({ data, title, description, color, yLabel, formatter }:
     )
 }
 
-function FunnelStep({ value, label, icon: Icon }: {value: number, label: string, icon: React.ElementType}) {
+function FunnelStep({ value, label, icon: Icon }: { value: number, label: string, icon: React.ElementType }) {
     return (
         <div className="flex flex-col items-center text-center">
             <div className="flex items-center justify-center bg-primary/10 rounded-full w-16 h-16 mb-2 border-2 border-primary/20">
@@ -119,19 +119,29 @@ function FunnelStep({ value, label, icon: Icon }: {value: number, label: string,
     )
 }
 
-type TimeRange = 'today' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+type TimeRange = 'today' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 export function AnalyticsDashboard() {
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
     const [isPending, startTransition] = useTransition();
     const [timeRange, setTimeRange] = useState<TimeRange>('daily');
+    const [customStart, setCustomStart] = useState<string>('');
+    const [customEnd, setCustomEnd] = useState<string>('');
 
     useEffect(() => {
         startTransition(async () => {
-            const data = await fetchAnalytics(timeRange);
+            let custom = undefined;
+            if (timeRange === 'custom') {
+                if (!customStart || !customEnd) return; // Wait for both
+                custom = {
+                    start: new Date(customStart).getTime(),
+                    end: new Date(customEnd).getTime()
+                };
+            }
+            const data = await fetchAnalytics(timeRange, custom);
             setAnalyticsData(data);
         });
-    }, [timeRange]);
+    }, [timeRange, customStart, customEnd]);
 
     if (isPending || !analyticsData) {
         return (
@@ -141,23 +151,24 @@ export function AnalyticsDashboard() {
             </div>
         );
     }
-    
+
     const clickData = analyticsData.clicks ? Object.entries(analyticsData.clicks).map(([key, value]) => ({ name: key.replace('click_', '').replace(/_/g, ' ').replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase()), clicks: value })) : [];
     const chapterData = analyticsData.sampleChapters ? Object.entries(analyticsData.sampleChapters).map(([key, value]) => ({ name: `Ch. ${key}`, views: value })) : [];
+    const routeData = analyticsData.pageViews ? Object.entries(analyticsData.pageViews).sort((a, b) => b[1] - a[1]).map(([key, value]) => ({ name: key, views: value })) : [];
 
     // Calculate totals for display if needed, but backend filtered data should be used directly for stats
     // Note: totalOrders is COD + Prepaid count
     const totalOrders = (analyticsData.orders?.cod || 0) + (analyticsData.orders?.prepaid || 0);
     const totalRevenue = analyticsData.salesOverTime.reduce((acc, curr) => acc + curr.value, 0); // Sum up sales from the time series
-    
+
     const conversionRate = analyticsData.totalVisitors > 0 ? (totalOrders / analyticsData.totalVisitors) * 100 : 0;
-    
+
     const amazonClicks = (analyticsData.clicks?.['click_buy_amazon_hero'] || 0) + (analyticsData.clicks?.['click_buy_amazon_footer'] || 0);
     const flipkartClicks = (analyticsData.clicks?.['click_buy_flipkart_hero'] || 0) + (analyticsData.clicks?.['click_buy_flipkart_footer'] || 0);
 
     return (
         <div className="space-y-6">
-             <Card>
+            <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
@@ -176,8 +187,26 @@ export function AnalyticsDashboard() {
                                     <SelectItem value="weekly">Last 12 Weeks</SelectItem>
                                     <SelectItem value="monthly">Last 12 Months</SelectItem>
                                     <SelectItem value="yearly">Last Year</SelectItem>
+                                    <SelectItem value="custom">Custom Range</SelectItem>
                                 </SelectContent>
                             </Select>
+                            {timeRange === 'custom' && (
+                                <div className="flex gap-2 items-center ml-2">
+                                    <input
+                                        type="date"
+                                        className="border rounded px-2 py-1 text-sm bg-background"
+                                        value={customStart}
+                                        onChange={(e) => setCustomStart(e.target.value)}
+                                    />
+                                    <span>-</span>
+                                    <input
+                                        type="date"
+                                        className="border rounded px-2 py-1 text-sm bg-background"
+                                        value={customEnd}
+                                        onChange={(e) => setCustomEnd(e.target.value)}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </CardHeader>
@@ -185,29 +214,29 @@ export function AnalyticsDashboard() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 <StatCard title="Visitors" value={analyticsData.totalVisitors} icon={Users} description={`Sessions (${timeRange})`} />
-                <StatCard title="Sales" value={totalOrders} icon={ShoppingCart} description={`Orders (${timeRange})`}/>
-                <StatCard title="Revenue" value={`₹${totalRevenue}`} icon={IndianRupee} description={`Revenue (${timeRange})`}/>
+                <StatCard title="Sales" value={totalOrders} icon={ShoppingCart} description={`Orders (${timeRange})`} />
+                <StatCard title="Revenue" value={`₹${totalRevenue}`} icon={IndianRupee} description={`Revenue (${timeRange})`} />
                 <StatCard title="Conversion Rate" value={`${conversionRate.toFixed(2)}%`} icon={Target} description="Avg. for period" />
-                <StatCard title="Community Visits" value={analyticsData.communityVisits || 0} icon={MessageCircle} description="Views in period"/>
+                <StatCard title="Community Visits" value={analyticsData.communityVisits || 0} icon={MessageCircle} description="Views in period" />
             </div>
 
             {/* Time Series Charts */}
             <div className="grid gap-6 md:grid-cols-3">
-                 <TimeSeriesChart 
+                <TimeSeriesChart
                     data={analyticsData.visitorsOverTime}
                     title="Visitors"
                     description={`Unique sessions (${timeRange}).`}
                     color="#8884d8"
                     yLabel="Visitors"
                 />
-                 <TimeSeriesChart 
+                <TimeSeriesChart
                     data={analyticsData.ordersOverTime}
                     title="Orders"
                     description={`Confirmed orders (${timeRange}).`}
                     color="#82ca9d"
                     yLabel="Orders"
                 />
-                 <TimeSeriesChart 
+                <TimeSeriesChart
                     data={analyticsData.salesOverTime}
                     title="Revenue"
                     description={`Sales revenue (${timeRange}).`}
@@ -216,19 +245,19 @@ export function AnalyticsDashboard() {
                     formatter={(val) => `₹${val}`}
                 />
             </div>
-            
-             <div className="grid gap-6 md:grid-cols-2">
+
+            <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle>Sales Funnel (Signed Copies)</CardTitle>
                         <CardDescription>User progression for the selected period.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-around gap-2 md:gap-4 flex-wrap">
-                        <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users}/>
-                        <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block"/>
-                        <FunnelStep value={analyticsData.checkoutFunnel.reachedShipping} label="Checkout Page" icon={MousePointerClick}/>
-                         <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block"/>
-                        <FunnelStep value={totalOrders} label="Order Placed" icon={ShoppingCart}/>
+                        <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users} />
+                        <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block" />
+                        <FunnelStep value={analyticsData.checkoutFunnel.reachedShipping} label="Checkout Page" icon={MousePointerClick} />
+                        <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block" />
+                        <FunnelStep value={totalOrders} label="Order Placed" icon={ShoppingCart} />
                     </CardContent>
                 </Card>
                 <Card>
@@ -237,31 +266,31 @@ export function AnalyticsDashboard() {
                         <CardDescription>Clicks to external stores in this period.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-around gap-2 md:gap-4 flex-wrap">
-                       <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users}/>
-                       <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block"/>
-                       <div className="flex flex-col gap-4">
-                           <div className="flex items-center gap-4">
+                        <FunnelStep value={analyticsData.totalVisitors} label="Website Visits" icon={Users} />
+                        <ChevronsRight className="h-8 w-8 text-muted-foreground shrink-0 hidden md:block" />
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-4">
                                 <p className="font-bold text-2xl">{amazonClicks}</p>
                                 <p>clicks to Amazon</p>
-                           </div>
+                            </div>
                             <div className="flex items-center gap-4">
                                 <p className="font-bold text-2xl">{flipkartClicks}</p>
                                 <p>clicks to Flipkart</p>
-                           </div>
-                       </div>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-                 <SimpleBarChart 
+                <SimpleBarChart
                     data={clickData}
                     xKey="name"
                     yKey="clicks"
                     title="Button Clicks"
                     description="Clicks on major call-to-action buttons."
                 />
-                 <SimpleBarChart 
+                <SimpleBarChart
                     data={chapterData}
                     xKey="name"
                     yKey="views"
@@ -269,9 +298,42 @@ export function AnalyticsDashboard() {
                     description="How many times each sample chapter was opened."
                 />
             </div>
+
+            {/* Route Stats Table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Page Views</CardTitle>
+                    <CardDescription>Most visited routes in the selected period.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-4 max-h-[400px] overflow-y-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-muted-foreground uppercase bg-secondary/20">
+                                <tr>
+                                    <th className="px-4 py-2 rounded-l">Route</th>
+                                    <th className="px-4 py-2 rounded-r text-right">Views</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {routeData.map((route) => (
+                                    <tr key={route.name} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                                        <td className="px-4 py-3 font-medium">{route.name}</td>
+                                        <td className="px-4 py-3 text-right">{route.views}</td>
+                                    </tr>
+                                ))}
+                                {routeData.length === 0 && (
+                                    <tr>
+                                        <td colSpan={2} className="px-4 py-8 text-center text-muted-foreground">No page view data available for this period.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
+        </div >
     );
 }
 
 
-    

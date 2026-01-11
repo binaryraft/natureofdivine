@@ -5,40 +5,40 @@ export type OrderStatus = 'new' | 'dispatched' | 'delivered' | 'cancelled' | 'pe
 export type BookVariant = 'paperback' | 'hardcover' | 'ebook';
 
 export type Order = {
-  id: string;
-  userId: string;
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  street: string;
-  city: string;
-  country: string;
-  state: string;
-  pinCode:string;
-  paymentMethod: 'cod' | 'prepaid';
-  variant: Exclude<BookVariant, 'ebook'>;
-  price: number;
-  originalPrice: number;
-  discountCode: string;
-  discountAmount: number;
-  status: OrderStatus;
-  createdAt: number; // Storing as timestamp for Firestore
-  hasReview: boolean;
-  paymentDetails: any | null;
-  shippingDetails: {
-    carrier: string;
-    service: string;
-    cost: number;
-    trackingNumber: string | null;
-    labelUrl: string | null;
-  } | null;
+    id: string;
+    userId: string;
+    name: string;
+    phone: string;
+    email: string;
+    address: string;
+    street: string;
+    city: string;
+    country: string;
+    state: string;
+    pinCode: string;
+    paymentMethod: 'cod' | 'prepaid';
+    variant: Exclude<BookVariant, 'ebook'>;
+    price: number;
+    originalPrice: number;
+    discountCode: string;
+    discountAmount: number;
+    status: OrderStatus;
+    createdAt: number; // Storing as timestamp for Firestore
+    hasReview: boolean;
+    paymentDetails: any | null;
+    shippingDetails: {
+        carrier: string;
+        service: string;
+        cost: number;
+        trackingNumber: string | null;
+        labelUrl: string | null;
+    } | null;
 };
 
 export type Stock = {
-  paperback: number;
-  hardcover: number;
-  ebook: number;
+    paperback: number;
+    hardcover: number;
+    ebook: number;
 };
 
 export type Review = {
@@ -103,6 +103,7 @@ export type AnalyticsData = {
     visitorsOverTime: TimeSeriesDataPoint[];
     salesOverTime: TimeSeriesDataPoint[];
     ordersOverTime: TimeSeriesDataPoint[];
+    pageViews: Record<string, number>;
 }
 
 export type SampleChapter = {

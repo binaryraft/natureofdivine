@@ -496,8 +496,11 @@ export async function trackEvent(type: string, metadata?: Record<string, any>): 
   }
 }
 
-export async function fetchAnalytics(timeRange?: 'today' | 'daily' | 'weekly' | 'monthly' | 'yearly') {
-  return await getAnalytics(timeRange);
+export async function fetchAnalytics(
+  timeRange: 'today' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom' = 'daily',
+  customRange?: { start: number, end: number }
+) {
+  return await getAnalytics(timeRange, customRange);
 }
 
 export async function fetchChaptersAction(): Promise<SampleChapter[]> {
