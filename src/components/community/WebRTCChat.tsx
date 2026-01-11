@@ -91,7 +91,7 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
 
     // Expose broadcast method
     useImperativeHandle(ref, () => ({
-        broadcastDonation: (amount: number, currency: string) => {
+        broadcastDonation: async (amount: number, currency: string) => {
             const msg: ChatMessage = {
                 id: uuidv4(),
                 senderId: myId,
