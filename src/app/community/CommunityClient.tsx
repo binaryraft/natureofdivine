@@ -85,8 +85,9 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                 throw new Error(result.message || "Payment initiation failed");
             }
 
-        } catch (error) {
-            console.error("Donation error:", error);
+        } catch (error: any) {
+            console.error("Donation error details:", error.message || error);
+            // Show toast or alert if needed? For now just log
             setDonationStatus('error');
             setTimeout(() => setDonationStatus('idle'), 3000);
         }

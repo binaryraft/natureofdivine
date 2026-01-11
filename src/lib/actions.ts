@@ -736,7 +736,9 @@ export async function initiateDonationPayment(amount: number, userId: string) {
     if (!donation) throw new Error("Failed to create donation record.");
 
     // 2. Prepare PhonePe Payload
-    const merchantTransactionId = `DON-${uuidv4().slice(0, 8)}-${donation.id}`;
+    // Shorten UUID part to 6 chars to keep total length safely under 35 chars
+    // Format: DON-xxxxxx-xxxxxxxxxxxxxxxxxxxx (4+6+1+20 = 31 chars approx)
+    const merchantTransactionId = `DON-${uuidv4().slice(0, 6)}-${donation.id}`;
     const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
     const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
     const phonepeApiUrl = isProd
