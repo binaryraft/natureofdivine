@@ -105,10 +105,16 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             // Show locally
             setMessages(prev => [...prev, msg]);
             // Broadcast
-            const msgStr = JSON.stringify(msg);
-            channelsRef.current.forEach((channel) => { if (channel.readyState === 'open') channel.send(msgStr); });
+            try {
+                await addDoc(messagesRef, msg);
+            } catch (e) {
+                console.error("Failed to broadcast donation:", e);
+                toast({ title: "Error", description: "Failed to send donation message.", variant: "destructive" });
+            }
         }
     }));
+
+    const messagesRef = collection(db, 'community_messages');
 
     // Auto-scroll logic
     useEffect(() => {
@@ -124,39 +130,35 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             joinChat();
             componentMounted.current = true;
         }
+        // Cleanup on unmount or refresh
+        const handleBeforeUnload = () => leaveChat();
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('pagehide', handleBeforeUnload);
+
         return () => {
-            // We rely on the robust event listeners for cleanup
+            leaveChat();
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('pagehide', handleBeforeUnload);
         };
     }, []);
 
     const joinChat = async () => {
         try {
+            // 1. Register in Active Table (Virtual IP / Session)
             await setDoc(doc(chatUsersRef, myId), {
                 userId: myId,
-                userName: myName,
+                userName: myName, // Assign Virtual Name/IP
                 joinedAt: serverTimestamp(),
-                signalId: sessionId // Use unique session ID for routing
+                sessionId: sessionId
             });
-
             setIsJoined(true);
-            setMessages(prev => [
-                {
-                    id: uuidv4(),
-                    senderId: 'system',
-                    senderName: 'Nature of the Divine',
-                    text: initialMessage, // Initial System Message
-                    timestamp: Date.now(),
-                    type: 'system'
-                },
-                {
-                    id: uuidv4(),
-                    senderId: 'system',
-                    senderName: 'System',
-                    text: `Welcome, ${myName}. Signal established.`,
-                    timestamp: Date.now(),
-                    type: 'system'
-                }
+
+            // Initial Welcome
+            setMessages([
+                { id: 'sys-1', senderId: 'system', senderName: 'Nature', text: initialMessage, timestamp: Date.now(), type: 'system' },
+                { id: 'sys-2', senderId: 'system', senderName: 'System', text: `Connected as ${myName}.`, timestamp: Date.now(), type: 'system' }
             ]);
+
         } catch (error) {
             console.error("Error joining chat:", error);
         }
@@ -165,279 +167,94 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
     const leaveChat = async () => {
         try {
             await deleteDoc(doc(chatUsersRef, myId));
-            // Cleanup signals
-            const q = query(signalsRef, where('from', '==', myId));
-            const snapshot = await getDocs(q);
-            const deletePromises = snapshot.docs.map(d => deleteDoc(d.ref));
-            await Promise.all(deletePromises);
-
-            peersRef.current.forEach(peer => peer.close());
-            peersRef.current.clear();
-            channelsRef.current.clear();
             setIsJoined(false);
-            updateConnectedPeers();
-        } catch (error) {
-            console.error("Error leaving chat:", error);
-        }
+        } catch (error) { console.error("Error leaving chat:", error); }
     };
 
-    // Robust cleanup on browser events
-    useEffect(() => {
-        const handleBeforeUnload = () => {
-            // Attempt synchronous cleanup logic (best effort)
-            // Note: Async calls like deleteDoc might not finish on close.
-            // We rely on standard leaveChat for navigation/component unmount.
-            leaveChat();
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        // Mobile Safari often doesn't fire beforeunload reliably, use pagehide
-        window.addEventListener('pagehide', handleBeforeUnload);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            window.removeEventListener('pagehide', handleBeforeUnload);
-        };
-    }, [myId]);
-
-    // Main WebRTC & Firestore Logic
+    // Main Logic: 100% RELIABLE BROADCASTING (Firestore Realtime)
     useEffect(() => {
         if (!isJoined) return;
 
+        // 1. Listen for Active Users
         const unsubscribeUsers = onSnapshot(chatUsersRef, (snapshot) => {
             const currentUsers: ChatUser[] = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data() as ChatUser;
-                // Exclude myself
                 if (data.userId !== myId) currentUsers.push(data);
             });
             setOnlineUsers(currentUsers);
-
-            currentUsers.forEach(async (otherUser) => {
-                if (!peersRef.current.has(otherUser.userId)) {
-                    // Simple deterministic initiator logic
-                    if (myId > otherUser.userId) {
-                        initiateConnection(otherUser.userId, otherUser.signalId || otherUser.userId);
-                    }
-                }
-            });
         });
 
-        // Listen for signals aimed at MY SESSION
-        const q = query(signalsRef, where('to', '==', sessionId));
-        const unsubscribeSignals = onSnapshot(q, async (snapshot) => {
-            // ... (keep new logic)
-            const changes = snapshot.docChanges().filter(c => c.type === 'added');
-            // Sort changes: Offers must be processed first
-            changes.sort((a, b) => {
-                const typeA = a.doc.data().type;
-                const typeB = b.doc.data().type;
-                if (typeA === 'offer') return -1;
-                if (typeB === 'offer') return 1;
-                return 0;
+        // 2. Listen for Broadcast Messages (The "Virtual WebSocket")
+        // Get last 50 messages ordered by time
+        const q = query(messagesRef, orderBy('timestamp', 'asc'), limit(50));
+
+        const unsubscribeMessages = onSnapshot(q, (snapshot) => {
+            const newMsgs: ChatMessage[] = [];
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === 'added') {
+                    const data = change.doc.data() as ChatMessage;
+                    // Only add if not system/local (or handle deduping)
+                    newMsgs.push(data);
+                }
             });
 
-            for (const change of changes) {
-                const signal = change.doc.data();
-                const fromId = signal.from;
-                const fromSignalId = signal.fromSignalId;
-
-                deleteDoc(change.doc.ref).catch(e => console.warn("Failed to delete signal", e));
-                try {
-                    // Pass the sender's signal ID so we can reply correctly
-                    if (signal.type === 'offer') await handleOffer(fromId, fromSignalId, signal.sdp);
-                    else if (signal.type === 'answer') await handleAnswer(fromId, signal.sdp);
-                    else if (signal.type === 'candidate') await handleCandidate(fromId, signal.candidate);
-                } catch (e) { console.error("Signal error", e); }
+            if (newMsgs.length > 0) {
+                setMessages(prev => {
+                    // Dedup based on ID
+                    const incoming = newMsgs.filter(m => !prev.some(p => p.id === m.id));
+                    return [...prev, ...incoming];
+                });
             }
         });
 
         return () => {
             unsubscribeUsers();
-            unsubscribeSignals();
+            unsubscribeMessages();
         };
-    }, [isJoined, myId, sessionId]);
+    }, [isJoined]);
 
+    // Send Message: BROADCAST to everyone via Firestore
+    const sendMessage = async () => {
+        if (!input.trim()) return;
 
-    // --- WebRTC Core Functions ---
-    const createPeerConnection = (targetUserId: string, targetSignalId?: string) => {
-        if (peersRef.current.has(targetUserId)) return peersRef.current.get(targetUserId)!;
-        const peer = new RTCPeerConnection(rtcConfig);
-
-        peer.onicecandidate = (event) => {
-            // Store the targetSignalId in a ref or closure if possible, or assume we know it.
-            // Problem: `onicecandidate` doesn't know `targetSignalId` if we just return the peer.
-            // Fix: We need to store targetSignalId alongside the peer or pass it.
-            // Simplified: If we are initiating, we know it. If we are answering, we got it from offer.
-            // We'll trust that the initial "to" logic works.
-            // Ideally we need to store "targetSignalId" in a Map.
-            if (event.candidate && targetSignalId) {
-                addDoc(signalsRef, { type: 'candidate', from: sessionId, to: targetSignalId, candidate: event.candidate.toJSON(), timestamp: serverTimestamp() });
-            }
+        const msg: ChatMessage = {
+            id: uuidv4(),
+            senderId: myId,
+            senderName: myName,
+            text: input.trim(),
+            timestamp: Date.now(),
+            type: 'text'
         };
 
-        peer.ondatachannel = (event) => setupDataChannel(targetUserId, event.channel);
-        peer.onconnectionstatechange = () => {
-            console.log(`Connection state with ${targetUserId}: ${peer.connectionState}`);
-            if (['disconnected', 'failed', 'closed'].includes(peer.connectionState)) {
-                closeConnection(targetUserId);
-            }
-            // Trigger re-render or update status
-            updateConnectedPeers();
-        };
+        // Optimistic UI update (optional, but good for speed)
+        // setMessages(prev => [...prev, msg]); 
+        setInput('');
 
-        peer.oniceconnectionstatechange = () => {
-            console.log(`ICE state with ${targetUserId}: ${peer.iceConnectionState}`);
-            if (peer.iceConnectionState === 'failed') {
-                // Should restart ICE?
-            }
-        };
-
-        peersRef.current.set(targetUserId, peer);
-        // Map user ID to Signal ID for candidates
-        signalIdsRef.current.set(targetUserId, targetSignalId || targetUserId);
-
-        return peer;
+        try {
+            // "Broadcast" by writing to the shared collection
+            await addDoc(messagesRef, msg);
+        } catch (e) {
+            console.error("Failed to broadcast message:", e);
+            toast({ title: "Error", description: "Failed to send message.", variant: "destructive" });
+        }
     };
 
     // START RESTORED LOGIC FROM OVERWRITE
     const [connectedPeers, setConnectedPeers] = useState(0);
-    const iceCandidateQueueRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
 
     const updateConnectedPeers = () => {
-        let count = 0;
-        channelsRef.current.forEach(channel => {
-            if (channel.readyState === 'open') count++;
-        });
-        setConnectedPeers(count);
-    };
-    // END RESTORED LOGIC
-
-    const handleOffer = async (fromId: string, fromSignalId: string, sdp: RTCSessionDescriptionInit) => {
-        const peer = createPeerConnection(fromId, fromSignalId);
-        try {
-            await peer.setRemoteDescription(new RTCSessionDescription(sdp));
-            const answer = await peer.createAnswer();
-            await peer.setLocalDescription(answer);
-            // Reply using the sender's signalId
-            await addDoc(signalsRef, { type: 'answer', from: sessionId, to: fromSignalId, sdp: answer, timestamp: serverTimestamp() });
-
-            // Process queued candidates
-            const queue = iceCandidateQueueRef.current.get(fromId) || [];
-            console.log(`Draining ${queue.length} candidates for ${fromId} after Offer`);
-            for (const candidate of queue) {
-                try {
-                    await peer.addIceCandidate(new RTCIceCandidate(candidate));
-                } catch (e) { console.error("Error draining candidate in Offer", e); }
-            }
-            iceCandidateQueueRef.current.delete(fromId);
-        } catch (err) { console.error(err); }
+        // Now represents connection to the Relay Server (Firestore)
+        // Since we are reading from Firestore, we are technically "connected" if online
+        setConnectedPeers(onlineUsers.length);
     };
 
-    const handleAnswer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
-        const peer = peersRef.current.get(fromId);
-        if (peer) {
-            await peer.setRemoteDescription(new RTCSessionDescription(sdp));
-            // Connection established (for initiator), drain queue
-            const queue = iceCandidateQueueRef.current.get(fromId) || [];
-            console.log(`Draining ${queue.length} candidates for ${fromId} after Answer`);
-            for (const candidate of queue) {
-                try {
-                    await peer.addIceCandidate(new RTCIceCandidate(candidate));
-                } catch (e) { console.error("Error draining candidate", e); }
-            }
-            iceCandidateQueueRef.current.delete(fromId);
-        }
-    };
-
-    const handleCandidate = async (fromId: string, candidate: RTCIceCandidateInit) => {
-        const peer = peersRef.current.get(fromId);
-        if (peer && peer.remoteDescription) {
-            try {
-                await peer.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (e) { console.error("Error adding candidate", e); }
-        } else {
-            // Queue it
-            const queue = iceCandidateQueueRef.current.get(fromId) || [];
-            queue.push(candidate);
-            iceCandidateQueueRef.current.set(fromId, queue);
-        }
-    };
-
-    const setupDataChannel = (targetUserId: string, channel: RTCDataChannel) => {
-        channel.onopen = () => {
-            console.log(`Data Channel OPEN with ${targetUserId}`);
-            channelsRef.current.set(targetUserId, channel);
-            updateConnectedPeers();
-        };
-        channel.onclose = () => {
-            console.log(`Data Channel CLOSED with ${targetUserId}`);
-            channelsRef.current.delete(targetUserId);
-            updateConnectedPeers();
-        };
-        channel.onmessage = (event) => {
-            try {
-                const msg: ChatMessage = JSON.parse(event.data);
-                setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
-            } catch (e) {
-                console.error("Failed to parse", e);
-            }
-        };
-    };
-
-    const closeConnection = (targetUserId: string) => {
-        const peer = peersRef.current.get(targetUserId);
-        const channel = channelsRef.current.get(targetUserId);
-        if (channel) channel.close();
-        if (peer) peer.close();
-        peersRef.current.delete(targetUserId);
-        channelsRef.current.delete(targetUserId);
+    // Trigger update when online users change
+    useEffect(() => {
         updateConnectedPeers();
-    };
+    }, [onlineUsers]);
 
-    const initiateConnection = async (targetUserId: string) => {
-        if (peersRef.current.has(targetUserId)) {
-            const existingPeer = peersRef.current.get(targetUserId);
-            if (existingPeer && ['connected', 'connecting'].includes(existingPeer.connectionState)) {
-                console.log(`Connection to ${targetUserId} already active/connecting.`);
-                return;
-            }
-        }
-
-        const peer = createPeerConnection(targetUserId);
-        const channel = peer.createDataChannel("chat");
-        setupDataChannel(targetUserId, channel);
-        try {
-            const offer = await peer.createOffer();
-            await peer.setLocalDescription(offer);
-            await addDoc(signalsRef, { type: 'offer', from: myId, to: targetUserId, sdp: offer, timestamp: serverTimestamp() });
-        } catch (err) { console.error(err); }
-    };
-
-
-
-    const sendMessage = () => {
-        if (!input.trim()) return;
-
-        // Warn if not connected
-        if (onlineUsers.length > 0 && connectedPeers === 0) {
-            toast({
-                title: "Not Connected",
-                description: "Establishing connection to peers... please wait a moment.",
-                variant: "destructive"
-            });
-            return;
-        }
-
-        const msg: ChatMessage = {
-            id: uuidv4(),
-            senderId: myId, senderName: myName, text: input.trim(), timestamp: Date.now(), type: 'text'
-        };
-        setMessages(prev => [...prev, msg]);
-        const msgStr = JSON.stringify(msg);
-        channelsRef.current.forEach((channel) => { if (channel.readyState === 'open') channel.send(msgStr); });
-        setInput('');
-    };
+    // END RESTORED LOGIC
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
