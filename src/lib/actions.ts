@@ -757,7 +757,7 @@ export async function initiateDonationPayment(amount: number, userId: string) {
 
     const payload = {
       merchantOrderId: merchantTransactionId,
-      amount: amount * 100, // Amount in paise
+      amount: Math.round(amount * 100), // Amount in paise, ensure integer
       expireAfter: 600, // 10 minutes
       metaInfo: {
         udf1: `Community Donation`,
@@ -805,7 +805,8 @@ export async function initiateDonationPayment(amount: number, userId: string) {
     }
 
     await addLog('error', 'PhonePe Error Response', { response: data });
-    throw new Error(data.message || 'Payment initiation failed - Invalid response from gateway');
+    const errorDetails = data ? `${data.code}: ${data.message}` : 'No data received';
+    throw new Error(`Payment gateway error: ${errorDetails}`);
 
   } catch (error: any) {
     await addLog('error', 'initiateDonationPayment failed', { error: error.message });
