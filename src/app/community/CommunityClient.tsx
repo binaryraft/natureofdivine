@@ -135,7 +135,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed inset-0 z-50 bg-background flex flex-col"
+                        className="fixed inset-0 z-[200] bg-background flex flex-col"
                     >
                         {/* Header */}
                         <div className="h-16 border-b border-border/40 flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10">
@@ -177,7 +177,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
 
             {/* Donate Popup (Global Overlay) */}
             <Dialog open={isDonateOpen} onOpenChange={setIsDonateOpen}>
-                <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-xl border-white/10 p-0 overflow-hidden gap-0">
+                <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-xl border-white/10 p-0 overflow-hidden gap-0 z-[210]">
                     <div className="p-6 space-y-6 text-center">
                         <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                             <Heart className="h-6 w-6 text-primary fill-primary" />
