@@ -21,6 +21,7 @@ import { getSettings, updateSettings } from './settings-store';
 import { SiteSettings } from './definitions';
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost, BlogPost, addComment, deleteComment, updateComment } from './blog-store';
 import { addPost as addCommunityPost, addAnswer as addCommunityAnswer, deletePost as deleteCommunityPost, deleteAnswer, updateAnswer } from './community-store';
+import { createDonationRecord, updateDonationPaymentStatus, getDonationById } from './donation-store';
 import { seedBlogPosts, seedCommunityPosts, spiritualBots, indianBotNames, spiritualComments } from './seed-data';
 
 import { getLogs } from './log-store';
@@ -37,18 +38,18 @@ export async function generateBlogCommentsAction(blogId: string) {
     let commentsAdded = 0;
 
     for (let i = 0; i < numberOfComments; i++) {
-        const randomName = indianBotNames[Math.floor(Math.random() * indianBotNames.length)];
-        const randomComment = spiritualComments[Math.floor(Math.random() * spiritualComments.length)];
-        const userId = `bot-${uuidv4()}`;
+      const randomName = indianBotNames[Math.floor(Math.random() * indianBotNames.length)];
+      const randomComment = spiritualComments[Math.floor(Math.random() * spiritualComments.length)];
+      const userId = `bot-${uuidv4()}`;
 
-        await addComment(blogId, {
-            userId,
-            userName: randomName,
-            content: randomComment
-        });
-        commentsAdded++;
+      await addComment(blogId, {
+        userId,
+        userName: randomName,
+        content: randomComment
+      });
+      commentsAdded++;
     }
-    
+
     revalidatePath('/blogs');
     revalidatePath('/admin');
     return { success: true, message: `Added ${commentsAdded} comments to the blog post.` };
@@ -143,7 +144,7 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
     const errorMessages = Object.entries(errorMap)
       .map(([field, errors]) => `${field}: ${errors?.join(', ')}`)
       .join(' | ');
-    
+
     console.log('[DEBUG] Validation Failed:', errorMessages);
     await addLog('error', 'Order validation failed', { errors: errorMap });
     return { success: false, message: `Invalid data provided: ${errorMessages}` };
@@ -154,14 +155,14 @@ export async function placeOrder(payload: OrderPayload): Promise<{ success: bool
 
   try {
     const countryCode = validatedFields.data.country;
-    
+
     // Fetch the canonical price for this country
     let basePrice = await getPriceForCountry(countryCode);
-    
+
     // Safety check: If country is India ('IN') and price returned is the default international (10000), 
     // it likely means the DB config is missing the 'IN' override. We enforce 299 for IN.
     if (countryCode === 'IN' && basePrice === 10000) {
-        basePrice = 299;
+      basePrice = 299;
     }
 
     const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice; // Apply hardcover markup logic consistently
@@ -374,7 +375,7 @@ export async function fetchUserOrdersAction(userId: string) {
 }
 
 export async function fetchOrderByIdAction(userId: string, orderId: string) {
-    return await getOrderById(userId, orderId);
+  return await getOrderById(userId, orderId);
 }
 
 export async function changeOrderStatusAction(userId: string, orderId: string, status: OrderStatus) {
@@ -383,23 +384,23 @@ export async function changeOrderStatusAction(userId: string, orderId: string, s
 }
 
 export async function dispatchOrderAction(userId: string, orderId: string, carrier: string, trackingNumber: string) {
-    try {
-        await updateOrderStatus(userId, orderId, 'dispatched');
-        await updateOrderShippingDetails(userId, orderId, {
-            carrier,
-            trackingNumber,
-            service: 'Standard', // Default service
-            cost: 0, // Assume cost is handled elsewhere or irrelevant for this manual update
-            labelUrl: null
-        });
-        await addLog('info', `Order ${orderId} dispatched manually`, { carrier, trackingNumber });
-        revalidatePath('/admin');
-        revalidatePath('/orders');
-        return { success: true, message: 'Order dispatched successfully.' };
-    } catch (error: any) {
-        await addLog('error', 'dispatchOrderAction failed', { userId, orderId, error: error.message });
-        return { success: false, message: 'Failed to dispatch order.' };
-    }
+  try {
+    await updateOrderStatus(userId, orderId, 'dispatched');
+    await updateOrderShippingDetails(userId, orderId, {
+      carrier,
+      trackingNumber,
+      service: 'Standard', // Default service
+      cost: 0, // Assume cost is handled elsewhere or irrelevant for this manual update
+      labelUrl: null
+    });
+    await addLog('info', `Order ${orderId} dispatched manually`, { carrier, trackingNumber });
+    revalidatePath('/admin');
+    revalidatePath('/orders');
+    return { success: true, message: 'Order dispatched successfully.' };
+  } catch (error: any) {
+    await addLog('error', 'dispatchOrderAction failed', { userId, orderId, error: error.message });
+    return { success: false, message: 'Failed to dispatch order.' };
+  }
 }
 
 export async function changeMultipleOrderStatusAction(orders: { orderId: string, userId: string }[], status: OrderStatus) {
@@ -520,48 +521,48 @@ export async function getShippingRatesAction(orderData: any) {
 
 // Replaced getShippingRatesAction with a new calculate total action
 export async function calculateOrderTotalAction(countryCode: string, variant: string, discountCode?: string) {
-    try {
-        let basePrice = await getPriceForCountry(countryCode);
-        
-        // Safety check: If country is India ('IN') and price returned is the default international (10000), 
-        // it likely means the DB config is missing the 'IN' override. We enforce 299 for IN.
-        if (countryCode === 'IN' && basePrice === 10000) {
-            basePrice = 299;
-        }
+  try {
+    let basePrice = await getPriceForCountry(countryCode);
 
-        const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice;
-        let finalPrice = variantPrice;
-        let discountAmount = 0;
-
-        if (discountCode) {
-            const discount = await getDiscount(discountCode);
-            if (discount) {
-                discountAmount = Math.round(variantPrice * (discount.percent / 100));
-                finalPrice = variantPrice - discountAmount;
-            }
-        }
-        
-        return {
-            success: true,
-            productPrice: variantPrice,
-            shippingCost: 0,
-            discountAmount,
-            totalPrice: finalPrice,
-            currency: 'INR'
-        };
-    } catch (e: any) {
-        return { success: false, message: e.message };
+    // Safety check: If country is India ('IN') and price returned is the default international (10000), 
+    // it likely means the DB config is missing the 'IN' override. We enforce 299 for IN.
+    if (countryCode === 'IN' && basePrice === 10000) {
+      basePrice = 299;
     }
+
+    const variantPrice = variant === 'hardcover' ? Math.ceil(basePrice * 1.66) : basePrice;
+    let finalPrice = variantPrice;
+    let discountAmount = 0;
+
+    if (discountCode) {
+      const discount = await getDiscount(discountCode);
+      if (discount) {
+        discountAmount = Math.round(variantPrice * (discount.percent / 100));
+        finalPrice = variantPrice - discountAmount;
+      }
+    }
+
+    return {
+      success: true,
+      productPrice: variantPrice,
+      shippingCost: 0,
+      discountAmount,
+      totalPrice: finalPrice,
+      currency: 'INR'
+    };
+  } catch (e: any) {
+    return { success: false, message: e.message };
+  }
 }
 
 export async function getSettingsAction(): Promise<SiteSettings> {
-    return await getSettings();
+  return await getSettings();
 }
 
 export async function updateSettingsAction(settings: Partial<SiteSettings>) {
-    await logAction('updateSettings', async () => {
-        await updateSettings(settings);
-    });
+  await logAction('updateSettings', async () => {
+    await updateSettings(settings);
+  });
 }
 
 // --- BLOG ACTIONS ---
@@ -581,19 +582,19 @@ export async function createBlogPostAction(postData: any) {
 
 export async function updateBlogPostAction(post: BlogPost) {
   return await logAction('updateBlogPost', async () => {
-      const result = await updateBlogPost(post);
-      revalidatePath('/blogs');
-      revalidatePath('/admin');
-      return result;
+    const result = await updateBlogPost(post);
+    revalidatePath('/blogs');
+    revalidatePath('/admin');
+    return result;
   });
 }
 
 export async function deleteBlogPostAction(id: string) {
   return await logAction('deleteBlogPost', async () => {
-      const result = await deleteBlogPost(id);
-      revalidatePath('/blogs');
-      revalidatePath('/admin');
-      return result;
+    const result = await deleteBlogPost(id);
+    revalidatePath('/blogs');
+    revalidatePath('/admin');
+    return result;
   });
 }
 
@@ -610,57 +611,57 @@ export async function deleteBlogPostsBulkAction(ids: string[]) {
 }
 
 export async function deleteCommunityPostAction(id: string) {
-    const result = await deleteCommunityPost(id);
-    revalidatePath('/community');
-    revalidatePath('/admin');
-    return result;
+  const result = await deleteCommunityPost(id);
+  revalidatePath('/community');
+  revalidatePath('/admin');
+  return result;
 }
 
 export async function deleteCommunityPostsBulkAction(ids: string[]) {
-    try {
-        await Promise.all(ids.map(id => deleteCommunityPost(id)));
-        revalidatePath('/community');
-        revalidatePath('/admin');
-        return { success: true, message: `${ids.length} discussions deleted.` };
-    } catch (error: any) {
-        return { success: false, message: 'Failed to delete some discussions.' };
-    }
+  try {
+    await Promise.all(ids.map(id => deleteCommunityPost(id)));
+    revalidatePath('/community');
+    revalidatePath('/admin');
+    return { success: true, message: `${ids.length} discussions deleted.` };
+  } catch (error: any) {
+    return { success: false, message: 'Failed to delete some discussions.' };
+  }
 }
 
 export async function deleteCommunityAnswerAction(postId: string, answerId: string) {
-    return await logAction('deleteAnswer', async () => {
-        const result = await deleteAnswer(postId, answerId);
-        revalidatePath('/community');
-        revalidatePath('/admin');
-        return result;
-    });
+  return await logAction('deleteAnswer', async () => {
+    const result = await deleteAnswer(postId, answerId);
+    revalidatePath('/community');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 export async function updateCommunityAnswerAction(postId: string, answerId: string, content: string) {
-    return await logAction('updateAnswer', async () => {
-        const result = await updateAnswer(postId, answerId, content);
-        revalidatePath('/community');
-        revalidatePath('/admin');
-        return result;
-    });
+  return await logAction('updateAnswer', async () => {
+    const result = await updateAnswer(postId, answerId, content);
+    revalidatePath('/community');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 export async function deleteBlogCommentAction(blogId: string, commentId: string) {
-    return await logAction('deleteComment', async () => {
-        const result = await deleteComment(blogId, commentId);
-        revalidatePath('/blogs');
-        revalidatePath('/admin');
-        return result;
-    });
+  return await logAction('deleteComment', async () => {
+    const result = await deleteComment(blogId, commentId);
+    revalidatePath('/blogs');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 export async function updateBlogCommentAction(blogId: string, commentId: string, content: string) {
-    return await logAction('updateComment', async () => {
-        const result = await updateComment(blogId, commentId, content);
-        revalidatePath('/blogs');
-        revalidatePath('/admin');
-        return result;
-    });
+  return await logAction('updateComment', async () => {
+    const result = await updateComment(blogId, commentId, content);
+    revalidatePath('/blogs');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 // --- SEED CONTENT ACTION ---
@@ -672,7 +673,7 @@ export async function seedContentAction() {
     // 1. Seed Blogs
     const existingBlogs = await getBlogPosts(false);
     let blogsAdded = 0;
-    
+
     for (const seedPost of seedBlogPosts) {
       // Check if title exists roughly to avoid heavy dups, or just add new ones
       const exists = existingBlogs.some(b => b.slug === seedPost.slug);
@@ -680,12 +681,12 @@ export async function seedContentAction() {
         const result = await addBlogPost({
           ...seedPost,
           published: true,
-          image: seedPost.image, 
+          image: seedPost.image,
         });
         if (result.success) {
-            blogsAdded++;
+          blogsAdded++;
         } else {
-            console.error(`Failed to add blog post ${seedPost.title}:`, result.message);
+          console.error(`Failed to add blog post ${seedPost.title}:`, result.message);
         }
       }
     }
@@ -695,19 +696,19 @@ export async function seedContentAction() {
     // but we can just add. 
     let postsAdded = 0;
     for (const seedCP of seedCommunityPosts) {
-        // Random user for the question
-        const questionUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
-        const result = await addCommunityPost(`seed-user-${uuidv4()}`, questionUser.name, seedCP.title, seedCP.content);
-        
-        if (result.success && result.id) {
-            postsAdded++;
-            // Add answers
-            for (const answerText of seedCP.answers) {
-                const answerUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
-                // Ensure answer user is different if possible, but random is fine for seed
-                await addCommunityAnswer(result.id, `seed-user-${uuidv4()}`, answerUser.name, answerText);
-            }
+      // Random user for the question
+      const questionUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
+      const result = await addCommunityPost(`seed-user-${uuidv4()}`, questionUser.name, seedCP.title, seedCP.content);
+
+      if (result.success && result.id) {
+        postsAdded++;
+        // Add answers
+        for (const answerText of seedCP.answers) {
+          const answerUser = spiritualBots[Math.floor(Math.random() * spiritualBots.length)];
+          // Ensure answer user is different if possible, but random is fine for seed
+          await addCommunityAnswer(result.id, `seed-user-${uuidv4()}`, answerUser.name, answerText);
         }
+      }
     }
 
     await addLog('info', 'Content seeding completed', { blogsAdded, postsAdded });
@@ -715,14 +716,106 @@ export async function seedContentAction() {
     revalidatePath('/blogs');
     revalidatePath('/community');
     revalidatePath('/admin');
-    
+
     if (blogsAdded === 0 && postsAdded === 0) {
-        return { success: false, message: 'No content was added. Check server logs for DB errors or duplicates.' };
+      return { success: false, message: 'No content was added. Check server logs for DB errors or duplicates.' };
     }
 
     return { success: true, message: `Added ${blogsAdded} blogs and ${postsAdded} community discussions.` };
   } catch (error: any) {
     await addLog('error', 'Content seeding failed', { error: error.message });
     return { success: false, message: error.message };
+  }
+}
+
+export async function initiateDonationPayment(amount: number, userId: string) {
+  try {
+    // 1. Create Donation Record
+    await addLog('info', 'Initiating donation', { userId, amount });
+    const donation = await createDonationRecord(userId, amount, 'INR'); // Default to INR for now as Payment Gateway requires it
+    if (!donation) throw new Error("Failed to create donation record.");
+
+    // 2. Prepare PhonePe Payload
+    const merchantTransactionId = `DON-${uuidv4().slice(0, 8)}-${donation.id}`;
+    const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
+    const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
+    const phonepeApiUrl = isProd
+      ? 'https://api.phonepe.com/apis/pg/checkout/v2/pay'
+      : 'https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay';
+
+    if (!merchantId) throw new Error('PhonePe merchant ID not configured.');
+
+    const tokenResponse = await fetchPhonePeAccessToken();
+    if (!tokenResponse.success || !tokenResponse.accessToken) {
+      throw new Error(tokenResponse.message || 'Failed to obtain PhonePe access token.');
+    }
+
+    const headersList = await headers();
+    const host = headersList.get('host');
+    const proto = headersList.get('x-forwarded-proto') || 'https';
+    const baseUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_HOST_URL || 'https://www.natureofthedivine.com');
+
+    const payload = {
+      merchantOrderId: merchantTransactionId,
+      amount: amount * 100, // Amount in paise
+      expireAfter: 600, // 10 minutes
+      metaInfo: {
+        udf1: `Community Donation`,
+        udf2: userId,
+      },
+      paymentFlow: {
+        type: 'PG_CHECKOUT',
+        message: 'Community Contribution',
+        merchantUrls: {
+          redirectUrl: `${baseUrl}/community?donationId=${donation.id}`, // Return to community page
+          callbackUrl: `${baseUrl}/api/payment/donation-callback`
+        },
+        paymentModeConfig: {
+          enabledPaymentModes: [
+            { type: 'UPI_INTENT' },
+            { type: 'UPI_COLLECT' },
+            { type: 'UPI_QR' },
+            { type: 'NET_BANKING' },
+            { type: 'CARD', cardTypes: ['DEBIT_CARD', 'CREDIT_CARD'] },
+          ],
+        },
+      },
+    };
+
+    // 3. Update Record with Tx ID
+    await updateDonationPaymentStatus(donation.id, 'PENDING', { merchantTransactionId });
+
+    // 4. Call PhonePe
+    const response = await axios.post(phonepeApiUrl, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `O-Bearer ${tokenResponse.accessToken}`,
+      },
+    });
+
+    const data = response.data as any;
+
+    if (data.state === 'PENDING' || data.success) {
+      await addLog('info', 'Donation payment initiated', { donationId: donation.id, url: data.data?.instrumentResponse?.redirectInfo?.url });
+      return { success: true, redirectUrl: data.data.instrumentResponse.redirectInfo.url };
+    }
+
+    throw new Error(data.message || 'Payment initiation failed');
+
+  } catch (error: any) {
+    await addLog('error', 'initiateDonationPayment failed', { error: error.message });
+    return { success: false, message: error.message };
+  }
+}
+
+export async function checkDonationStatusAction(donationId: string) {
+  try {
+    const donation = await getDonationById(donationId);
+    if (donation && donation.status === 'SUCCESS') {
+      return { success: true, trackingId: donation.merchantTransactionId };
+    }
+    return { success: false };
+  } catch (e) {
+    return { success: false };
   }
 }

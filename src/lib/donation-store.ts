@@ -1,11 +1,25 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 const STATS_DOC_ID = 'community_stats_doc';
 const STATS_COLLECTION = 'community_metadata';
+const DONATIONS_COLLECTION = 'community_donations';
+
+export type DonationStatus = 'PENDING' | 'SUCCESS' | 'FAILURE';
+
+export interface DonationRecord {
+    id: string;
+    userId: string;
+    amount: number;
+    currency: string;
+    status: DonationStatus;
+    merchantTransactionId?: string;
+    createdAt: number;
+    paymentDetails?: any;
+}
 
 export async function getTotalDonations(): Promise<number> {
     try {
@@ -18,14 +32,10 @@ export async function getTotalDonations(): Promise<number> {
     }
 }
 
-export async function addDonation(amount: number) {
+// Previously named addDonation, now strictly backend usage for confirmed payments
+export async function incrementTotalDonations(amount: number) {
     try {
         const docRef = doc(db, STATS_COLLECTION, STATS_DOC_ID);
-        // Use set with merge to create if not exists, but updateDoc + increment needs document to exist.
-        // Safer to use setDoc with merge if we are not sure.
-        // However, increment doesn't work well with setDoc merge on undefined fields sometimes.
-        // Let's check existence first or use setDoc logic.
-
         await setDoc(docRef, {
             totalDonations: increment(amount),
             lastUpdated: Date.now()
@@ -36,5 +46,80 @@ export async function addDonation(amount: number) {
     } catch (error) {
         console.error('Error adding donation:', error);
         return { success: false };
+    }
+}
+
+// For backward compatibility if needed, but we should switch to the flow below
+export async function addDonation(amount: number) {
+    return incrementTotalDonations(amount);
+}
+
+export async function createDonationRecord(userId: string, amount: number, currency: string = 'INR'): Promise<DonationRecord | null> {
+    try {
+        const newDoc: Omit<DonationRecord, 'id'> = {
+            userId,
+            amount,
+            currency,
+            status: 'PENDING',
+            createdAt: Date.now()
+        };
+        const docRef = await addDoc(collection(db, DONATIONS_COLLECTION), newDoc);
+        return { id: docRef.id, ...newDoc };
+    } catch (error) {
+        console.error("Error creating donation record", error);
+        return null;
+    }
+}
+
+export async function updateDonationPaymentStatus(donationId: string, status: DonationStatus, details: any = {}) {
+    try {
+        const docRef = doc(db, DONATIONS_COLLECTION, donationId);
+
+        // If becoming success for the first time, increment total
+        if (status === 'SUCCESS') {
+            const snap = await getDoc(docRef);
+            if (snap.exists() && snap.data().status !== 'SUCCESS') {
+                const amount = snap.data().amount;
+                await incrementTotalDonations(amount);
+            }
+        }
+
+        await updateDoc(docRef, {
+            status,
+            paymentDetails: details,
+            ...(details.merchantTransactionId ? { merchantTransactionId: details.merchantTransactionId } : {})
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating donation status", error);
+        return { success: false };
+    }
+}
+
+export async function getDonationByTransactionId(merchantTransactionId: string): Promise<DonationRecord | null> {
+    try {
+        const q = query(collection(db, DONATIONS_COLLECTION), where('merchantTransactionId', '==', merchantTransactionId));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            const d = snapshot.docs[0];
+            return { id: d.id, ...d.data() } as DonationRecord;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching donation by tx id", error);
+        return null;
+    }
+}
+
+export async function getDonationById(id: string): Promise<DonationRecord | null> {
+    try {
+        const docRef = doc(db, DONATIONS_COLLECTION, id);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            return { id: snap.id, ...snap.data() } as DonationRecord;
+        }
+        return null;
+    } catch (error) {
+        return null;
     }
 }
