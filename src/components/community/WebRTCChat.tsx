@@ -160,18 +160,40 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
     const leaveChat = async () => {
         try {
             await deleteDoc(doc(chatUsersRef, myId));
-            if (user) {
-                const q = query(signalsRef, where('from', '==', myId));
-                getDocs(q).then(snapshot => snapshot.forEach(d => deleteDoc(d.ref)));
-            }
+            // Cleanup signals
+            const q = query(signalsRef, where('from', '==', myId));
+            const snapshot = await getDocs(q);
+            const deletePromises = snapshot.docs.map(d => deleteDoc(d.ref));
+            await Promise.all(deletePromises);
+
             peersRef.current.forEach(peer => peer.close());
             peersRef.current.clear();
             channelsRef.current.clear();
             setIsJoined(false);
+            updateConnectedPeers();
         } catch (error) {
             console.error("Error leaving chat:", error);
         }
     };
+
+    // Robust cleanup on browser events
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            // Attempt synchronous cleanup logic (best effort)
+            // Note: Async calls like deleteDoc might not finish on close.
+            // We rely on standard leaveChat for navigation/component unmount.
+            leaveChat();
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        // Mobile Safari often doesn't fire beforeunload reliably, use pagehide
+        window.addEventListener('pagehide', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('pagehide', handleBeforeUnload);
+        };
+    }, [myId]);
 
     // Main WebRTC & Firestore Logic
     useEffect(() => {
@@ -354,6 +376,14 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
     };
 
     const initiateConnection = async (targetUserId: string) => {
+        if (peersRef.current.has(targetUserId)) {
+            const existingPeer = peersRef.current.get(targetUserId);
+            if (existingPeer && ['connected', 'connecting'].includes(existingPeer.connectionState)) {
+                console.log(`Connection to ${targetUserId} already active/connecting.`);
+                return;
+            }
+        }
+
         const peer = createPeerConnection(targetUserId);
         const channel = peer.createDataChannel("chat");
         setupDataChannel(targetUserId, channel);
