@@ -188,19 +188,30 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             });
         });
 
+        // Listen for signals aimed at me
         const q = query(signalsRef, where('to', '==', myId));
-        const unsubscribeSignals = onSnapshot(q, (snapshot) => {
-            snapshot.docChanges().forEach(async (change) => {
-                if (change.type === 'added') {
-                    const signal = change.doc.data();
-                    const fromId = signal.from;
-                    deleteDoc(change.doc.ref);
+        const unsubscribeSignals = onSnapshot(q, async (snapshot) => {
+            // ... (keep new logic)
+            const changes = snapshot.docChanges().filter(c => c.type === 'added');
+            // Sort changes: Offers must be processed first
+            changes.sort((a, b) => {
+                const typeA = a.doc.data().type;
+                const typeB = b.doc.data().type;
+                if (typeA === 'offer') return -1;
+                if (typeB === 'offer') return 1;
+                return 0;
+            });
 
+            for (const change of changes) {
+                const signal = change.doc.data();
+                const fromId = signal.from;
+                deleteDoc(change.doc.ref).catch(e => console.warn("Failed to delete signal", e));
+                try {
                     if (signal.type === 'offer') await handleOffer(fromId, signal.sdp);
                     else if (signal.type === 'answer') await handleAnswer(fromId, signal.sdp);
                     else if (signal.type === 'candidate') await handleCandidate(fromId, signal.candidate);
-                }
-            });
+                } catch (e) { console.error("Signal error", e); }
+            }
         });
 
         return () => {
@@ -230,7 +241,9 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
         return peer;
     };
 
+    // START RESTORED LOGIC FROM OVERWRITE
     const [connectedPeers, setConnectedPeers] = useState(0);
+    const iceCandidateQueueRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
 
     const updateConnectedPeers = () => {
         let count = 0;
@@ -238,6 +251,44 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
             if (channel.readyState === 'open') count++;
         });
         setConnectedPeers(count);
+    };
+    // END RESTORED LOGIC
+
+    const handleOffer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
+        const peer = createPeerConnection(fromId);
+        try {
+            await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+            const answer = await peer.createAnswer();
+            await peer.setLocalDescription(answer);
+            await addDoc(signalsRef, { type: 'answer', from: myId, to: fromId, sdp: answer, timestamp: serverTimestamp() });
+
+            // Process queued candidates
+            const queue = iceCandidateQueueRef.current.get(fromId) || [];
+            for (const candidate of queue) {
+                await peer.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+            iceCandidateQueueRef.current.delete(fromId);
+
+        } catch (err) { console.error(err); }
+    };
+
+    const handleAnswer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
+        const peer = peersRef.current.get(fromId);
+        if (peer) await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+    };
+
+    const handleCandidate = async (fromId: string, candidate: RTCIceCandidateInit) => {
+        const peer = peersRef.current.get(fromId);
+        if (peer && peer.remoteDescription) {
+            try {
+                await peer.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) { console.error("Error adding candidate", e); }
+        } else {
+            // Queue it
+            const queue = iceCandidateQueueRef.current.get(fromId) || [];
+            queue.push(candidate);
+            iceCandidateQueueRef.current.set(fromId, queue);
+        }
     };
 
     const setupDataChannel = (targetUserId: string, channel: RTCDataChannel) => {
@@ -280,25 +331,7 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
         } catch (err) { console.error(err); }
     };
 
-    const handleOffer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
-        const peer = createPeerConnection(fromId);
-        try {
-            await peer.setRemoteDescription(new RTCSessionDescription(sdp));
-            const answer = await peer.createAnswer();
-            await peer.setLocalDescription(answer);
-            await addDoc(signalsRef, { type: 'answer', from: myId, to: fromId, sdp: answer, timestamp: serverTimestamp() });
-        } catch (err) { console.error(err); }
-    };
 
-    const handleAnswer = async (fromId: string, sdp: RTCSessionDescriptionInit) => {
-        const peer = peersRef.current.get(fromId);
-        if (peer) await peer.setRemoteDescription(new RTCSessionDescription(sdp));
-    };
-
-    const handleCandidate = async (fromId: string, candidate: RTCIceCandidateInit) => {
-        const peer = peersRef.current.get(fromId);
-        if (peer) await peer.addIceCandidate(new RTCIceCandidate(candidate));
-    };
 
     const sendMessage = () => {
         if (!input.trim()) return;
@@ -333,7 +366,7 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
     return (
         <Card className="w-full h-full bg-background border-none shadow-none rounded-none flex flex-col">
             {/* Minimal Chat Interface */}
-            <ScrollArea className="flex-1 p-4 md:p-6" h-full>
+            <ScrollArea className="flex-1 p-4 md:p-6 h-full">
                 <div className="space-y-6 max-w-4xl mx-auto">
                     {messages.map((msg) => {
                         const isMe = msg.senderId === myId;
