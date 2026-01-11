@@ -795,12 +795,14 @@ export async function initiateDonationPayment(amount: number, userId: string) {
 
     const data = response.data as any;
 
-    if (data.state === 'PENDING' || data.success) {
-      await addLog('info', 'Donation payment initiated', { donationId: donation.id, url: data.data?.instrumentResponse?.redirectInfo?.url });
-      return { success: true, redirectUrl: data.data.instrumentResponse.redirectInfo.url };
+    if ((data.code === 'PAYMENT_INITIATED' || data.success) && data.data?.instrumentResponse?.redirectInfo?.url) {
+      const redirectUrl = data.data.instrumentResponse.redirectInfo.url;
+      await addLog('info', 'Donation payment initiated', { donationId: donation.id, redirectUrl });
+      return { success: true, redirectUrl };
     }
 
-    throw new Error(data.message || 'Payment initiation failed');
+    await addLog('error', 'PhonePe Error Response', { response: data });
+    throw new Error(data.message || 'Payment initiation failed - Invalid response from gateway');
 
   } catch (error: any) {
     await addLog('error', 'initiateDonationPayment failed', { error: error.message });

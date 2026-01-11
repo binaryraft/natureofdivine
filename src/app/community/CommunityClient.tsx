@@ -11,7 +11,8 @@ import { useLocation } from '@/hooks/useLocation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -205,6 +206,9 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
             {/* Donate Popup (Global Overlay) */}
             <Dialog open={isDonateOpen} onOpenChange={setIsDonateOpen}>
                 <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-xl border-white/10 p-0 overflow-hidden gap-0 z-[210]">
+                    <VisuallyHidden>
+                        <DialogTitle>Make a Donation</DialogTitle>
+                    </VisuallyHidden>
                     <div className="p-6 space-y-6 text-center">
                         <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                             <Heart className="h-6 w-6 text-primary fill-primary" />
@@ -212,7 +216,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
 
                         <div className="space-y-2">
                             <h2 className="text-2xl font-bold">Support the Light</h2>
-                            <p className="text-sm text-muted-foreground">Every contribution aligns the community closer to the center.</p>
+                            <DialogDescription className="text-sm text-muted-foreground">Every contribution aligns the community closer to the center.</DialogDescription>
                         </div>
 
                         <div className="relative max-w-[200px] mx-auto">
