@@ -271,7 +271,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
 
             {/* Donate Popup (Global Overlay) */}
             <Dialog open={isDonateOpen} onOpenChange={setIsDonateOpen}>
-                <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden gap-0 z-[210] shadow-2xl">
+                <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden gap-0 z-[210] shadow-2xl top-[10%] translate-y-0 md:top-[50%] md:translate-y-[-50%] data-[state=open]:duration-300">
                     <VisuallyHidden>
                         <DialogTitle>Make a Donation</DialogTitle>
                     </VisuallyHidden>
