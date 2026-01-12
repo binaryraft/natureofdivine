@@ -423,9 +423,9 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                         <Image
                           src={(
                             !post.image ||
-                            post.image.includes('cloudinary') ||
+                            post.image === 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png' ||
                             post.image === '/placeholder-blog.jpg' ||
-                            post.image === '/images/blog-default.png' // Explicitly catch the DB string we set
+                            post.image === '/images/blog-default.png'
                           ) ? defaultBlogImage : post.image}
                           alt={post.title}
                           fill
