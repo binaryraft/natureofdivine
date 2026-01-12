@@ -420,21 +420,9 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                   >
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6 bg-secondary/30">
-                        <Image
-                          src={(
-                            !post.image ||
-                            post.image === 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png' ||
-                            post.image === '/placeholder-blog.jpg' ||
-                            post.image === '/images/blog-default.png'
-                          ) ? defaultBlogImage : post.image}
-                          alt={post.title}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.srcset = defaultBlogImage.src;
-                            target.src = defaultBlogImage.src;
-                          }}
+                        <div
+                          className="w-full h-full bg-cover bg-center transform group-hover:scale-105 transition-transform duration-500"
+                          style={{ backgroundImage: `url(${post.image || '/images/blog-default.png'})` }}
                         />
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                       </div>
