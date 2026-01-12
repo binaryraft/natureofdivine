@@ -840,3 +840,24 @@ export async function checkDonationStatusAction(donationId: string) {
     return { success: false };
   }
 }
+
+export async function fixBlogImagesOnLoad() {
+  await logAction('fixBlogImages', async () => {
+    const blogs = await getBlogPosts(false);
+    const brokenUrl = 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png';
+    const newUrl = '/images/blog-default.png';
+    let fixed = 0;
+
+    for (const blog of blogs) {
+      if (blog.image === brokenUrl) {
+        await updateBlogPost({ ...blog, image: newUrl });
+        fixed++;
+      }
+    }
+
+    if (fixed > 0) {
+      revalidatePath('/');
+      await addLog('info', `Fixed ${fixed} broken blog images.`);
+    }
+  });
+}

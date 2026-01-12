@@ -112,7 +112,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Spirituality", "Oneness", "Philosophy", "Inner Peace"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -145,7 +145,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Meditation", "Mindfulness", "Silence", "Clarity"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -173,7 +173,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Habits", "Discipline", "Growth", "Transformation"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -201,7 +201,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Theology", "Science", "Logic", "Truth"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -229,7 +229,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Acceptance", "Surrender", "Mental Health", "Peace"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -257,7 +257,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Ego", "Soul", "Psychology", "Self-Awareness"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -291,7 +291,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Awakening", "Consciousness", "Growth", "Transformation"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -319,7 +319,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Karma", "Ethics", "Responsibility", "Universal Laws"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -347,7 +347,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Mindfulness", "Stress Relief", "Rest", "Being"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   },
   {
@@ -378,7 +378,7 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Relationships", "Love", "Growth", "Soulmates"],
-    image: "https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png",
+    image: "/images/blog-default.png",
     comments: []
   }
 ];

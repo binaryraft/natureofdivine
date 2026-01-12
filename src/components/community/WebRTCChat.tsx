@@ -216,6 +216,48 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
         };
     }, [isJoined]);
 
+    // Demo Peers Logic
+    useEffect(() => {
+        if (!isJoined) return;
+
+        const spiritualQuotes = [
+            "In the beginning God created the heaven and the earth. - Genesis 1:1",
+            "For God so loved the world, that he gave his only begotten Son. - John 3:16",
+            "You have a right to perform your prescribed duty, but you are not entitled to the fruits of action. - Bhagavad Gita 2.47",
+            "The Lord constitutes the soul of all living entities. - Bhagavad Gita 10.20",
+            "He is Allah, the One and Only. - Quran 112:1",
+            "Allah is the Light of the heavens and the earth. - Quran 24:35",
+            "Truth is one, sages call it by various names. - Rig Veda",
+            "Peace comes from within. Do not seek it without. - Buddha",
+            "Love your neighbor as yourself.- Mark 12:31",
+            "Be still, and know that I am God. - Psalm 46:10",
+            "Realize that everything connects to everything else. - Leonardo da Vinci"
+        ];
+
+        const botNames = ["Guest 2938", "Seeker Light", "Guest 4421", "Divine Spark", "Guest 1002", "Guest 777", "Pilgrim 108"];
+
+        const timeout = setInterval(() => {
+            // 20% chance to run every 15 seconds to keep it "random" and not too spammy
+            if (Math.random() > 0.3) return;
+
+            const randomQuote = spiritualQuotes[Math.floor(Math.random() * spiritualQuotes.length)];
+            const randomName = botNames[Math.floor(Math.random() * botNames.length)];
+
+            const demoMsg: ChatMessage = {
+                id: `demo-${Date.now()}`,
+                senderId: `demo-${randomName}`,
+                senderName: randomName,
+                text: randomQuote,
+                timestamp: Date.now(),
+                type: 'text'
+            };
+
+            setMessages(prev => [...prev, demoMsg]);
+        }, 8000); // Check every 8 seconds
+
+        return () => clearInterval(timeout);
+    }, [isJoined]);
+
     // Send Message: BROADCAST to everyone via Firestore
     const sendMessage = async () => {
         if (!input.trim()) return;
@@ -268,59 +310,63 @@ export const WebRTCChat = forwardRef<WebRTCChatHandle, { onClose?: () => void, i
     return (
         <Card className="w-full h-full bg-background border-none shadow-none rounded-none flex flex-col">
             {/* Minimal Chat Interface */}
-            <ScrollArea className="flex-1 p-4 md:p-6 h-full">
-                <div className="space-y-6 max-w-4xl mx-auto">
-                    {messages.map((msg) => {
-                        const isMe = msg.senderId === myId;
+            {/* Fix: overflow-hidden on parent + flex-1 and h-full on ScrollArea ensures internal scrolling */}
+            <div className="flex-1 overflow-hidden relative">
+                <ScrollArea className="h-full w-full pr-4">
+                    <div className="space-y-6 max-w-4xl mx-auto p-4 md:p-6 pb-20"> {/* pb-20 for bottom input clearance */}
+                        {messages.map((msg) => {
+                            const isMe = msg.senderId === myId;
 
-                        if (msg.type === 'donation') {
-                            return (
-                                <motion.div
-                                    key={msg.id}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="flex justify-center my-8"
-                                >
-                                    <div className="bg-primary/5 border border-primary/20 backdrop-blur-sm rounded-full px-6 py-2 flex items-center gap-3 shadow-lg shadow-primary/5">
-                                        <Heart className="h-4 w-4 text-primary fill-primary animate-pulse" />
-                                        <span className="text-sm font-medium text-foreground">
-                                            <span className="font-bold text-primary">{msg.senderName}</span> contributed to the light.
-                                        </span>
+                            if (msg.type === 'donation') {
+                                return (
+                                    <motion.div
+                                        key={msg.id}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="flex justify-center my-8"
+                                    >
+                                        <div className="bg-primary/5 border border-primary/20 backdrop-blur-sm rounded-full px-6 py-2 flex items-center gap-3 shadow-lg shadow-primary/5">
+                                            <Heart className="h-4 w-4 text-primary fill-primary animate-pulse" />
+                                            <span className="text-sm font-medium text-foreground">
+                                                <span className="font-bold text-primary">{msg.senderName}</span> contributed to the light.
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                );
+                            }
+
+                            if (msg.type === 'system') {
+                                return (
+                                    <div key={msg.id} className="flex justify-center my-6">
+                                        <div className="text-xs text-muted-foreground bg-muted/20 px-4 py-1.5 rounded-full border border-white/5 text-center max-w-[80%]">
+                                            {msg.text}
+                                        </div>
                                     </div>
-                                </motion.div>
-                            );
-                        }
+                                );
+                            }
 
-                        if (msg.type === 'system') {
+                            // Normal Message
                             return (
-                                <div key={msg.id} className="flex justify-center my-6">
-                                    <div className="text-xs text-muted-foreground bg-muted/20 px-4 py-1.5 rounded-full border border-white/5 text-center max-w-[80%]">
+                                <div key={msg.id} className={cn("flex flex-col max-w-[85%] md:max-w-[70%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
+                                    <div className="flex items-center gap-2 mb-1 px-1">
+                                        <span className={cn("text-[10px] font-bold tracking-wide uppercase", isMe ? "text-primary/70" : "text-muted-foreground")}>
+                                            {msg.senderName}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground/40">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <div className={cn("px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm",
+                                        isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted/50 border border-white/5 text-foreground rounded-bl-sm"
+                                    )}>
                                         {msg.text}
                                     </div>
                                 </div>
                             );
-                        }
-
-                        // Normal Message
-                        return (
-                            <div key={msg.id} className={cn("flex flex-col max-w-[85%] md:max-w-[70%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
-                                <div className="flex items-center gap-2 mb-1 px-1">
-                                    <span className={cn("text-[10px] font-bold tracking-wide uppercase", isMe ? "text-primary/70" : "text-muted-foreground")}>
-                                        {msg.senderName}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground/40">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                                <div className={cn("px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm",
-                                    isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted/50 border border-white/5 text-foreground rounded-bl-sm"
-                                )}>
-                                    {msg.text}
-                                </div>
-                            </div>
-                        );
-                    })}
-                    <div ref={scrollRef} />
-                </div>
-            </ScrollArea>
+                        })}
+                        <div ref={scrollRef} />
+                    </div>
+                </ScrollArea>
+                {/* Scroll Down Button / New Message Indicator (Optional enhancement for later) */}
+            </div>
 
             {/* Input - Sticky Bottom */}
             <div className="p-4 md:p-6 bg-background/80 backdrop-blur-lg border-t border-white/5 relative">

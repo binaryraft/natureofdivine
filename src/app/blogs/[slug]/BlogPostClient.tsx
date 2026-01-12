@@ -9,6 +9,7 @@ import { ArrowLeft, Calendar, User, Share2, Heart, MessageCircle } from 'lucide-
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
@@ -32,8 +33,8 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                 console.error('Share failed:', err);
             }
         } else {
-             navigator.clipboard.writeText(url);
-             toast({ title: 'Link Copied', description: 'Article link copied to clipboard.' });
+            navigator.clipboard.writeText(url);
+            toast({ title: 'Link Copied', description: 'Article link copied to clipboard.' });
         }
     }
 
@@ -47,31 +48,31 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
         <div className="min-h-screen bg-background pb-20">
             {/* Hero Image */}
             <div className="relative h-[40vh] md:h-[50vh] w-full bg-muted">
-                <div 
+                <div
                     className="absolute inset-0 bg-cover bg-center"
                     style={{ backgroundImage: `url(${post.image || '/placeholder-blog.jpg'})` }}
                 >
                     <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
                 </div>
-                
+
                 <div className="container relative h-full flex flex-col justify-end pb-12 px-4 md:px-6 max-w-4xl mx-auto text-white">
                     <Button variant="ghost" asChild className="text-white/80 hover:text-white hover:bg-white/10 w-fit mb-6 -ml-4">
                         <Link href="/blogs">
                             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Articles
                         </Link>
                     </Button>
-                    
+
                     <div className="flex items-center gap-3 text-sm font-medium text-white/80 mb-4">
                         <span className="bg-primary text-black px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                             {post.tags?.[0] || 'Article'}
                         </span>
-                        <span className="flex items-center gap-1"><Calendar className="h-4 w-4"/> {formatDistanceToNow(post.createdAt)} ago</span>
+                        <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {formatDistanceToNow(post.createdAt)} ago</span>
                     </div>
-                    
+
                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-headline font-bold leading-tight mb-4">
                         {post.title}
                     </h1>
-                    
+
                     <div className="flex items-center justify-between mt-4">
                         <p className="text-lg md:text-xl text-white/90 font-light max-w-2xl italic">
                             {post.excerpt}
@@ -87,8 +88,13 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                         {/* Meta and Share */}
                         <div className="flex items-center justify-between border-b pb-6 mb-8">
                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                                    <User className="h-5 w-5" />
+                                <div className="h-10 w-10 rounded-full overflow-hidden relative border border-white/10">
+                                    <Image
+                                        src="/author-icon.png"
+                                        alt="Author"
+                                        fill
+                                        className="object-cover"
+                                    />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-semibold text-foreground">Nature of the Divine Team</span>
@@ -109,7 +115,7 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                         <div className="prose prose-lg prose-stone dark:prose-invert max-w-none prose-headings:font-headline prose-headings:font-bold prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
                             <MarkdownRenderer content={post.content} />
                         </div>
-                        
+
                         {/* Tags */}
                         {post.tags && post.tags.length > 0 && (
                             <div className="pt-8 border-t mt-12">
@@ -127,9 +133,9 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                         {/* Comments Section */}
                         <div className="pt-8 border-t mt-12">
                             <h3 className="text-xl font-headline font-bold mb-6 flex items-center gap-2">
-                                <MessageCircle className="h-5 w-5 text-primary"/> Comments ({post.comments?.length || 0})
+                                <MessageCircle className="h-5 w-5 text-primary" /> Comments ({post.comments?.length || 0})
                             </h3>
-                            
+
                             <div className="space-y-6">
                                 {post.comments && post.comments.length > 0 ? (
                                     post.comments.map(comment => (

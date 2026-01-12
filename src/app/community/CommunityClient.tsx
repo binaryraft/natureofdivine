@@ -208,9 +208,15 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         </div>
                     )}
 
-                    <p className="text-sm text-muted-foreground/50 max-w-sm mx-auto pt-8">
-                        Join the community signal to connect with others and fuel the server.
-                    </p>
+                    <div className="text-sm text-muted-foreground/60 max-w-lg mx-auto pt-8 space-y-2 leading-relaxed">
+                        <p>
+                            Our initiative brings light to future generations spreading the light of God.
+                            We encourage readers to read and learn about God and keep God as a solid ground above anything.
+                        </p>
+                        <p className="italic text-primary/80">
+                            "This is a remembrance, a call to return" — a reminder that God wants us to worship nothing but Him.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -286,52 +292,18 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
 
                     <div className="p-6 space-y-6">
 
-                        {/* Name Input */}
-                        <div className="space-y-2 text-left">
-                            <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold ml-1">Your Name (Optional)</label>
-                            <Input
-                                placeholder="Enter your name..."
-                                className="bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 h-12"
-                                value={donorName}
-                                onChange={(e) => setDonorName(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Preset Buttons */}
-                        <div className="grid grid-cols-3 gap-3">
-                            {[
-                                { label: 'Ink', amount: 101, icon: <Feather className="w-6 h-6 text-zinc-400" /> },
-                                { label: 'Page', amount: 501, icon: <Scroll className="w-6 h-6 text-zinc-300" /> },
-                                { label: 'Book', amount: 1001, icon: <BookOpen className="w-6 h-6 text-zinc-100" /> },
-                            ].map((item) => (
-                                <button
-                                    key={item.label}
-                                    className={cn(
-                                        "flex flex-col items-center justify-center p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-95",
-                                        donationAmount === item.amount.toString()
-                                            ? "bg-indigo-600/20 border-indigo-500/50 ring-1 ring-indigo-500/50 text-indigo-300"
-                                            : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50 text-zinc-400"
-                                    )}
-                                    onClick={() => setDonationAmount(item.amount.toString())}
-                                >
-                                    <span className="mb-1">{item.icon}</span>
-                                    <span className="text-xs font-medium uppercase tracking-wider opacity-70">{item.label}</span>
-                                    <span className="text-sm font-bold text-white mt-1">{currency}{item.amount}</span>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Custom Amount Input */}
-                        <div className="relative">
+                        {/* Amount Input */}
+                        <div className="relative pt-4">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-                                <span className="text-zinc-500 text-lg font-light mr-2">Custom {currency}</span>
+                                <span className="text-zinc-500 text-lg font-light mr-2">{currency}</span>
                             </div>
                             <Input
                                 type="number"
                                 value={donationAmount}
                                 onChange={e => setDonationAmount(e.target.value)}
-                                className="h-14 pl-28 pr-4 text-right text-2xl font-light bg-zinc-900/50 border-zinc-800 rounded-xl focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 placeholder:text-zinc-700"
-                                placeholder="..."
+                                className="h-14 pl-12 pr-4 text-center text-2xl font-light bg-zinc-900/50 border-zinc-800 rounded-xl focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 placeholder:text-zinc-700"
+                                placeholder="Amount"
+                                autoFocus
                             />
                         </div>
 
@@ -347,7 +319,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         >
                             {donationStatus === 'idle' && (
                                 <div className="flex items-center gap-2">
-                                    <span>Nurture Now</span>
+                                    <span>Donate Now</span>
                                     <Heart className="h-4 w-4 fill-white/20" />
                                 </div>
                             )}
