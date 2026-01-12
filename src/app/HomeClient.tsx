@@ -16,6 +16,7 @@ import { SampleChapter, Stock } from "@/lib/definitions";
 import { BlogPost } from "@/lib/blog-store";
 import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar } from "lucide-react";
 import dynamic from "next/dynamic";
+import defaultBlogImage from "../../public/images/blog-default.png";
 
 const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').then(mod => mod.Testimonials), {
   loading: () => (
@@ -420,7 +421,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6">
                         <Image
-                          src={(!post.image || post.image === 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png' || post.image === '/placeholder-blog.jpg') ? '/images/blog-default.png' : post.image}
+                          src={(!post.image || post.image.includes('cloudinary') || post.image === '/placeholder-blog.jpg') ? defaultBlogImage : post.image}
                           alt={post.title}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
