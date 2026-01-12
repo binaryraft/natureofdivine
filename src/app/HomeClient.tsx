@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { authorBio, buyLinks, synopsis } from "@/lib/data";
 import { SampleChapter, Stock } from "@/lib/definitions";
 import { BlogPost } from "@/lib/blog-store";
-import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar } from "lucide-react";
+import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar, MessageCircle, Feather } from "lucide-react";
 import dynamic from "next/dynamic";
 import defaultBlogImage from "../../public/images/blog-default.png";
 
@@ -140,10 +140,10 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                 <div className="space-y-2">
                   <h1 className="flex flex-col font-garamond leading-[0.85]">
                     <span className="text-4xl md:text-5xl font-medium italic text-muted-foreground font-serif tracking-wide">
-                      The Nature of
+                      Nature of the
                     </span>
                     <span className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary drop-shadow-2xl">
-                      DIVINE
+                      Divine
                     </span>
                   </h1>
                 </div>
@@ -153,28 +153,38 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                 </p>
 
                 {/* Buttons */}
-                <div className="flex flex-col sm:flex-row items-center gap-5 pt-4 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full sm:w-auto">
                   {isOutOfStock ? (
                     <Button
                       size="lg"
                       disabled
-                      className="h-14 px-10 rounded-full bg-muted text-muted-foreground font-semibold text-lg cursor-not-allowed w-full sm:w-auto"
+                      className="h-14 px-8 rounded-full bg-muted text-muted-foreground font-semibold text-lg cursor-not-allowed w-full sm:w-auto"
                     >
                       Out of Stock
                     </Button>
                   ) : (
-                    <Button asChild size="lg" className="h-14 px-10 rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold text-lg shadow-[0_0_20px_rgba(219,192,124,0.3)] hover:shadow-[0_0_30px_rgba(219,192,124,0.5)] transition-all duration-300 w-full sm:w-auto" onClick={() => trackEvent('click_buy_hero')}>
+                    <Button asChild size="lg" className="h-14 px-8 rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold text-lg shadow-[0_0_20px_rgba(219,192,124,0.3)] hover:shadow-[0_0_30px_rgba(219,192,124,0.5)] transition-all duration-300 w-full sm:w-auto" onClick={() => trackEvent('click_buy_hero')}>
                       <Link href="/checkout?variant=paperback">
                         <span className="flex items-center gap-2">
-                          Buy Signed Copy
+                          <Feather className="w-5 h-5" /> Buy Signed Copy
                         </span>
                       </Link>
                     </Button>
                   )}
 
-                  <Button asChild variant="outline" size="lg" className="h-14 px-8 rounded-full border-primary/20 bg-transparent text-foreground hover:bg-primary/10 hover:border-primary/40 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_read_sample_hero')}>
+                  <Button asChild variant="outline" size="lg" className="h-14 px-6 rounded-full border-primary/20 bg-transparent text-foreground hover:bg-primary/10 hover:border-primary/40 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_read_sample_hero')}>
                     <Link href="#sample-chapters">
-                      Read Sample
+                      <span className="flex items-center gap-2">
+                        <BookOpen className="w-5 h-5" /> Read Sample
+                      </span>
+                    </Link>
+                  </Button>
+
+                  <Button asChild variant="ghost" size="lg" className="h-14 px-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_chat_hero')}>
+                    <Link href="/community">
+                      <span className="flex items-center gap-2">
+                        <MessageCircle className="w-5 h-5" /> Chat
+                      </span>
                     </Link>
                   </Button>
                 </div>
