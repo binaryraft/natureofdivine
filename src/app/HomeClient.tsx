@@ -437,7 +437,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6">
                         <Image
-                          src={post.image || '/placeholder-blog.jpg'}
+                          src={(!post.image || post.image === 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png') ? '/images/blog-default.png' : post.image}
                           alt={post.title}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"

@@ -271,23 +271,23 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
 
             {/* Donate Popup (Global Overlay) */}
             <Dialog open={isDonateOpen} onOpenChange={setIsDonateOpen}>
-                <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 p-0 overflow-hidden gap-0 z-[210] shadow-2xl shadow-indigo-500/10">
+                <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden gap-0 z-[210] shadow-2xl">
                     <VisuallyHidden>
                         <DialogTitle>Make a Donation</DialogTitle>
                     </VisuallyHidden>
 
                     {/* Hero Graphic Area */}
-                    <div className="relative h-32 bg-gradient-to-br from-indigo-900/50 via-purple-900/30 to-zinc-950 flex flex-col items-center justify-center p-6 text-center border-b border-white/5">
-                        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 bg-repeat mix-blend-overlay"></div>
+                    <div className="relative h-32 bg-primary/10 flex flex-col items-center justify-center p-6 text-center border-b border-border">
+                        <div className="absolute inset-0 bg-noise opacity-30 mix-blend-overlay"></div>
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="bg-indigo-500/20 p-3 rounded-full border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.3)] mb-2"
+                            className="bg-primary/20 p-3 rounded-full border border-primary/30 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)] mb-2"
                         >
-                            <Scroll className="h-6 w-6 text-indigo-400 fill-indigo-400/20" />
+                            <Scroll className="h-6 w-6 text-primary" />
                         </motion.div>
-                        <h2 className="text-xl font-medium text-white tracking-wide">Preserve the Divine Wisdom</h2>
-                        <p className="text-xs text-zinc-400 mt-1 max-w-xs">Helping children understand the unity of all religions.</p>
+                        <h2 className="text-xl font-medium text-foreground tracking-wide">Preserve the Divine Wisdom</h2>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xs">Helping children understand the unity of all religions.</p>
                     </div>
 
                     <div className="p-6 space-y-6">
@@ -295,13 +295,13 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         {/* Amount Input */}
                         <div className="relative pt-4">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-                                <span className="text-zinc-500 text-lg font-light mr-2">{currency}</span>
+                                <span className="text-muted-foreground text-lg font-light mr-2">{currency}</span>
                             </div>
                             <Input
                                 type="number"
                                 value={donationAmount}
                                 onChange={e => setDonationAmount(e.target.value)}
-                                className="h-14 pl-12 pr-4 text-center text-2xl font-light bg-zinc-900/50 border-zinc-800 rounded-xl focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/50 placeholder:text-zinc-700"
+                                className="h-14 pl-12 pr-4 text-center text-2xl font-light bg-secondary/50 border-input rounded-xl focus-visible:ring-primary/30 focus-visible:border-primary/50 placeholder:text-muted-foreground/50"
                                 placeholder="Amount"
                                 autoFocus
                             />
@@ -310,9 +310,9 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         <Button
                             size="lg"
                             className={cn("w-full h-14 text-lg font-medium tracking-wide transition-all shadow-lg rounded-xl",
-                                donationStatus === 'success' ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20" :
-                                    donationStatus === 'error' ? "bg-red-600 hover:bg-red-700 text-white" :
-                                        "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40"
+                                donationStatus === 'success' ? "bg-green-600 hover:bg-green-700 text-white" :
+                                    donationStatus === 'error' ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" :
+                                        "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/25 hover:shadow-primary/40"
                             )}
                             onClick={handleDonation}
                             disabled={donationStatus !== 'idle'}
@@ -320,12 +320,12 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                             {donationStatus === 'idle' && (
                                 <div className="flex items-center gap-2">
                                     <span>Donate Now</span>
-                                    <Heart className="h-4 w-4 fill-white/20" />
+                                    <Heart className="h-4 w-4 fill-current opacity-50" />
                                 </div>
                             )}
                             {donationStatus === 'processing' && (
                                 <div className="flex items-center gap-2">
-                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                                     <span>Processing...</span>
                                 </div>
                             )}
@@ -343,7 +343,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                             )}
                         </Button>
 
-                        <p className="text-center text-xs text-zinc-500">
+                        <p className="text-center text-xs text-muted-foreground">
                             Secure payment powered by PhonePe.
                         </p>
                     </div>
