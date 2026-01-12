@@ -347,53 +347,36 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
         {/* AUTHOR SECTION */}
         <section id="author" className="py-24 md:py-32">
           <div className="container px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="relative order-2 lg:order-1"
-              >
-                <div className="aspect-square relative rounded-full overflow-hidden border-2 border-primary/20 p-2 max-w-md mx-auto">
-                  <div className="relative w-full h-full rounded-full overflow-hidden bg-secondary">
+            <div className="container px-4 md:px-6">
+              <div className="max-w-4xl mx-auto items-center">
+                {/* Image Removed as per request */}
+
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="space-y-8 text-center"
+                >
+                  <div>
+                    <div className="inline-block rounded-full bg-secondary px-4 py-1.5 text-sm text-secondary-foreground font-medium mb-4">The Mind Behind</div>
+                    <h2 className="text-4xl md:text-5xl font-bold font-garamond">Alfas B</h2>
+                  </div>
+                  <div
+                    className="prose prose-lg prose-stone dark:prose-invert text-muted-foreground font-light leading-relaxed mx-auto"
+                    dangerouslySetInnerHTML={{ __html: authorBio }}
+                  />
+                  <div className="pt-4">
                     <Image
-                      src="https://placehold.co/600x600/1a1a1a/FFF?text=Alfas+B"
-                      fill
-                      alt="Alfas B"
-                      className="object-cover"
+                      src="/signature.png"
+                      width={200}
+                      height={80}
+                      alt="Signature"
+                      className="opacity-80 dark:invert mx-auto"
+                      style={{ display: 'none' }} // Placeholder if signature image exists
                     />
                   </div>
-                </div>
-                {/* Decorative orbit */}
-                <div className="absolute inset-0 border border-primary/10 rounded-full scale-110 animate-[spin_20s_linear_infinite]" />
-                <div className="absolute inset-0 border border-dashed border-primary/20 rounded-full scale-125 animate-[spin_30s_linear_infinite_reverse]" />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="space-y-8 order-1 lg:order-2 text-center lg:text-left"
-              >
-                <div>
-                  <div className="inline-block rounded-full bg-secondary px-4 py-1.5 text-sm text-secondary-foreground font-medium mb-4">The Mind Behind</div>
-                  <h2 className="text-4xl md:text-5xl font-bold font-garamond">Alfas B</h2>
-                </div>
-                <div
-                  className="prose prose-lg prose-stone dark:prose-invert text-muted-foreground font-light leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: authorBio }}
-                />
-                <div className="pt-4">
-                  <Image
-                    src="/signature.png"
-                    width={200}
-                    height={80}
-                    alt="Signature"
-                    className="opacity-80 dark:invert mx-auto lg:mx-0"
-                    style={{ display: 'none' }} // Placeholder if signature image exists
-                  />
-                </div>
-              </motion.div>
+                </motion.div>
+              </div>
             </div>
           </div>
         </section>
@@ -437,7 +420,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6">
                         <Image
-                          src={(!post.image || post.image === 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png') ? '/images/blog-default.png' : post.image}
+                          src={(!post.image || post.image === 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png' || post.image === '/placeholder-blog.jpg') ? '/images/blog-default.png' : post.image}
                           alt={post.title}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
