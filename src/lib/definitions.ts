@@ -139,3 +139,33 @@ export type SiteSettings = {
     footerLinks: { label: string; url: string }[];
     socialLinks: { platform: string; url: string }[];
 };
+
+export type Product = {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    imageUrl: string;
+    stock: number;
+    isActive: boolean;
+    createdAt: number;
+};
+
+export type ShopOrder = {
+    id: string;
+    productId: string;
+    productName: string;
+    quantity: number;
+    totalPrice: number;
+    customerName: string;
+    phoneNumber: string;
+    address: string;
+    pincode: string;
+    city: string;
+    state: string;
+    status: 'new' | 'dispatched' | 'delivered' | 'cancelled' | 'pending';
+    paymentMethod: 'cod' | 'prepaid';
+    transactionId?: string;
+    paymentDetails?: any;
+    createdAt: number;
+};

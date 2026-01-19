@@ -31,6 +31,7 @@ import { UsersManager } from './UsersManager';
 import { CommunityManager } from './CommunityManager';
 import { BlogsManager } from './BlogsManager';
 import { LogsManager } from './LogsManager';
+import { ShopManager } from './ShopManager';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -912,8 +913,9 @@ export function AdminDashboard() {
         
         <Tabs defaultValue="operations" className="w-full">
             <div className="flex justify-center mb-8">
-                <TabsList className="grid w-full max-w-3xl grid-cols-4">
+                <TabsList className="grid w-full max-w-4xl grid-cols-5">
                     <TabsTrigger value="operations">Operations</TabsTrigger>
+                    <TabsTrigger value="shop">Shop</TabsTrigger>
                     <TabsTrigger value="content">Content</TabsTrigger>
                     <TabsTrigger value="analytics">Analytics</TabsTrigger>
                     <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -992,6 +994,11 @@ export function AdminDashboard() {
                         <LogsManager />
                     </TabsContent>
                 </Tabs>
+            </TabsContent>
+
+            {/* SHOP TAB */}
+            <TabsContent value="shop" className="space-y-6">
+                <ShopManager />
             </TabsContent>
 
             {/* CONTENT TAB */}

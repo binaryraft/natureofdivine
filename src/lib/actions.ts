@@ -861,3 +861,283 @@ export async function fixBlogImagesOnLoad() {
     }
   });
 }
+
+// --- SHOP ACTIONS ---
+
+import { addProduct, updateProduct, deleteProduct, getProducts, createShopOrder, getShopOrders, updateShopOrderStatus, getProductById } from './shop-store';
+import { Product, ShopOrder } from './definitions';
+
+export async function fetchProductsAction(activeOnly = false) {
+    return await getProducts(activeOnly);
+}
+
+export async function addProductAction(data: any) {
+    return await logAction('addProduct', async () => {
+        const result = await addProduct(data);
+        revalidatePath('/shop');
+        revalidatePath('/admin');
+        return result;
+    });
+}
+
+export async function updateProductAction(data: Product) {
+    return await logAction('updateProduct', async () => {
+        const result = await updateProduct(data);
+        revalidatePath('/shop');
+        revalidatePath('/admin');
+        return result;
+    });
+}
+
+export async function deleteProductAction(id: string) {
+    return await logAction('deleteProduct', async () => {
+        const result = await deleteProduct(id);
+        revalidatePath('/shop');
+        revalidatePath('/admin');
+        return result;
+    });
+}
+
+export async function placeShopOrderAction(data: any) {
+
+    return await logAction('placeShopOrder', async () => {
+
+        // Handle COD immediately
+
+        if (data.paymentMethod === 'cod') {
+
+             const result = await createShopOrder(data);
+
+             revalidatePath('/admin');
+
+             return result;
+
+        }
+
+
+
+        // Handle Prepaid
+
+        const result = await createShopOrder(data);
+
+        if (!result.success || !result.orderId) {
+
+            return result;
+
+        }
+
+
+
+        const paymentResponse = await initiateShopPayment(result.orderId, data);
+
+        if (paymentResponse.success && paymentResponse.redirectUrl) {
+
+             return { success: true, message: 'Redirecting to payment gateway...', paymentData: { redirectUrl: paymentResponse.redirectUrl } };
+
+        }
+
+        
+
+        // If payment initiation fails, we should technically cancel the order or let it stay pending
+
+        return { success: false, message: paymentResponse.message || 'Payment initiation failed.' };
+
+    });
+
+}
+
+
+
+async function initiateShopPayment(orderId: string, orderData: any) {
+
+  try {
+
+    const merchantTransactionId = `SHOP-${uuidv4().slice(0, 8)}-${orderId}`;
+
+    const isProd = process.env.NEXT_PUBLIC_IS_PRODUCTION === 'true';
+
+    const merchantId = isProd ? process.env.PHONEPE_PROD_MERCHANT_ID : process.env.PHONEPE_SANDBOX_MERCHANT_ID;
+
+    const phonepeApiUrl = isProd
+
+      ? 'https://api.phonepe.com/apis/pg/checkout/v2/pay'
+
+      : 'https://api-preprod.phonepe.com/apis/pg-sandbox/checkout/v2/pay';
+
+
+
+    if (!merchantId) throw new Error('PhonePe merchant ID not configured.');
+
+
+
+    const tokenResponse = await fetchPhonePeAccessToken();
+
+    if (!tokenResponse.success || !tokenResponse.accessToken) {
+
+      throw new Error(tokenResponse.message || 'Failed to obtain PhonePe access token.');
+
+    }
+
+
+
+    const headersList = await headers();
+
+    const host = headersList.get('host');
+
+    const proto = headersList.get('x-forwarded-proto') || 'https';
+
+    const baseUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_HOST_URL || 'https://www.natureofthedivine.com');
+
+
+
+    const payload = {
+
+      merchantOrderId: merchantTransactionId,
+
+      amount: orderData.totalPrice * 100, // Amount in paise
+
+      expireAfter: 600, // 10 minutes
+
+      metaInfo: {
+
+        udf1: `Shop Order: ${orderData.productName}`,
+
+        udf2: orderData.phoneNumber,
+
+      },
+
+      paymentFlow: {
+
+        type: 'PG_CHECKOUT',
+
+        message: 'Shop Order Payment',
+
+        merchantUrls: {
+
+          redirectUrl: `${baseUrl}/shop?paymentStatus=success&orderId=${orderId}`, 
+
+          callbackUrl: `${baseUrl}/api/payment/shop-callback`
+
+        },
+
+        paymentModeConfig: {
+
+          enabledPaymentModes: [
+
+            { type: 'UPI_INTENT' },
+
+            { type: 'UPI_COLLECT' },
+
+            { type: 'UPI_QR' },
+
+            { type: 'NET_BANKING' },
+
+            { type: 'CARD', cardTypes: ['DEBIT_CARD', 'CREDIT_CARD'] },
+
+          ],
+
+        },
+
+      },
+
+    };
+
+
+
+    // Update with transaction ID
+
+    await updateShopOrderPaymentStatus(orderId, 'PENDING', { merchantTransactionId });
+
+
+
+    const response = await axios.post(phonepeApiUrl, payload, {
+
+      headers: {
+
+        'Content-Type': 'application/json',
+
+        'Authorization': `O-Bearer ${tokenResponse.accessToken}`,
+
+      },
+
+    });
+
+
+
+    const data = response.data as any;
+
+    
+
+    // Check for redirect info in instrumentResponse (common in V2)
+
+    const instrumentResponse = data?.data?.instrumentResponse;
+
+    const redirectInfo = instrumentResponse?.redirectInfo;
+
+    const redirectUrl = data?.redirectUrl || redirectInfo?.url;
+
+
+
+    if ((data.code === 'PAYMENT_INITIATED' || data.state === 'PENDING' || data.success) && redirectUrl) {
+
+      await addLog('info', 'Shop payment initiated', { orderId, redirectUrl });
+
+      return { success: true, redirectUrl };
+
+    }
+
+
+
+    throw new Error(data.message || 'Payment initiation failed.');
+
+
+
+  } catch (error: any) {
+
+      await addLog('error', 'initiateShopPayment failed', { error: error.message });
+
+      return { success: false, message: error.message };
+
+  }
+
+}
+
+
+
+export async function fetchShopOrdersAction() {
+
+    return await getShopOrders();
+
+}
+
+
+
+export async function updateShopOrderStatusAction(id: string, status: ShopOrder['status']) {
+
+
+
+    return await logAction('updateShopOrderStatus', async () => {
+
+
+
+        const result = await updateShopOrderStatus(id, status);
+
+
+
+        revalidatePath('/admin');
+
+
+
+        return result;
+
+
+
+    });
+
+
+
+}
+
+
+
+
