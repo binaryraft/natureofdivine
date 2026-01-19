@@ -5,6 +5,8 @@ import { ShopClient } from './ShopClient';
 import { fetchProductsAction } from '@/lib/actions';
 import { Loader2 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: 'Shop | Nature of the Divine',
     description: 'Order spiritual artifacts and products directly.',

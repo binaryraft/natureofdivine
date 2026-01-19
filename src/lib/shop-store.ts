@@ -55,6 +55,11 @@ export async function getProducts(activeOnly = false): Promise<Product[]> {
         return snapshot.docs.map(doc => doc.data() as Product);
     } catch (error: any) {
         console.error("Error getting products:", error);
+        if (error.code === 'failed-precondition') {
+             await addLog('error', 'Missing Firestore Index for Products', { message: error.message });
+        } else {
+             await addLog('error', 'getProducts failed', { message: error.message, code: error.code });
+        }
         return [];
     }
 }
