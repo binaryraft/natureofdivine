@@ -47,19 +47,21 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; mes
 
 export async function getProducts(activeOnly = false): Promise<Product[]> {
     try {
-        let q = query(productsCollection, orderBy('createdAt', 'desc'));
+        // Fetch products. If activeOnly is true, filter by isActive.
+        // We remove orderBy here to avoid requiring a composite index with 'where'.
+        let q = query(productsCollection);
         if (activeOnly) {
-            q = query(productsCollection, where('isActive', '==', true), orderBy('createdAt', 'desc'));
+            q = query(productsCollection, where('isActive', '==', true));
         }
+
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data() as Product);
+        const products = snapshot.docs.map(doc => doc.data() as Product);
+
+        // Sort in-memory to ensure consistency without index overhead
+        return products.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     } catch (error: any) {
         console.error("Error getting products:", error);
-        if (error.code === 'failed-precondition') {
-            await addLog('error', 'Missing Firestore Index for Products', { message: error.message });
-        } else {
-            await addLog('error', 'getProducts failed', { message: error.message, code: error.code });
-        }
+        await addLog('error', 'getProducts failed', { message: error.message, code: error.code });
         return [];
     }
 }
@@ -155,9 +157,10 @@ export async function updateShopOrderPaymentStatus(orderId: string, paymentStatu
 
 export async function getShopOrders(): Promise<ShopOrder[]> {
     try {
-        const q = query(shopOrdersCollection, orderBy('createdAt', 'desc'));
+        const q = query(shopOrdersCollection);
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data() as ShopOrder);
+        const orders = snapshot.docs.map(doc => doc.data() as ShopOrder);
+        return orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     } catch (error: any) {
         console.error("Error getting shop orders:", error);
         return [];

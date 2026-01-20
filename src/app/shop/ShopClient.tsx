@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-export function ShopClient({ initialProducts }: { initialProducts: Product[] }) {
+export function ShopClient({ initialProducts, totalCount = 0 }: { initialProducts: Product[], totalCount?: number }) {
     const { toast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -104,8 +104,12 @@ export function ShopClient({ initialProducts }: { initialProducts: Product[] }) 
             <div className="text-center py-20 bg-card/30 backdrop-blur-sm rounded-3xl border border-dashed border-primary/20">
                 <Package className="h-16 w-16 mx-auto text-primary/20 mb-4 animate-pulse" />
                 <h3 className="text-2xl font-garamond font-bold">No Divine Artifacts Found</h3>
-                <p className="text-muted-foreground mt-2 max-w-sm mx-auto">The shop is currently awaiting new arrivals from the higher realms. Check back soon.</p>
-                <div className="mt-8">
+                <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                    {totalCount > 0
+                        ? "There are products in the database, but they haven't been activated yet. Please check the Admin panel."
+                        : "The shop is currently awaiting new arrivals from the higher realms. Check back soon."}
+                </p>
+                <div className="mt-8 space-y-4">
                     <Button
                         variant="outline"
                         size="sm"
@@ -116,6 +120,12 @@ export function ShopClient({ initialProducts }: { initialProducts: Product[] }) 
                         {isSeeding ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
                         Dev: Seed Sample Products
                     </Button>
+
+                    {totalCount > 0 && (
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest block">
+                            Database Status: {totalCount} Items Found
+                        </p>
+                    )}
                 </div>
             </div>
         );

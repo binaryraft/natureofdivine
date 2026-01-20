@@ -12,8 +12,11 @@ export const metadata: Metadata = {
     description: 'Manifest higher frequencies with our curated collection of spiritual tools and sacred geometry. Align your physical space with your inner divinity.',
 };
 
+export const revalidate = 0;
+
 export default async function ShopPage() {
-    const products = await fetchProductsAction(true); // Fetch only active products
+    const allProducts = await fetchProductsAction(false); // Fetch all products
+    const products = allProducts.filter(p => p.isActive); // Filter for active ones in code
 
     return (
         <main className="min-h-screen bg-background pt-24 pb-12">
@@ -25,7 +28,7 @@ export default async function ShopPage() {
                     </p>
                 </div>
                 <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>}>
-                    <ShopClient initialProducts={products} />
+                    <ShopClient initialProducts={products} totalCount={allProducts.length} />
                 </Suspense>
             </div>
         </main>
