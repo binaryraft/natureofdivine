@@ -100,7 +100,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
     name: 'Nature of the Divine',
     description: 'The manual for being human. Navigate the metaphysics of the soul and activate unshakeable clarity through the precision of higher logic.',
     price: 299,
-    imageUrl: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
+    imageUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop',
     isBook: true as const,
     stock: stock.paperback,
   };
@@ -237,7 +237,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                   </div>
                 </div>
 
-                <Book3D src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png" />
+                <Book3D src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop" />
 
                 {/* Light Flares */}
                 <div
