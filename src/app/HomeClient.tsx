@@ -456,19 +456,9 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                   >
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6 bg-secondary/30">
-                        <Image
-                          src={(post.image && post.image !== 'undefined' && post.image !== 'null') ? post.image : '/images/blog-default.png'}
-                          alt={post.title}
-                          fill
-                          className="object-cover transform group-hover:scale-105 transition-transform duration-500"
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src.indexOf('/images/blog-default.png') === -1) {
-                              target.src = '/images/blog-default.png';
-                            }
-                          }}
+                        <div 
+                          className="w-full h-full bg-cover bg-center transform group-hover:scale-105 transition-transform duration-500"
+                          style={{ backgroundImage: `url(${(post.image && post.image !== 'undefined' && post.image !== 'null') ? post.image : '/images/blog-default.png'})` }}
                         />
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                       </div>
