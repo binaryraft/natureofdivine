@@ -16,7 +16,6 @@ import { SampleChapter, Stock, Product } from "@/lib/definitions";
 import { BlogPost } from "@/lib/blog-store";
 import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar, MessageCircle, Feather, Truck, CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
-import defaultBlogImage from "../../public/images/blog-default.png";
 import { ProductsSlider } from "@/components/ProductsSlider";
 
 const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').then(mod => mod.Testimonials), {
@@ -458,12 +457,16 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6 bg-secondary/30">
                         <Image
-                          src={post.image || defaultBlogImage}
+                          src={post.image || '/images/blog-default.png'}
                           alt={post.title}
                           fill
                           className="object-cover transform group-hover:scale-105 transition-transform duration-500"
                           sizes="(max-width: 768px) 100vw, 33vw"
                           loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/images/blog-default.png';
+                          }}
                         />
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                       </div>
