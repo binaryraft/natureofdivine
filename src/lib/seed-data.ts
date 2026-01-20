@@ -90,7 +90,7 @@ export const seedBlogPosts = [
   {
     title: "The Illusion of Separation: Finding Oneness",
     slug: "illusion-of-separation",
-    excerpt: "Why do we feel so alone? Discover how the illusion of separation causes suffering and how to reconnect with the whole.",
+    excerpt: "You are not a drop in the ocean; you are the ocean in a drop. Discover why loneliness is a lie and how to feel connected to everything, instantly.",
     content: `
       <h2>The Root of Your Struggle</h2>
       <p>Do you often feel isolated, as if you are fighting the world alone? This sense of separation is the root of much human suffering. We believe we are separate entities, cut off from the universe and each other. This belief creates fear, competition, and loneliness.</p>
@@ -112,13 +112,13 @@ export const seedBlogPosts = [
       </div>
     `,
     tags: ["Spirituality", "Oneness", "Philosophy", "Inner Peace"],
-    image: "/images/blog-default.png",
+    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=1200",
     comments: []
   },
   {
     title: "Meditation for Clarity: Finding God in Silence",
     slug: "meditation-for-clarity",
-    excerpt: "In a noisy world, silence is a superpower. Learn simple techniques to quiet the mind and hear your inner guidance.",
+    excerpt: "Silence isn't empty; it's full of answers. Learn how to turn down the volume of the world so you can finally hear yourself think.",
     content: `
       <h2>Escaping the Noise</h2>
       <p>Modern life is a constant stream of notifications, demands, and mental chatter. In this noise, it is impossible to hear the subtle guidance of your <i class="font-garamond">soul</i>. We are addicted to distraction, but we crave peace.</p>
@@ -151,7 +151,7 @@ export const seedBlogPosts = [
   {
     title: "Daily Spiritual Habits: The Discipline of Alignment",
     slug: "daily-spiritual-habits",
-    excerpt: "Transformation doesn't happen by accident. It happens by design. Discover the daily habits that keep you aligned.",
+    excerpt: "You don't drift to the top of the mountain. Transformation is engineered. Here is the daily protocol for keeping your soul online.",
     content: `
       <h2>Spirituality is Action</h2>
       <p>Many treat spirituality as a comforting idea, something to read about on Sundays. But true <i class="font-garamond">spiritual growth</i> is a discipline. It is the consistent effort to align your thoughts and actions with truth. You can't learn to swim by reading about water.</p>
@@ -179,7 +179,7 @@ export const seedBlogPosts = [
   {
     title: "Is God Real? A Logical Perspective",
     slug: "is-god-real-logic",
-    excerpt: "Moving beyond childhood myths to a mature, scientific understanding of the Divine Intelligence.",
+    excerpt: "Forget the man in the sky. It's time for a God that makes sense. A logical, scientific look at the Intelligence that codes reality.",
     content: `
       <h2>Beyond the Man in the Sky</h2>
       <p>For too long, we've been given a binary choice: believe in a bearded man in the sky, or believe in a cold, random universe. Both are incomplete. It is time for a mature spirituality that respects <i class="font-garamond">science</i>.</p>

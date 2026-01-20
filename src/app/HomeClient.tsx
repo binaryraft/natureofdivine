@@ -98,7 +98,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
   const bookProduct = {
     id: 'nature-of-the-divine-book',
     name: 'Nature of the Divine',
-    description: 'An advanced architecture for spiritual awakening and divine intelligence. Navigate the metaphysics of the soul and activate unshakeable clarity through the precision of higher logic.',
+    description: 'The manual for being human. Navigate the metaphysics of the soul and activate unshakeable clarity through the precision of higher logic.',
     price: 299,
     imageUrl: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
     isBook: true as const,
@@ -161,7 +161,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                 </div>
 
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light">
-                  An advanced architecture for <strong className="text-foreground font-medium">spiritual awakening</strong> and <strong className="text-foreground font-medium">divine intelligence</strong>. Navigate the metaphysics of the soul and activate <strong className="text-foreground font-medium">unshakeable clarity</strong> through the precision of higher logic.
+                  Stop searching. Start aligning. The blueprint for a life of <strong className="text-foreground font-medium">unshakeable clarity</strong> and <strong className="text-foreground font-medium">profound peace</strong> is already within you. Decode the architecture of your soul and wake up to who you really are.
                 </p>
 
                 {/* Buttons */}
@@ -506,9 +506,9 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <h2 className="text-3xl md:text-5xl font-bold font-garamond mb-4">Sacred Intelligence for Your Inbox</h2>
+                <h2 className="text-3xl md:text-5xl font-bold font-garamond mb-4">Quiet the Noise. Tune into the Signal.</h2>
                 <p className="text-muted-foreground text-lg">
-                  Join 10,000+ conscious seekers receiving weekly decodes on <strong className="text-foreground font-medium">enlightenment</strong>, <strong className="text-foreground font-medium">metaphysics</strong>, and the <strong className="text-foreground font-medium">Divine Algorithm</strong>. Transmit peace.
+                  Join 10,000+ seekers receiving weekly transmissions on <strong className="text-foreground font-medium">clarity</strong>, <strong className="text-foreground font-medium">purpose</strong>, and the <strong className="text-foreground font-medium">art of being</strong>. No fluff. Just truth.
                 </p>
               </motion.div>
 

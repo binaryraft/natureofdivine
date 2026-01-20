@@ -26,18 +26,14 @@ export const metadata: Metadata = {
     template: "%s | Nature of the Divine",
   },
   description:
-    "Decipher the ultimate architecture of reality with 'Nature of the Divine' by Alfas B. A groundbreaking guide to spiritual awakening, consciousness engineering, and aligning with the Divine Algorithm of existence.",
+    "Stop searching. Start aligning. 'Nature of the Divine' by Alfas B is the blueprint for unshakeable clarity. Decode the architecture of your soul and find the peace that has been waiting for you.",
   keywords: [
     "Nature of the Divine",
     "Spiritual Awakening",
     "Universal Intelligence",
-    "Divine Consciousness",
-    "Metaphysics of the Soul",
-    "Enlightenment Engineering",
-    "Deciphering God",
-    "Spiritual Realignment",
-    "Science of the Soul",
-    "Consciousness Evolution",
+    "How to find inner peace",
+    "Overcoming anxiety spiritually",
+    "Meaning of life",
     "Alfas B",
     "Advanced Spirituality",
     "Sacred Realignment",
@@ -65,7 +61,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Nature of the Divine | Align with Universal Intelligence",
     description:
-      "A profound deep-dive into the mechanics of consciousness and the architecture of the Divine. Discover how to re-align your existence with the Infinite Pulse of reality.",
+      "The search is over. Discover the profound logic behind your existence and how to re-align with the Infinite Pulse of reality.",
     url: siteUrl,
     siteName: "Nature of the Divine",
     images: [
@@ -82,7 +78,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Nature of the Divine | Deciphering the Divine Algorithm",
     description:
-      "Dismantle the static of existence and activate your brilliant nature. A high-consequence guide to spiritual evolution by visionary author Alfas B.",
+      "Dismantle the static. Activate your brilliance. A guide to spiritual evolution for the modern seeker.",
     images: ["/logo.svg"],
   },
 
