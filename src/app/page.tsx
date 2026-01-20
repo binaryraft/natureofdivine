@@ -4,7 +4,11 @@ import { fetchChaptersAction, fetchBlogPostsAction } from "@/lib/actions";
 import { getStock } from "@/lib/stock-store";
 
 export const metadata: Metadata = {
-// ... existing metadata code ...
+  title: "Nature of the Divine | Peak Consciousness & Divine Intelligence",
+  description: "Experience the ultimate spiritual realignment. Decode the metaphysics of the soul and activate unshakeable clarity with the groundbreaking work of Alfas B.",
+  alternates: {
+    canonical: '/',
+  },
 };
 
 export const viewport = {

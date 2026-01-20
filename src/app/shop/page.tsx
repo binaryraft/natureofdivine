@@ -8,8 +8,8 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-    title: 'Shop | Nature of the Divine',
-    description: 'Order spiritual artifacts and products directly.',
+    title: 'Divine Artifacts | Shop Nature of the Divine',
+    description: 'Manifest higher frequencies with our curated collection of spiritual tools and sacred geometry. Align your physical space with your inner divinity.',
 };
 
 export default async function ShopPage() {

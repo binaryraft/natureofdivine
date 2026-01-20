@@ -133,7 +133,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/50 backdrop-blur-md shadow-lg"
                 >
                   <Sparkles className="w-3 h-3 text-primary" />
-                  <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">A Guide to Clarity</span>
+                  <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">The Science of Transcendence</span>
                 </motion.div>
 
                 {/* Main Title */}
@@ -149,7 +149,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                 </div>
 
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light">
-                  A grounded guide to <strong className="text-foreground font-medium">spiritual awakening</strong> and <strong className="text-foreground font-medium">divine intelligence</strong>. Discover the science of the soul and find <strong className="text-foreground font-medium">inner peace</strong> without abandoning logic.
+                  An advanced architecture for <strong className="text-foreground font-medium">spiritual awakening</strong> and <strong className="text-foreground font-medium">divine intelligence</strong>. Navigate the metaphysics of the soul and activate <strong className="text-foreground font-medium">unshakeable clarity</strong> through the precision of higher logic.
                 </p>
 
                 {/* Buttons */}
@@ -472,9 +472,9 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <h2 className="text-3xl md:text-5xl font-bold font-garamond mb-4">Quiet Guidance for Your Inbox</h2>
+                <h2 className="text-3xl md:text-5xl font-bold font-garamond mb-4">Sacred Intelligence for Your Inbox</h2>
                 <p className="text-muted-foreground text-lg">
-                  Join 10,000+ seekers receiving weekly reflections on <strong className="text-foreground font-medium">mindfulness</strong>, <strong className="text-foreground font-medium">nature</strong>, and <strong className="text-foreground font-medium">God</strong>. No spam, just peace.
+                  Join 10,000+ conscious seekers receiving weekly decodes on <strong className="text-foreground font-medium">enlightenment</strong>, <strong className="text-foreground font-medium">metaphysics</strong>, and the <strong className="text-foreground font-medium">Divine Algorithm</strong>. Transmit peace.
                 </p>
               </motion.div>
 
