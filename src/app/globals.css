@@ -173,6 +173,16 @@
   .animate-flare {
     animation: flare 4s ease-in-out infinite;
   }
+
+  /* Hide scrollbar for mobile slider */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }
 
 /* Lenis Recommended Styles */

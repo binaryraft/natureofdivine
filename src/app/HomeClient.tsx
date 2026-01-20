@@ -12,11 +12,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trackEvent, fetchAnalytics, fixBlogImagesOnLoad } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 import { authorBio, buyLinks, synopsis } from "@/lib/data";
-import { SampleChapter, Stock } from "@/lib/definitions";
+import { SampleChapter, Stock, Product } from "@/lib/definitions";
 import { BlogPost } from "@/lib/blog-store";
 import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar, MessageCircle, Feather, Truck, CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import defaultBlogImage from "../../public/images/blog-default.png";
+import { ProductsSlider } from "@/components/ProductsSlider";
 
 const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').then(mod => mod.Testimonials), {
   loading: () => (
@@ -69,9 +70,10 @@ interface HomeClientProps {
   initialChapters: SampleChapter[];
   stock: Stock;
   latestBlogs: BlogPost[];
+  products: Product[];
 }
 
-export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientProps) {
+export function HomeClient({ initialChapters, stock, latestBlogs, products }: HomeClientProps) {
   const [analytics, setAnalytics] = useState<any>(null);
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
@@ -92,6 +94,17 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
   };
 
   const visibleBuyLinks = buyLinks.filter(link => link.visible);
+
+  // Create book product for slider
+  const bookProduct = {
+    id: 'nature-of-the-divine-book',
+    name: 'Nature of the Divine',
+    description: 'An advanced architecture for spiritual awakening and divine intelligence. Navigate the metaphysics of the soul and activate unshakeable clarity through the precision of higher logic.',
+    price: 299,
+    imageUrl: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
+    isBook: true as const,
+    stock: stock.paperback,
+  };
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background text-foreground overflow-x-hidden selection:bg-primary/30">
@@ -246,6 +259,10 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
             <div className="w-[1px] h-12 bg-gradient-to-b from-gray-500/0 via-gray-500/50 to-gray-500/0" />
           </motion.div>
         </section>
+
+
+        {/* PRODUCTS SLIDER SECTION */}
+        <ProductsSlider products={products} bookProduct={bookProduct} />
 
 
         {/* SYNOPSIS SECTION */}
