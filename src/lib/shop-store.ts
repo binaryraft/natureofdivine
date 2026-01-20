@@ -56,9 +56,9 @@ export async function getProducts(activeOnly = false): Promise<Product[]> {
     } catch (error: any) {
         console.error("Error getting products:", error);
         if (error.code === 'failed-precondition') {
-             await addLog('error', 'Missing Firestore Index for Products', { message: error.message });
+            await addLog('error', 'Missing Firestore Index for Products', { message: error.message });
         } else {
-             await addLog('error', 'getProducts failed', { message: error.message, code: error.code });
+            await addLog('error', 'getProducts failed', { message: error.message, code: error.code });
         }
         return [];
     }
@@ -87,7 +87,7 @@ export async function createShopOrder(orderData: Omit<ShopOrder, 'id' | 'created
             createdAt: Date.now(),
         };
         await setDoc(doc(shopOrdersCollection, id), order);
-        
+
         // Decrease stock immediately
         const product = await getProductById(order.productId);
         if (product) {
@@ -119,7 +119,7 @@ export async function updateShopOrderPaymentStatus(orderId: string, paymentStatu
     try {
         const orderRef = doc(shopOrdersCollection, orderId);
         const orderSnap = await getDoc(orderRef);
-        
+
         if (!orderSnap.exists()) return;
 
         const order = orderSnap.data() as ShopOrder;
@@ -132,14 +132,21 @@ export async function updateShopOrderPaymentStatus(orderId: string, paymentStatu
             // RESTOCK if cancelled due to payment failure
             const product = await getProductById(order.productId);
             if (product) {
-                 await updateDoc(doc(productsCollection, product.id), { stock: product.stock + order.quantity });
+                await updateDoc(doc(productsCollection, product.id), { stock: product.stock + order.quantity });
             }
         }
 
-        await updateDoc(orderRef, {
+        const updateData: any = {
             status: newStatus,
             paymentDetails: paymentData
-        });
+        };
+
+        // If we have a merchantTransactionId in paymentData, store it as the top-level transactionId
+        if (paymentData?.merchantTransactionId) {
+            updateData.transactionId = paymentData.merchantTransactionId;
+        }
+
+        await updateDoc(orderRef, updateData);
 
     } catch (error: any) {
         await addLog('error', 'updateShopOrderPaymentStatus failed', { error: error.message });

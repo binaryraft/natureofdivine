@@ -864,85 +864,85 @@ export async function fixBlogImagesOnLoad() {
 
 // --- SHOP ACTIONS ---
 
-import { addProduct, updateProduct, deleteProduct, getProducts, createShopOrder, getShopOrders, updateShopOrderStatus, getProductById } from './shop-store';
+import { addProduct, updateProduct, deleteProduct, getProducts, createShopOrder, getShopOrders, updateShopOrderStatus, getProductById, updateShopOrderPaymentStatus } from './shop-store';
 import { Product, ShopOrder } from './definitions';
 
 export async function fetchProductsAction(activeOnly = false) {
-    return await getProducts(activeOnly);
+  return await getProducts(activeOnly);
 }
 
 export async function addProductAction(data: any) {
-    return await logAction('addProduct', async () => {
-        const result = await addProduct(data);
-        revalidatePath('/shop');
-        revalidatePath('/admin');
-        return result;
-    });
+  return await logAction('addProduct', async () => {
+    const result = await addProduct(data);
+    revalidatePath('/shop');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 export async function updateProductAction(data: Product) {
-    return await logAction('updateProduct', async () => {
-        const result = await updateProduct(data);
-        revalidatePath('/shop');
-        revalidatePath('/admin');
-        return result;
-    });
+  return await logAction('updateProduct', async () => {
+    const result = await updateProduct(data);
+    revalidatePath('/shop');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 export async function deleteProductAction(id: string) {
-    return await logAction('deleteProduct', async () => {
-        const result = await deleteProduct(id);
-        revalidatePath('/shop');
-        revalidatePath('/admin');
-        return result;
-    });
+  return await logAction('deleteProduct', async () => {
+    const result = await deleteProduct(id);
+    revalidatePath('/shop');
+    revalidatePath('/admin');
+    return result;
+  });
 }
 
 export async function placeShopOrderAction(data: any) {
 
-    return await logAction('placeShopOrder', async () => {
+  return await logAction('placeShopOrder', async () => {
 
-        // Handle COD immediately
+    // Handle COD immediately
 
-        if (data.paymentMethod === 'cod') {
+    if (data.paymentMethod === 'cod') {
 
-             const result = await createShopOrder(data);
+      const result = await createShopOrder(data);
 
-             revalidatePath('/admin');
+      revalidatePath('/admin');
 
-             return result;
+      return result;
 
-        }
-
-
-
-        // Handle Prepaid
-
-        const result = await createShopOrder(data);
-
-        if (!result.success || !result.orderId) {
-
-            return result;
-
-        }
+    }
 
 
 
-        const paymentResponse = await initiateShopPayment(result.orderId, data);
+    // Handle Prepaid
 
-        if (paymentResponse.success && paymentResponse.redirectUrl) {
+    const result = await createShopOrder(data);
 
-             return { success: true, message: 'Redirecting to payment gateway...', paymentData: { redirectUrl: paymentResponse.redirectUrl } };
+    if (!result.success || !result.orderId) {
 
-        }
+      return result;
 
-        
+    }
 
-        // If payment initiation fails, we should technically cancel the order or let it stay pending
 
-        return { success: false, message: paymentResponse.message || 'Payment initiation failed.' };
 
-    });
+    const paymentResponse = await initiateShopPayment(result.orderId, data);
+
+    if (paymentResponse.success && paymentResponse.redirectUrl) {
+
+      return { success: true, message: 'Redirecting to payment gateway...', paymentData: { redirectUrl: paymentResponse.redirectUrl } };
+
+    }
+
+
+
+    // If payment initiation fails, we should technically cancel the order or let it stay pending
+
+    return { success: false, message: paymentResponse.message || 'Payment initiation failed.' };
+
+  });
 
 }
 
@@ -1014,7 +1014,7 @@ async function initiateShopPayment(orderId: string, orderData: any) {
 
         merchantUrls: {
 
-          redirectUrl: `${baseUrl}/shop?paymentStatus=success&orderId=${orderId}`, 
+          redirectUrl: `${baseUrl}/shop?paymentStatus=success&orderId=${orderId}`,
 
           callbackUrl: `${baseUrl}/api/payment/shop-callback`
 
@@ -1066,7 +1066,7 @@ async function initiateShopPayment(orderId: string, orderData: any) {
 
     const data = response.data as any;
 
-    
+
 
     // Check for redirect info in instrumentResponse (common in V2)
 
@@ -1094,9 +1094,9 @@ async function initiateShopPayment(orderId: string, orderData: any) {
 
   } catch (error: any) {
 
-      await addLog('error', 'initiateShopPayment failed', { error: error.message });
+    await addLog('error', 'initiateShopPayment failed', { error: error.message });
 
-      return { success: false, message: error.message };
+    return { success: false, message: error.message };
 
   }
 
@@ -1106,7 +1106,7 @@ async function initiateShopPayment(orderId: string, orderData: any) {
 
 export async function fetchShopOrdersAction() {
 
-    return await getShopOrders();
+  return await getShopOrders();
 
 }
 
@@ -1116,23 +1116,23 @@ export async function updateShopOrderStatusAction(id: string, status: ShopOrder[
 
 
 
-    return await logAction('updateShopOrderStatus', async () => {
+  return await logAction('updateShopOrderStatus', async () => {
 
 
 
-        const result = await updateShopOrderStatus(id, status);
+    const result = await updateShopOrderStatus(id, status);
 
 
 
-        revalidatePath('/admin');
+    revalidatePath('/admin');
 
 
 
-        return result;
+    return result;
 
 
 
-    });
+  });
 
 
 
@@ -1141,3 +1141,25 @@ export async function updateShopOrderStatusAction(id: string, status: ShopOrder[
 
 
 
+
+export async function seedShopProductsAction() {
+  try {
+    const { merchProducts } = await import('./shop-seed-data');
+    const existingProducts = await getProducts(false);
+    let added = 0;
+
+    for (const item of merchProducts) {
+      const exists = existingProducts.some(p => p.name === item.name);
+      if (!exists) {
+        await addProduct(item);
+        added++;
+      }
+    }
+
+    revalidatePath('/shop');
+    revalidatePath('/admin');
+    return { success: true, message: `Added ${added} shop products.` };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
