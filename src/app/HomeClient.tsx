@@ -100,7 +100,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
     name: 'Nature of the Divine',
     description: 'The manual for being human. Navigate the metaphysics of the soul and activate unshakeable clarity through the precision of higher logic.',
     price: 299,
-    imageUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
     isBook: true as const,
     stock: stock.paperback,
   };
@@ -237,7 +237,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                   </div>
                 </div>
 
-                <Book3D src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop" />
+                <Book3D src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png" />
 
                 {/* Light Flares */}
                 <div
@@ -457,7 +457,7 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6 bg-secondary/30">
                         <Image
-                          src={post.image || '/images/blog-default.png'}
+                          src={(post.image && post.image !== 'undefined' && post.image !== 'null') ? post.image : '/images/blog-default.png'}
                           alt={post.title}
                           fill
                           className="object-cover transform group-hover:scale-105 transition-transform duration-500"
@@ -465,7 +465,9 @@ export function HomeClient({ initialChapters, stock, latestBlogs, products }: Ho
                           loading="lazy"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = '/images/blog-default.png';
+                            if (target.src.indexOf('/images/blog-default.png') === -1) {
+                              target.src = '/images/blog-default.png';
+                            }
                           }}
                         />
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
