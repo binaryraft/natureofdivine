@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShoppingBag, MapPin, Phone, User, Package, CheckCircle, CreditCard, Wallet, Sparkles } from 'lucide-react';
+import { Loader2, ShoppingBag, MapPin, Phone, User, Package, CheckCircle, CreditCard, Wallet, Sparkles, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
@@ -190,10 +190,13 @@ export function ShopClient({ initialProducts, totalCount = 0, settings }: { init
                                 </CardDescription>
                             </CardHeader>
 
-                            <CardContent className="pb-4">
+                            <CardContent className="pb-4 space-y-2">
                                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest">
                                     <div className={cn("h-1.5 w-1.5 rounded-full", product.stock > 0 ? "bg-emerald-500 animate-pulse" : "bg-muted")} />
                                     {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest">
+                                    <Truck className="h-3 w-3" /> 2-7 Days Delivery
                                 </div>
                             </CardContent>
 
@@ -229,6 +232,9 @@ export function ShopClient({ initialProducts, totalCount = 0, settings }: { init
                             Enter your details to order <strong>{selectedProduct?.name}</strong>.
                             <br />
                             Total: <span className="font-semibold text-primary">₹{(selectedProduct?.price || 0) * formData.quantity}</span>
+                            <span className="block text-[10px] text-muted-foreground mt-1 flex items-center gap-1 uppercase tracking-widest">
+                                <Truck className="h-3 w-3" /> Secure Delivery within 2-7 Business Days
+                            </span>
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleOrderSubmit} className="space-y-4 py-2">

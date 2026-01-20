@@ -63,7 +63,6 @@ type FormState = {
 type FormAction =
     | { type: 'SET_VARIANT'; payload: Exclude<BookVariant, 'ebook'> }
     | { type: 'SET_DETAILS'; payload: z.infer<typeof DetailsSchema> }
-    | { type: 'SET_ORDER_SUMMARY'; payload: { productPrice: number, shippingCost: number, totalPrice: number } }
     | { type: 'SET_PAYMENT_METHOD'; payload: 'cod' | 'prepaid' }
     | { type: 'SET_ERRORS'; payload: Record<string, string[]> | null }
     | { type: 'NEXT_STEP' }
@@ -74,6 +73,7 @@ type FormAction =
     | { type: 'APPLY_DISCOUNT'; payload: { percent: number; message: string } }
     | { type: 'SET_DISCOUNT_MESSAGE'; payload: string }
     | { type: 'RESET_DISCOUNT' }
+    | { type: 'SET_ORDER_SUMMARY'; payload: { productPrice: number, shippingCost: number, totalPrice: number }, settings: SiteSettings }
     | { type: 'SET_FORM_VALUE'; payload: { field: keyof z.infer<typeof DetailsSchema>, value: string | boolean | undefined } };
 
 const initialState: FormState = {
@@ -108,8 +108,16 @@ function formReducer(state: FormState, action: FormAction): FormState {
             return { ...state, variant: action.payload, errors: null };
         case 'SET_DETAILS':
             return { ...state, details: action.payload, errors: null };
-        case 'SET_ORDER_SUMMARY':
-            return { ...state, orderSummary: action.payload, errors: null };
+        case 'SET_ORDER_SUMMARY': {
+            const isInternational = state.details.country !== 'IN';
+            const isCODEnabled = isInternational ? action.settings.codEnabledInternational : action.settings.codEnabled;
+            return {
+                ...state,
+                orderSummary: action.payload,
+                paymentMethod: isCODEnabled ? state.paymentMethod : 'prepaid',
+                errors: null
+            };
+        }
         case 'SET_FORM_VALUE': {
             const newErrors = state.errors ? { ...state.errors } : null;
             if (newErrors && action.payload.field in newErrors) {
@@ -191,7 +199,7 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
             const checkStatus = async () => {
                 try {
                     let order = await fetchOrderByIdAction(user.uid, orderId);
-                    
+
                     if (!order) {
                         toast({
                             variant: 'destructive',
@@ -215,17 +223,17 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                             router.push(`/orders?success=true&orderId=${orderId}`);
                             return;
                         } else if (order.status === 'cancelled') {
-                            toast({ 
-                                variant: 'destructive', 
-                                title: 'Payment Failed', 
-                                description: 'Your payment was not successful. Redirecting to home...' 
+                            toast({
+                                variant: 'destructive',
+                                title: 'Payment Failed',
+                                description: 'Your payment was not successful. Redirecting to home...'
                             });
                             router.push('/');
                             return;
                         } else if (order.status === 'pending') {
-                            toast({ 
-                                title: 'Payment Processing', 
-                                description: 'Your payment is still being verified. Please check the orders page in a moment.' 
+                            toast({
+                                title: 'Payment Processing',
+                                description: 'Your payment is still being verified. Please check the orders page in a moment.'
                             });
                             router.push('/orders');
                             return;
@@ -263,9 +271,9 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                     dispatch({ type: 'NEXT_STEP' });
                 }
             } else if (stock && stock[variantParam] <= 0) {
-                 if (state.variant !== variantParam) {
+                if (state.variant !== variantParam) {
                     toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.' });
-                 }
+                }
             }
         }
     }, [searchParams, stock, toast, isTestMode, state.step, state.variant]);
@@ -362,11 +370,15 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
             const priceResult = await calculateOrderTotalAction(result.data.country, state.variant!);
 
             if (priceResult.success) {
-                dispatch({ type: 'SET_ORDER_SUMMARY', payload: {
-                    productPrice: priceResult.productPrice || 0,
-                    shippingCost: priceResult.shippingCost || 0,
-                    totalPrice: priceResult.totalPrice || 0
-                }});
+                dispatch({
+                    type: 'SET_ORDER_SUMMARY',
+                    payload: {
+                        productPrice: priceResult.productPrice || 0,
+                        shippingCost: priceResult.shippingCost || 0,
+                        totalPrice: priceResult.totalPrice || 0
+                    },
+                    settings // Pass settings to handle payment method auto-selection
+                });
                 dispatch({ type: 'NEXT_STEP' });
             } else {
                 toast({ variant: 'destructive', title: 'Pricing Error', description: priceResult.message });
@@ -464,13 +476,9 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {physicalVariants.map(variant => {
                                         if (variant === 'ebook') return null;
-                                        
-                                        // Explicitly check stock for the specific variant
-                                        // If stock is undefined (loading), default to available to avoid flickering disabled state, 
-                                        // but the main loading skeleton handles the initial load.
+
                                         const currentStock = stock ? stock[variant] : 0;
                                         const isAvailable = isTestMode || currentStock > 0;
-                                        
                                         const { name, icon: Icon, description } = variantDetails[variant];
 
                                         return (
@@ -479,18 +487,21 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                                                 onClick={() => isAvailable && handleVariantSelect(variant)}
                                                 className={cn(
                                                     "rounded-lg border-2 p-6 transition-all flex flex-col items-center justify-center text-center group",
-                                                    isAvailable 
-                                                        ? "cursor-pointer hover:border-primary hover:shadow-xl" 
+                                                    isAvailable
+                                                        ? "cursor-pointer hover:border-primary hover:shadow-xl"
                                                         : "opacity-50 cursor-not-allowed bg-muted/50 border-muted hover:border-muted hover:shadow-none"
                                                 )}
                                             >
                                                 <Icon className={cn("h-12 w-12 mb-3 transition-transform", isAvailable ? "text-primary group-hover:scale-110" : "text-muted-foreground")} />
                                                 <p className="font-bold text-xl font-headline">{name}</p>
-                                                <p className="text-muted-foreground text-sm mb-3">{description}</p>
+                                                <p className="text-muted-foreground text-sm mb-1">{description}</p>
+                                                <p className="text-[10px] text-primary font-medium tracking-widest uppercase mb-3 flex items-center gap-1 justify-center">
+                                                    <Truck className="h-3 w-3" /> 2-7 Days Delivery
+                                                </p>
                                                 {!isAvailable ? (
                                                     <p className="text-destructive font-medium mt-2 text-sm bg-destructive/10 px-3 py-1 rounded-full">Out of Stock</p>
                                                 ) : (
-                                                     <p className="text-green-600 font-medium mt-2 text-sm bg-green-100 px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">In Stock</p>
+                                                    <p className="text-green-600 font-medium mt-2 text-sm bg-green-100 px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">In Stock</p>
                                                 )}
                                             </div>
                                         );
@@ -605,7 +616,7 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                 if (priceLoading || !priceData || !state.variant || !state.orderSummary) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin" /></div>
 
                 const { productPrice, shippingCost, totalPrice } = state.orderSummary;
-                
+
                 const discountAmount = state.discount.applied ? Math.round(productPrice * (state.discount.percent / 100)) : 0;
                 const finalPrice = totalPrice - discountAmount;
 
@@ -649,6 +660,9 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                                         <span>Total Amount:</span>
                                         <span>{formattedFinalPrice}</span>
                                     </div>
+                                    <div className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] flex items-center gap-1 justify-center pt-2">
+                                        <Ship className="h-3 w-3" /> Secure Express Delivery (2-7 Days)
+                                    </div>
                                 </CardContent>
                             </Card>
 
@@ -680,16 +694,17 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
                                 onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
                                 value={state.paymentMethod || ''}
                             >
-                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", isCODEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>
-                                    <RadioGroupItem value="cod" id="cod" disabled={!isCODEnabled}/>
-                                    <Truck className="h-6 w-6 text-primary" />
-                                    <div className="flex-grow">
-                                        <span className="font-semibold">Cash on Delivery</span>
-                                        <p className="text-xs text-muted-foreground">Pay with cash upon delivery.</p>
-                                        {!isCODEnabled && <p className="text-sm text-destructive font-medium mt-1">(Temporarily Unavailable)</p>}
-                                    </div>
-                                </Label>
-                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4", isPrepaidEnabled ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all" : "cursor-not-allowed opacity-50")}>
+                                {isCODEnabled && (
+                                    <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all")}>
+                                        <RadioGroupItem value="cod" id="cod" />
+                                        <Truck className="h-6 w-6 text-primary" />
+                                        <div className="flex-grow">
+                                            <span className="font-semibold">Cash on Delivery</span>
+                                            <p className="text-xs text-muted-foreground">Pay with cash upon delivery.</p>
+                                        </div>
+                                    </Label>
+                                )}
+                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all")}>
                                     <RadioGroupItem value="prepaid" id="prepaid" disabled={!isPrepaidEnabled} />
                                     <CreditCard className="h-6 w-6 text-primary" />
                                     <div className="flex-grow">

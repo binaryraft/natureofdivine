@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { authorBio, buyLinks, synopsis } from "@/lib/data";
 import { SampleChapter, Stock } from "@/lib/definitions";
 import { BlogPost } from "@/lib/blog-store";
-import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar, MessageCircle, Feather } from "lucide-react";
+import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar, MessageCircle, Feather, Truck, CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import defaultBlogImage from "../../public/images/blog-default.png";
 
@@ -187,6 +187,16 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                       </span>
                     </Link>
                   </Button>
+                </div>
+
+                <div className="flex items-center gap-6 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-700 fill-mode-forwards opacity-0">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
+                    <Truck className="h-3.5 w-3.5" /> 2-7 Days Express Delivery
+                  </div>
+                  <div className="h-4 w-[1px] bg-border/50" />
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> Secure Payments
+                  </div>
                 </div>
 
                 {/* Social Proof */}
@@ -430,9 +440,13 @@ export function HomeClient({ initialChapters, stock, latestBlogs }: HomeClientPr
                   >
                     <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
                       <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6 bg-secondary/30">
-                        <div
-                          className="w-full h-full bg-cover bg-center transform group-hover:scale-105 transition-transform duration-500"
-                          style={{ backgroundImage: `url(${post.image || '/images/blog-default.png'})` }}
+                        <Image
+                          src={post.image || defaultBlogImage}
+                          alt={post.title}
+                          fill
+                          className="object-cover transform group-hover:scale-105 transition-transform duration-500"
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          loading="lazy"
                         />
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                       </div>
