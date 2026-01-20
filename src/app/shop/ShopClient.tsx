@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Product, ShopOrder } from '@/lib/definitions';
+import { Product, ShopOrder, SiteSettings } from '@/lib/definitions';
 import { placeShopOrderAction, seedShopProductsAction } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-export function ShopClient({ initialProducts, totalCount = 0 }: { initialProducts: Product[], totalCount?: number }) {
+export function ShopClient({ initialProducts, totalCount = 0, settings }: { initialProducts: Product[], totalCount?: number, settings: SiteSettings }) {
     const { toast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -300,32 +300,34 @@ export function ShopClient({ initialProducts, totalCount = 0 }: { initialProduct
                             />
                         </div>
 
-                        <div className="grid grid-cols-4 items-start gap-4 pt-2">
-                            <Label className="text-right pt-2">Payment</Label>
-                            <div className="col-span-3">
-                                <RadioGroup
-                                    value={formData.paymentMethod}
-                                    onValueChange={(val: 'cod' | 'prepaid') => setFormData(prev => ({ ...prev, paymentMethod: val }))}
-                                    className="flex flex-col gap-3"
-                                >
-                                    <div className="flex items-center space-x-2 border p-3 rounded-md cursor-pointer hover:bg-muted/50">
-                                        <RadioGroupItem value="prepaid" id="prepaid" />
-                                        <Label htmlFor="prepaid" className="flex items-center gap-2 cursor-pointer w-full">
-                                            <CreditCard className="h-4 w-4 text-primary" />
-                                            <span>Pay Online (Prepaid)</span>
-                                            <Badge variant="secondary" className="ml-auto text-[10px]">Fastest</Badge>
-                                        </Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 border p-3 rounded-md cursor-pointer hover:bg-muted/50">
-                                        <RadioGroupItem value="cod" id="cod" />
-                                        <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer w-full">
-                                            <Wallet className="h-4 w-4 text-muted-foreground" />
-                                            <span>Cash on Delivery</span>
-                                        </Label>
-                                    </div>
-                                </RadioGroup>
+                        {settings.codEnabled && (
+                            <div className="grid grid-cols-4 items-start gap-4 pt-2">
+                                <Label className="text-right pt-2">Payment</Label>
+                                <div className="col-span-3">
+                                    <RadioGroup
+                                        value={formData.paymentMethod}
+                                        onValueChange={(val: 'cod' | 'prepaid') => setFormData(prev => ({ ...prev, paymentMethod: val }))}
+                                        className="flex flex-col gap-3"
+                                    >
+                                        <div className="flex items-center space-x-2 border p-3 rounded-md cursor-pointer hover:bg-muted/50">
+                                            <RadioGroupItem value="prepaid" id="prepaid" />
+                                            <Label htmlFor="prepaid" className="flex items-center gap-2 cursor-pointer w-full">
+                                                <CreditCard className="h-4 w-4 text-primary" />
+                                                <span>Pay Online (Prepaid)</span>
+                                                <Badge variant="secondary" className="ml-auto text-[10px]">Fastest</Badge>
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2 border p-3 rounded-md cursor-pointer hover:bg-muted/50">
+                                            <RadioGroupItem value="cod" id="cod" />
+                                            <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer w-full">
+                                                <Wallet className="h-4 w-4 text-muted-foreground" />
+                                                <span>Cash on Delivery</span>
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <DialogFooter className="pt-4">
                             <Button type="submit" className="w-full" disabled={isSubmitting}>

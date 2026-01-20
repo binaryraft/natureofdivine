@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { ShopClient } from './ShopClient';
 import { fetchProductsAction } from '@/lib/actions';
+import { getSettings } from '@/lib/settings-store';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,10 @@ export const metadata: Metadata = {
 export const revalidate = 0;
 
 export default async function ShopPage() {
-    const allProducts = await fetchProductsAction(false); // Fetch all products
+    const [allProducts, settings] = await Promise.all([
+        fetchProductsAction(false),
+        getSettings()
+    ]);
     const products = allProducts.filter(p => p.isActive); // Filter for active ones in code
 
     return (
@@ -28,7 +32,11 @@ export default async function ShopPage() {
                     </p>
                 </div>
                 <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>}>
-                    <ShopClient initialProducts={products} totalCount={allProducts.length} />
+                    <ShopClient
+                        initialProducts={products}
+                        totalCount={allProducts.length}
+                        settings={settings}
+                    />
                 </Suspense>
             </div>
         </main>
