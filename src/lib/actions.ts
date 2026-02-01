@@ -871,6 +871,10 @@ export async function fetchProductsAction(activeOnly = false) {
   return await getProducts(activeOnly);
 }
 
+export async function fetchProductByIdAction(id: string) {
+  return await getProductById(id);
+}
+
 export async function addProductAction(data: any) {
   return await logAction('addProduct', async () => {
     const result = await addProduct(data);
