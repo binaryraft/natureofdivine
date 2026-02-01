@@ -15,6 +15,7 @@ import { Loader2, ShoppingBag, MapPin, Phone, User, Package, CheckCircle, Credit
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 export function ShopClient({ initialProducts, totalCount = 0, settings }: { initialProducts: Product[], totalCount?: number, settings: SiteSettings }) {
@@ -152,53 +153,55 @@ export function ShopClient({ initialProducts, totalCount = 0, settings }: { init
                         className="group relative"
                     >
                         <Card className="h-full overflow-hidden flex flex-col bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)]">
-                            <div className="aspect-square relative bg-muted/30 overflow-hidden">
-                                {product.imageUrl ? (
-                                    <Image
-                                        src={product.imageUrl}
-                                        alt={product.name}
-                                        fill
-                                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                    />
-                                ) : (
-                                    <div className="flex items-center justify-center h-full text-muted-foreground/40 bg-muted/20">
-                                        <Package className="h-20 w-20 stroke-[1]" />
-                                    </div>
-                                )}
+                            <Link href={`/link/shop/${product.id}`} className="block flex-grow cursor-pointer hover:opacity-95 transition-opacity">
+                                <div className="aspect-square relative bg-muted/30 overflow-hidden">
+                                    {product.imageUrl ? (
+                                        <Image
+                                            src={product.imageUrl}
+                                            alt={product.name}
+                                            fill
+                                            className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-muted-foreground/40 bg-muted/20">
+                                            <Package className="h-20 w-20 stroke-[1]" />
+                                        </div>
+                                    )}
 
-                                {/* Overlay Gradient */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                    {/* Overlay Gradient */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                                {product.stock <= 0 && (
-                                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex items-center justify-center z-10">
-                                        <Badge variant="outline" className="text-lg px-6 py-2 border-destructive text-destructive font-semibold tracking-wider uppercase">Sold Out</Badge>
-                                    </div>
-                                )}
+                                    {product.stock <= 0 && (
+                                        <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+                                            <Badge variant="outline" className="text-lg px-6 py-2 border-destructive text-destructive font-semibold tracking-wider uppercase">Sold Out</Badge>
+                                        </div>
+                                    )}
 
-                                {/* Floating Price Tag */}
-                                <div className="absolute top-4 right-4 z-20">
-                                    <div className="bg-background/90 backdrop-blur-md border border-border/50 px-4 py-1.5 rounded-full shadow-lg">
-                                        <span className="text-lg font-bold text-primary font-headline">₹{product.price}</span>
+                                    {/* Floating Price Tag */}
+                                    <div className="absolute top-4 right-4 z-20">
+                                        <div className="bg-background/90 backdrop-blur-md border border-border/50 px-4 py-1.5 rounded-full shadow-lg">
+                                            <span className="text-lg font-bold text-primary font-headline">₹{product.price}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <CardHeader className="space-y-1">
-                                <CardTitle className="text-2xl font-garamond font-bold group-hover:text-primary transition-colors">{product.name}</CardTitle>
-                                <CardDescription className="line-clamp-2 text-sm leading-relaxed min-h-[40px]">
-                                    {product.description}
-                                </CardDescription>
-                            </CardHeader>
+                                <CardHeader className="space-y-1">
+                                    <CardTitle className="text-2xl font-garamond font-bold group-hover:text-primary transition-colors">{product.name}</CardTitle>
+                                    <CardDescription className="line-clamp-2 text-sm leading-relaxed min-h-[40px]">
+                                        {product.description}
+                                    </CardDescription>
+                                </CardHeader>
 
-                            <CardContent className="pb-4 space-y-2">
-                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                                    <div className={cn("h-1.5 w-1.5 rounded-full", product.stock > 0 ? "bg-emerald-500 animate-pulse" : "bg-muted")} />
-                                    {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                                </div>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest">
-                                    <Truck className="h-3 w-3" /> 2-7 Days Delivery
-                                </div>
-                            </CardContent>
+                                <CardContent className="pb-4 space-y-2">
+                                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                                        <div className={cn("h-1.5 w-1.5 rounded-full", product.stock > 0 ? "bg-emerald-500 animate-pulse" : "bg-muted")} />
+                                        {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest">
+                                        <Truck className="h-3 w-3" /> 2-7 Days Delivery
+                                    </div>
+                                </CardContent>
+                            </Link>
 
                             <CardFooter className="mt-auto pt-2 pb-6">
                                 <Button
@@ -344,6 +347,6 @@ export function ShopClient({ initialProducts, totalCount = 0, settings }: { init
                     </form>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }
