@@ -1,5 +1,3 @@
-
-
 import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -14,17 +12,17 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Check if all required environment variables are set
-if (
-  !firebaseConfig.apiKey ||
-  !firebaseConfig.authDomain ||
-  !firebaseConfig.projectId
-) {
+const isDummyConfig = !firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || firebaseConfig.apiKey === 'dummy';
+
+if (isDummyConfig) {
   console.warn("Firebase config environment variables are not set. Using dummy config. The app will not function correctly.");
-  firebaseConfig.apiKey = "dummy";
-  firebaseConfig.authDomain = "dummy.firebaseapp.com";
-  firebaseConfig.projectId = "dummy";
-  firebaseConfig.storageBucket = "dummy.appspot.com";
+  firebaseConfig.apiKey = firebaseConfig.apiKey || "dummy";
+  firebaseConfig.authDomain = firebaseConfig.authDomain || "dummy.firebaseapp.com";
+  firebaseConfig.projectId = firebaseConfig.projectId || "dummy";
+  firebaseConfig.storageBucket = firebaseConfig.storageBucket || "dummy.appspot.com";
 }
+
+export { isDummyConfig };
 
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();

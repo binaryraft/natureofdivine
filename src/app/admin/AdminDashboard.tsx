@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, getSettingsAction, updateSettingsAction, dispatchOrderAction, deleteDiscountAction } from '@/lib/actions';
+import { fetchOrdersAction, changeOrderStatusAction, createDiscount, changeMultipleOrderStatusAction, fetchAnalytics, updateChapterAction, getSettingsAction, updateSettingsAction, dispatchOrderAction, deleteDiscountAction, updateComboBookStatusAction } from '@/lib/actions';
 import { type Order, type OrderStatus, type Stock, type BookVariant, type Discount, type AnalyticsData, SampleChapter, SiteSettings } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2, BookOpen, GalleryHorizontal, PlusCircle, ImagePlus, Upload, ExternalLink, Download, Settings, Link as LinkIcon, Edit, Truck } from 'lucide-react';
+import { ShieldCheck, LogIn, Loader2, RefreshCw, Warehouse, Save, Tag, Percent, Trash2, Send, BarChart2, BookOpen, GalleryHorizontal, PlusCircle, ImagePlus, Upload, ExternalLink, Download, Settings, Link as LinkIcon, Edit, Truck, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStock, updateStock } from '@/lib/stock-store';
@@ -32,15 +32,120 @@ import { CommunityManager } from './CommunityManager';
 import { BlogsManager } from './BlogsManager';
 import { LogsManager } from './LogsManager';
 import { ShopManager } from './ShopManager';
+import SupportChatManager from './SupportChatManager';
 
 
 const statusColors: Record<OrderStatus, string> = {
     new: 'bg-blue-500',
+    pending: 'bg-gray-500',
     dispatched: 'bg-yellow-500',
     delivered: 'bg-green-500',
     cancelled: 'bg-red-500',
-    pending: 'bg-gray-500'
+    breached: 'bg-orange-500',
+    refunded: 'bg-purple-500'
 }
+
+const ComboDetailsDialog = ({ 
+    order, 
+    onClose 
+}: { 
+    order: Order, 
+    onClose: () => void 
+}) => {
+    const { toast } = useToast();
+    const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+    const handleBookStatusChange = async (itemIndex: number, subItemIndex: number, newStatus: string) => {
+        const bookId = order.items[itemIndex].subItems![subItemIndex].bookId;
+        setIsUpdating(`${itemIndex}-${subItemIndex}`);
+        try {
+            const res = await updateComboBookStatusAction(order.userId, order.id, itemIndex, subItemIndex, newStatus);
+            if (res.success) {
+                toast({ title: 'Status Updated', description: `Book status changed to ${newStatus}` });
+                // We rely on revalidatePath in the action, but local state update would be smoother
+                // For simplicity, we just let the parent refresh or similar
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: res.message });
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setIsUpdating(null);
+        }
+    };
+
+    return (
+        <Dialog open={true} onOpenChange={onClose}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Package className="h-5 w-5 text-primary" /> Combo Fulfillment Tracking
+                    </DialogTitle>
+                    <DialogDescription>
+                        Manage sourcing status for individual books in this combo order (#{order.id.slice(-6)})
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                    {order.items.filter(i => i.type === 'combo').map((item, itemIdx) => (
+                        <div key={itemIdx} className="space-y-4">
+                            <h3 className="font-bold text-lg border-b pb-2">{item.name}</h3>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Book Title</TableHead>
+                                        <TableHead>Book ID</TableHead>
+                                        <TableHead>Sourcing Status</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {item.subItems?.map((book, bookIdx) => (
+                                        <TableRow key={bookIdx}>
+                                            <TableCell className="font-medium">{book.title}</TableCell>
+                                            <TableCell className="text-xs font-mono">{book.bookId}</TableCell>
+                                            <TableCell>
+                                                <Badge className={cn(
+                                                    "capitalize",
+                                                    book.status === 'sourced' ? "bg-emerald-500" : 
+                                                    book.status === 'out_of_stock' ? "bg-rose-500" : 
+                                                    book.status === 'unavailable' ? "bg-amber-500" : "bg-slate-400"
+                                                )}>
+                                                    {book.status.replace('_', ' ')}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Select 
+                                                    defaultValue={book.status} 
+                                                    onValueChange={(v) => handleBookStatusChange(itemIdx, bookIdx, v)}
+                                                    disabled={isUpdating === `${itemIdx}-${bookIdx}`}
+                                                >
+                                                    <SelectTrigger className="w-[130px] h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="pending">Pending</SelectItem>
+                                                        <SelectItem value="sourced">Sourced</SelectItem>
+                                                        <SelectItem value="unavailable">Unavailable</SelectItem>
+                                                        <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    ))}
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 const OrderTable = ({
     orders,
@@ -53,6 +158,7 @@ const OrderTable = ({
     selectedOrders: string[],
     onSelectionChange: (orderId: string, checked: boolean) => void
 }) => {
+    const [selectedComboOrder, setSelectedComboOrder] = useState<Order | null>(null);
 
     const handleSelectAll = (checked: boolean) => {
         orders.forEach(order => onSelectionChange(order.id, checked));
@@ -66,6 +172,9 @@ const OrderTable = ({
 
     return (
         <div className="overflow-x-auto">
+            {selectedComboOrder && (
+                <ComboDetailsDialog order={selectedComboOrder} onClose={() => setSelectedComboOrder(null)} />
+            )}
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -79,11 +188,11 @@ const OrderTable = ({
                         <TableHead>Order ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Address</TableHead>
-                        <TableHead>Variant, Price & Shipping</TableHead>
+                        <TableHead>Items & Price</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead className="text-center">Status</TableHead>
-                        <TableHead className="text-right">Change Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -96,43 +205,47 @@ const OrderTable = ({
                                     aria-label={`Select order ${order.id}`}
                                 />
                             </TableCell>
-                            <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                            <TableCell className="font-mono text-xs">{order.id.slice(-8)}</TableCell>
                             <TableCell>
                                 <div className="font-medium">{order.name}</div>
-                                <div className="text-sm text-muted-foreground">{order.email}</div>
-                                {order.phone && <div className="text-sm text-muted-foreground">{order.phone}</div>}
+                                <div className="text-[10px] text-muted-foreground">{order.email}</div>
+                                {order.phone && <div className="text-[10px] text-muted-foreground">{order.phone}</div>}
                             </TableCell>
-                            <TableCell className="text-xs">
-                                {order.address ? `${order.address}, ${order.street}, ${order.city}, ${order.state}, ${order.country} - ${order.pinCode}` : 'N/A (E-book)'}
-                                {order.shippingDetails?.trackingNumber && (
-                                    <div className="mt-2 text-muted-foreground">
-                                       <span className="font-semibold">{order.shippingDetails.carrier}</span>: {order.shippingDetails.trackingNumber}
-                                    </div>
-                                )}
+                            <TableCell className="text-[10px] max-w-[200px]">
+                                {order.address ? `${order.address}, ${order.street}, ${order.city}, ${order.state}, ${order.country} - ${order.pinCode}` : 'N/A'}
                             </TableCell>
                              <TableCell>
-                                <Badge 
-                                    variant={order.variant === 'hardcover' ? 'default' : (order.variant === 'paperback' ? 'secondary' : 'outline')}
-                                    className="capitalize"
-                                >
-                                    {order.variant}
-                                </Badge>
-                                <div className="font-medium">₹{order.price}</div>
+                                <div className="space-y-1">
+                                    {order.items?.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <Badge variant="outline" className="text-[9px] uppercase h-4 px-1">
+                                                {item.type}
+                                            </Badge>
+                                            <span className="text-[11px] font-medium line-clamp-1">{item.name}</span>
+                                            {item.type === 'combo' && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-4 w-4 text-primary" 
+                                                    onClick={() => setSelectedComboOrder(order)}
+                                                >
+                                                    <Edit className="h-3 w-3" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="font-bold text-sm mt-1">₹{order.price}</div>
                                 {order.discountCode && (
-                                     <div className="text-xs text-green-600">
-                                        Applied: {order.discountCode} (-₹{order.discountAmount})
+                                     <div className="text-[9px] text-emerald-600 font-bold">
+                                        -{order.discountAmount} ({order.discountCode})
                                     </div>
                                 )}
-                                {order.shippingDetails?.cost ? (
-                                     <div className="text-xs text-muted-foreground mt-1">
-                                        Shipping: ₹{order.shippingDetails.cost}
-                                    </div>
-                                ) : null}
                             </TableCell>
-                            <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                            <TableCell className="uppercase font-mono text-xs">{order.paymentMethod}</TableCell>
+                            <TableCell className="text-[10px]">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="uppercase font-mono text-[10px]">{order.paymentMethod}</TableCell>
                             <TableCell className="text-center">
-                                 <Badge variant="outline" className={cn("capitalize text-white", statusColors[order.status])}>
+                                 <Badge variant="outline" className={cn("capitalize text-white text-[10px]", statusColors[order.status])}>
                                     {order.status}
                                 </Badge>
                             </TableCell>
@@ -141,15 +254,17 @@ const OrderTable = ({
                                     defaultValue={order.status}
                                     onValueChange={(value) => onStatusChange(order.userId!, order.id, value as OrderStatus)}
                                 >
-                                    <SelectTrigger className="w-[150px] ml-auto">
-                                        <SelectValue placeholder="Change status" />
+                                    <SelectTrigger className="w-[120px] ml-auto h-8 text-[10px]">
+                                        <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="new">New</SelectItem>
+                                        <SelectItem value="pending">Pending</SelectItem>
                                         <SelectItem value="dispatched">Dispatched</SelectItem>
                                         <SelectItem value="delivered">Delivered</SelectItem>
                                         <SelectItem value="cancelled">Cancelled</SelectItem>
-                                        <SelectItem value="pending" disabled>Pending</SelectItem>
+                                        <SelectItem value="breached">Breached</SelectItem>
+                                        <SelectItem value="refunded">Refunded</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </TableCell>
@@ -871,10 +986,12 @@ export function AdminDashboard() {
 
   const categorizedOrders = {
     new: orders.filter(o => o.status === 'new'),
+    pending: orders.filter(o => o.status === 'pending'),
     dispatched: orders.filter(o => o.status === 'dispatched'),
     delivered: orders.filter(o => o.status === 'delivered'),
     cancelled: orders.filter(o => o.status === 'cancelled'),
-    pending: orders.filter(o => o.status === 'pending')
+    breached: orders.filter(o => o.status === 'breached'),
+    refunded: orders.filter(o => o.status === 'refunded')
   };
 
   if (!isAuthenticated) {
@@ -929,6 +1046,7 @@ export function AdminDashboard() {
                         <TabsTrigger value="orders" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Orders</TabsTrigger>
                         <TabsTrigger value="users" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Users</TabsTrigger>
                         <TabsTrigger value="logs" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">System Logs</TabsTrigger>
+                        <TabsTrigger value="support" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-6">Support Chat</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="orders">
@@ -957,16 +1075,21 @@ export function AdminDashboard() {
                                 </div>
                              ) : (
                                 <Tabs defaultValue="new" className="w-full" onValueChange={() => setSelectedOrders([])}>
-                                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+                                    <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto">
                                         <TabsTrigger value="new">New ({categorizedOrders.new.length})</TabsTrigger>
+                                        <TabsTrigger value="pending">Pending ({categorizedOrders.pending.length})</TabsTrigger>
                                         <TabsTrigger value="dispatched">Dispatched ({categorizedOrders.dispatched.length})</TabsTrigger>
                                         <TabsTrigger value="delivered">Delivered ({categorizedOrders.delivered.length})</TabsTrigger>
-                                        <TabsTrigger value="pending">Pending ({categorizedOrders.pending.length})</TabsTrigger>
                                         <TabsTrigger value="cancelled">Cancelled ({categorizedOrders.cancelled.length})</TabsTrigger>
+                                        <TabsTrigger value="breached">Breached ({categorizedOrders.breached.length})</TabsTrigger>
+                                        <TabsTrigger value="refunded">Refunded ({categorizedOrders.refunded.length})</TabsTrigger>
                                     </TabsList>
                                     <BulkActions selectedCount={selectedOrders.length} onAction={handleBulkStatusChange}/>
                                     <TabsContent value="new" className="mt-4">
                                         <OrderTable orders={categorizedOrders.new} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                    <TabsContent value="pending" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.pending} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                                     </TabsContent>
                                     <TabsContent value="dispatched" className="mt-4">
                                         <OrderTable orders={categorizedOrders.dispatched} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
@@ -974,11 +1097,14 @@ export function AdminDashboard() {
                                     <TabsContent value="delivered" className="mt-4">
                                         <OrderTable orders={categorizedOrders.delivered} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                                     </TabsContent>
-                                     <TabsContent value="pending" className="mt-4">
-                                        <OrderTable orders={categorizedOrders.pending} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
-                                    </TabsContent>
                                      <TabsContent value="cancelled" className="mt-4">
                                         <OrderTable orders={categorizedOrders.cancelled} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                    <TabsContent value="breached" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.breached} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
+                                    </TabsContent>
+                                    <TabsContent value="refunded" className="mt-4">
+                                        <OrderTable orders={categorizedOrders.refunded} onStatusChange={handleStatusChange} selectedOrders={selectedOrders} onSelectionChange={handleSelectionChange}/>
                                     </TabsContent>
                                 </Tabs>
                              )}
@@ -992,6 +1118,10 @@ export function AdminDashboard() {
 
                     <TabsContent value="logs">
                         <LogsManager />
+                    </TabsContent>
+
+                    <TabsContent value="support">
+                        <SupportChatManager />
                     </TabsContent>
                 </Tabs>
             </TabsContent>

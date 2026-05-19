@@ -1,8 +1,24 @@
 
 
-export type OrderStatus = 'new' | 'dispatched' | 'delivered' | 'cancelled' | 'pending';
+export type OrderStatus = 'new' | 'pending' | 'dispatched' | 'delivered' | 'cancelled' | 'breached' | 'refunded';
 
 export type BookVariant = 'paperback' | 'hardcover' | 'ebook';
+
+export type OrderItemStatus = 'pending' | 'sourced' | 'unavailable' | 'out_of_stock';
+
+export type OrderItem = {
+    id: string;
+    name: string;
+    type: 'book' | 'combo';
+    price: number;
+    quantity: number;
+    variant?: Exclude<BookVariant, 'ebook'>;
+    subItems?: {
+        bookId: string;
+        title: string;
+        status: OrderItemStatus;
+    }[];
+};
 
 export type Order = {
     id: string;
@@ -17,13 +33,13 @@ export type Order = {
     state: string;
     pinCode: string;
     paymentMethod: 'cod' | 'prepaid';
-    variant: Exclude<BookVariant, 'ebook'>;
+    items: OrderItem[];
     price: number;
     originalPrice: number;
     discountCode: string;
     discountAmount: number;
     status: OrderStatus;
-    createdAt: number; // Storing as timestamp for Firestore
+    createdAt: number; 
     hasReview: boolean;
     paymentDetails: any | null;
     shippingDetails: {
@@ -163,7 +179,7 @@ export type ShopOrder = {
     pincode: string;
     city: string;
     state: string;
-    status: 'new' | 'dispatched' | 'delivered' | 'cancelled' | 'pending';
+    status: 'new' | 'pending' | 'dispatched' | 'delivered' | 'cancelled' | 'breached' | 'refunded';
     paymentMethod: 'cod' | 'prepaid';
     transactionId?: string;
     paymentDetails?: any;

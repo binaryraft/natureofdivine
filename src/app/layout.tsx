@@ -108,6 +108,10 @@ export const viewport = {
   maximumScale: 1,
 };
 
+import { SupportChat } from "@/components/SupportChat";
+import { CartProvider } from "@/lib/cart-context";
+import { CartDrawer } from "@/components/CartDrawer";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -175,15 +179,19 @@ export default function RootLayout({
       >
         <AuthProvider>
           <LocationProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <SiteHeader />
-              <main className="flex-1 pb-24 md:pb-0">{children}</main>
-              <SiteFooter />
-            </div>
-            <div className="md:hidden">
-              <MobileBottomNav />
-            </div>
-            <Toaster />
+            <CartProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <SiteHeader />
+                <main className="flex-1 pb-24 md:pb-0">{children}</main>
+                <SiteFooter />
+              </div>
+              <div className="md:hidden">
+                <MobileBottomNav />
+              </div>
+              <CartDrawer />
+              <SupportChat />
+              <Toaster />
+            </CartProvider>
           </LocationProvider>
         </AuthProvider>
       </body>

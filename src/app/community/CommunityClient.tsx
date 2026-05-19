@@ -133,7 +133,7 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
 
                     {/* Heading */}
                     <h2 className="text-3xl md:text-4xl font-light text-foreground/90 tracking-wide">
-                        Bring More Light
+                        A Sacred Space for Shared Exploration
                     </h2>
 
                     {/* Actions */}
@@ -208,13 +208,15 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         </div>
                     )}
 
-                    <div className="text-sm text-muted-foreground/60 max-w-lg mx-auto pt-8 space-y-2 leading-relaxed">
+                    <div className="text-sm text-muted-foreground/60 max-w-lg mx-auto pt-8 space-y-4 leading-relaxed">
                         <p>
-                            Our initiative brings light to future generations spreading the light of God.
-                            We encourage readers to read and learn about God and keep God as a solid ground above anything.
+                            Welcome to a community of seekers. This is a space for those who wish to explore the nature of the divine beyond debate and dogma. 
+                        </p>
+                        <p>
+                            We invite you to share your experiences, your moments of clarity, and your journey toward inner peace. What practice brought you clarity this week? What does the divine mean to you personally? 
                         </p>
                         <p className="italic text-primary/80">
-                            "This is a remembrance, a call to return" — a reminder that God wants us to worship nothing but Him.
+                            "Together, we walk the path of personal transformation, aligning with the cosmic mind."
                         </p>
                     </div>
                 </div>
@@ -286,8 +288,8 @@ export function CommunityClient({ initialPosts, initialDonations }: { initialPos
                         >
                             <Scroll className="h-6 w-6 text-primary" />
                         </motion.div>
-                        <h2 className="text-xl font-medium text-foreground tracking-wide">Preserve the Divine Wisdom</h2>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-xs">Helping children understand the unity of all religions.</p>
+                        <h2 className="text-xl font-medium text-foreground tracking-wide">Support the Journey of Awakening</h2>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xs">Empower seekers worldwide to discover their inner divinity and achieve peak consciousness.</p>
                     </div>
 
                     <div className="p-6 space-y-6">

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { HomeClient } from "./HomeClient";
-import { fetchChaptersAction, fetchBlogPostsAction, fetchProductsAction } from "@/lib/actions";
+import { fetchChaptersAction } from "@/lib/actions";
 import { getStock } from "@/lib/stock-store";
 
 export const metadata: Metadata = {
-  title: "Nature of the Divine | Peak Consciousness & Divine Intelligence",
-  description: "Experience the ultimate spiritual realignment. Decode the metaphysics of the soul and activate unshakeable clarity with the groundbreaking work of Alfas B.",
+  title: "Nature of the Divine | Spiritual Philosophy Book by Alfas B",
+  description: "Master your soul journey with Nature of the Divine. Explore peak consciousness, meditation for inner peace, and divine intelligence in this transformative spiritual philosophy book by Alfas B.",
   alternates: {
     canonical: '/',
   },
@@ -19,12 +19,10 @@ export const viewport = {
 
 export default async function Home() {
   // Fetch data on the server for instant loading
-  const [chapters, stock, blogs, products] = await Promise.all([
+  const [chapters, stock] = await Promise.all([
     fetchChaptersAction(),
     getStock(),
-    fetchBlogPostsAction(true),
-    fetchProductsAction(true), // Only fetch active products
   ]);
 
-  return <HomeClient initialChapters={chapters} stock={stock} latestBlogs={blogs.slice(0, 3)} products={products} />;
+  return <HomeClient initialChapters={chapters} stock={stock} />;
 }

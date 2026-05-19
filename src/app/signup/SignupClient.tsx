@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { trackEvent } from '@/lib/actions';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -31,11 +31,20 @@ export function SignupClient() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      toast({
+        variant: 'destructive',
+        title: 'Passwords do not match',
+        description: 'Please make sure both passwords match.',
+      });
+      return;
+    }
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -74,64 +83,103 @@ export function SignupClient() {
   };
 
   return (
-    <div className="container mx-auto flex items-center justify-center min-h-[80vh]">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl font-headline">Sign Up</CardTitle>
-          <CardDescription>Enter your information to create an account.</CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-[#fdfbf7] relative overflow-hidden px-4">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]" />
+      </div>
+
+      <Card className="w-full max-w-md border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] bg-white/80 backdrop-blur-md relative z-10">
+        <CardHeader className="space-y-2 text-center pt-10">
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+             <User className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="text-3xl font-headline tracking-tight">Begin Your Journey</CardTitle>
+          <CardDescription className="text-muted-foreground/80">
+            Create an account to join our seeker community.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-8 pb-10">
           <form onSubmit={handleSignup} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">Full Name</Label>
+              <Input
+                id="name"
+                required
+                className="h-11 rounded-xl border-border/50 bg-background/50"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
                 required
+                className="h-11 rounded-xl border-border/50 bg-background/50"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  className="h-11 rounded-xl border-border/50 bg-background/50"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm-password" className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">Retype</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  required
+                  className="h-11 rounded-xl border-border/50 bg-background/50"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create an account
+              Create My Account
             </Button>
           </form>
-           <div className="relative my-4">
+
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <span className="w-full border-t border-border/30" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em]">
+              <span className="bg-white px-4 text-muted-foreground/60">Or sign up with</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+
+          <Button 
+            variant="outline" 
+            className="w-full h-12 rounded-xl border-border/50 hover:bg-muted/50 transition-all gap-3" 
+            onClick={handleGoogleSignIn} 
+            disabled={isGoogleLoading}
+          >
             {isGoogleLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-                <GoogleIcon className="mr-2 h-4 w-4" />
+                <GoogleIcon className="h-5 w-5" />
             )}
-            Google
+            <span className="text-sm font-medium">Continue with Google</span>
           </Button>
-          <div className="mt-4 text-center text-sm">
+
+          <div className="mt-8 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="underline">
-              Login
+            <Link href="/login" className="text-primary font-bold hover:underline">
+              Login here
             </Link>
           </div>
         </CardContent>

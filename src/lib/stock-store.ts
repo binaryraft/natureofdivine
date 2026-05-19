@@ -1,7 +1,7 @@
 
 'use server';
 
-import { db } from '@/lib/firebase';
+import { db, isDummyConfig } from '@/lib/firebase';
 import { doc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import type { Stock, BookVariant } from './definitions';
@@ -10,6 +10,9 @@ import { addLog } from './log-store';
 const stockDocRef = doc(db, 'stock', 'levels');
 
 export const getStock = async (): Promise<Stock> => {
+    if (isDummyConfig) {
+        return { paperback: 99, hardcover: 50, ebook: 99999 };
+    }
     try {
         const docSnap = await getDoc(stockDocRef);
         if (docSnap.exists()) {

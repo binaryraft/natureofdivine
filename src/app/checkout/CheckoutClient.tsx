@@ -28,7 +28,7 @@ function CheckoutPageContent({ settings }: { settings: SiteSettings }) {
     }, []);
 
     return (
-        <div className="container mx-auto py-12 md:py-16 max-w-3xl">
+        <div className="container mx-auto py-12 md:py-16 max-w-6xl">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-3xl font-headline">Secure Checkout</CardTitle>
@@ -48,7 +48,7 @@ function CheckoutPageContent({ settings }: { settings: SiteSettings }) {
 export function CheckoutClient({ settings }: { settings: SiteSettings }) {
     return (
         <Suspense fallback={
-            <div className="container mx-auto py-12 md:py-24 max-w-3xl">
+            <div className="container mx-auto py-12 md:py-24 max-w-6xl">
                 <Card>
                     <CardContent className="flex justify-center items-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin" />

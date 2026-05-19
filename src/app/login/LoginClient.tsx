@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User, LogIn } from 'lucide-react';
 import { trackEvent } from '@/lib/actions';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -72,60 +72,84 @@ export function LoginClient() {
   };
 
   return (
-    <div className="container mx-auto flex items-center justify-center min-h-[80vh]">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl font-headline">Login</CardTitle>
-          <CardDescription>Enter your email below to login to your account.</CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-[#fdfbf7] relative overflow-hidden px-4">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]" />
+      </div>
+
+      <Card className="w-full max-w-md border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] bg-white/80 backdrop-blur-md relative z-10">
+        <CardHeader className="space-y-2 text-center pt-10">
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+             <User className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="text-3xl font-headline tracking-tight">Welcome Back</CardTitle>
+          <CardDescription className="text-muted-foreground/80">
+            Re-align with your spiritual journey.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        <CardContent className="px-8 pb-10">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">Email Address</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="m@example.com"
                 required
+                className="h-12 rounded-xl border-border/50 focus:border-primary transition-all bg-background/50"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex justify-between items-center ml-1">
+                <Label htmlFor="password" className="text-xs uppercase tracking-widest text-muted-foreground">Password</Label>
+                <Link href="#" className="text-[10px] uppercase tracking-widest text-primary hover:underline">Forgot?</Link>
+              </div>
               <Input
                 id="password"
                 type="password"
                 required
+                className="h-12 rounded-xl border-border/50 focus:border-primary transition-all bg-background/50"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Login
+            <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+              Access My Account
             </Button>
           </form>
-          <div className="relative my-4">
+
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <span className="w-full border-t border-border/30" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em]">
+              <span className="bg-white px-4 text-muted-foreground/60">Or connect via</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+
+          <Button 
+            variant="outline" 
+            className="w-full h-12 rounded-xl border-border/50 hover:bg-muted/50 transition-all gap-3" 
+            onClick={handleGoogleSignIn} 
+            disabled={isGoogleLoading}
+          >
             {isGoogleLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-                <GoogleIcon className="mr-2 h-4 w-4" />
+                <GoogleIcon className="h-5 w-5" />
             )}
-            Google
+            <span className="text-sm font-medium">Continue with Google</span>
           </Button>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="underline">
-              Sign up
+
+          <div className="mt-8 text-center text-sm text-muted-foreground">
+            New to the Divine?{' '}
+            <Link href="/signup" className="text-primary font-bold hover:underline transition-all">
+              Create an account
             </Link>
           </div>
         </CardContent>

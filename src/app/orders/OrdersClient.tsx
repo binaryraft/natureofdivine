@@ -186,41 +186,81 @@ function OrderItem({ order }: { order: Order }) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-4">
-             <div className="w-24 h-36 md:w-32 md:h-48 relative flex-shrink-0">
-                <Image 
-                    src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
-                    alt="Book Cover for Nature of the Divine"
-                    layout="fill"
-                    objectFit="cover"
-                    className="rounded-md"
-                    data-ai-hint="book cover"
-                />
-            </div>
-            <div className="flex-grow space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <p className="font-medium">Shipping to: {order.name}</p>
-                        {order.address && <p className="text-muted-foreground">{order.address}, {order.city}, {order.state} {order.pinCode}</p>}
+        <div className="space-y-6">
+            {order.items?.map((item, idx) => (
+                <div key={idx} className="flex gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100">
+                     <div className="w-16 h-24 md:w-20 md:h-30 relative flex-shrink-0 bg-slate-200 rounded-md overflow-hidden flex items-center justify-center">
+                        {item.type === 'combo' ? (
+                            <Package className="h-8 w-8 text-slate-400" />
+                        ) : (
+                            <Image 
+                                src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png"
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                            />
+                        )}
                     </div>
-                    <div className="sm:text-right">
-                        <p className="font-medium">Item</p>
-                        <p className="text-muted-foreground capitalize">{order.variant} (₹{order.price})</p>
-                    </div>
-                </div>
-                 <div className="font-bold text-lg">
-                    Qty: 1
-                </div>
-                 {order.shippingDetails?.trackingNumber && (
-                    <div className="bg-muted/30 p-3 rounded-md border text-sm mt-2">
-                         <div className="flex justify-between items-center">
+                    <div className="flex-grow space-y-1">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <p className="font-medium text-primary flex items-center gap-1"><Truck className="h-3 w-3"/> Dispatched via {order.shippingDetails.carrier}</p>
-                                <p className="text-muted-foreground text-xs mt-1">Tracking ID: <span className="font-mono select-all">{order.shippingDetails.trackingNumber}</span></p>
+                                <Badge variant="outline" className="text-[10px] uppercase h-4 px-1 mb-1">{item.type}</Badge>
+                                <h4 className="font-bold text-sm leading-snug">{item.name}</h4>
                             </div>
-                            {/* You can add a specific tracking URL logic here if carriers follow a standard URL pattern, 
-                                otherwise just showing the ID is helpful */}
+                            <p className="font-bold text-sm">₹{item.price}</p>
                         </div>
+                        <p className="text-xs text-muted-foreground">Quantity: {item.quantity}</p>
+                        
+                        {item.subItems && (
+                            <div className="mt-4 space-y-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1">
+                                    <PackageSearch className="h-3 w-3" /> Book Sourcing Status
+                                </p>
+                                <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                                    <table className="w-full text-left text-[10px] border-collapse">
+                                        <thead className="bg-slate-50 border-b">
+                                            <tr>
+                                                <th className="px-3 py-2 font-bold">Book Title</th>
+                                                <th className="px-3 py-2 font-bold">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {item.subItems.map((sub, sIdx) => (
+                                                <tr key={sIdx}>
+                                                    <td className="px-3 py-2 font-medium">{sub.title}</td>
+                                                    <td className="px-3 py-2">
+                                                        <Badge variant="outline" className={cn(
+                                                            "text-[9px] px-1.5 h-4 capitalize",
+                                                            sub.status === 'sourced' ? "text-emerald-600 bg-emerald-50 border-emerald-100" : 
+                                                            sub.status === 'pending' ? "text-slate-500 bg-slate-50 border-slate-100" : "text-rose-600 bg-rose-50 border-rose-100"
+                                                        )}>
+                                                            {sub.status.replace('_', ' ')}
+                                                        </Badge>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+
+            <div className="grid sm:grid-cols-2 gap-4 text-sm border-t pt-4">
+                <div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Shipping to</p>
+                    <p className="font-medium text-sm">{order.name}</p>
+                    {order.address && <p className="text-xs text-muted-foreground">{order.address}, {order.city}, {order.state} {order.pinCode}</p>}
+                </div>
+                {order.shippingDetails?.trackingNumber && (
+                    <div className="bg-primary/5 p-3 rounded-xl border border-primary/10">
+                        <p className="text-[10px] uppercase tracking-widest text-primary font-bold mb-2 flex items-center gap-1">
+                            <Truck className="h-3 w-3"/> Shipment Tracking
+                        </p>
+                        <p className="text-xs font-bold text-slate-800">{order.shippingDetails.carrier}</p>
+                        <p className="text-xs text-muted-foreground font-mono mt-1 select-all">{order.shippingDetails.trackingNumber}</p>
                     </div>
                 )}
             </div>
@@ -246,6 +286,8 @@ function OrderItem({ order }: { order: Order }) {
   );
 }
 
+import { OrderTicket } from '@/components/OrderTicket';
+
 export function OrdersClient() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -253,6 +295,9 @@ export function OrdersClient() {
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isPending, startTransition] = useTransition();
+
+  const successOrderId = searchParams.get('success') === 'true' ? searchParams.get('orderId') : null;
+  const recentOrder = successOrderId ? orders.find(o => o.id === successOrderId) : null;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -282,7 +327,7 @@ export function OrdersClient() {
             title: 'Order Placed Successfully!',
             description: `Your order ID is ${searchParams.get('orderId')}.`
         })
-        router.replace('/orders', { scroll: false });
+        // We don't replace immediately so user can see the ticket
     }
   }, [searchParams, toast, router]);
 
@@ -305,7 +350,23 @@ export function OrdersClient() {
 
   return (
     <div className="container mx-auto py-12 md:py-16 max-w-4xl">
-      <div className="space-y-6">
+      <div className="space-y-8">
+        {recentOrder && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+             <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                   <h2 className="text-xl font-bold text-emerald-700">Payment Successful!</h2>
+                   <p className="text-sm text-emerald-600/80">Your order has been confirmed. Please download your ticket below.</p>
+                </div>
+                <Button variant="ghost" onClick={() => router.replace('/orders', { scroll: false })}>Dismiss</Button>
+             </div>
+             <div className="max-w-2xl mx-auto">
+                <OrderTicket order={recentOrder} />
+             </div>
+             <div className="border-b border-border/50 pb-8" />
+          </div>
+        )}
+
         <div className="space-y-2">
             <h1 className="text-3xl font-headline flex items-center gap-2"><Package className="h-8 w-8"/> My Orders</h1>
             <p className="text-muted-foreground">View the history and status of all your orders.</p>

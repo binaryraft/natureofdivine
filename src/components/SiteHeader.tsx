@@ -20,12 +20,11 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useLocation } from '@/hooks/useLocation';
 import { getCountryFlag } from '@/lib/countries';
 import { useEffect, useState } from 'react';
+import { useCart } from '@/lib/cart-context';
 
 const navLinks = [
   { href: '/', label: 'Home' },
-  { href: '/shop', label: 'Shop' },
   { href: '/community', label: 'Community' },
-  { href: '/blogs', label: 'Blog' },
   { href: '/#synopsis', label: 'About' },
   { href: '/orders', label: 'My Orders' },
 ];
@@ -35,6 +34,7 @@ export function SiteHeader() {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
   const { priceData, loading: locationLoading } = useLocation();
+  const { totals, openCart } = useCart();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -156,6 +156,26 @@ export function SiteHeader() {
           ) : priceData?.country ? (
             <div className="text-xl opacity-80 hover:opacity-100 transition-opacity cursor-help" title={`Detected Country: ${priceData.country}`}>{getCountryFlag(priceData.country)}</div>
           ) : null}
+
+          {/* Cart Icon */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative hover:bg-primary/5 hover:text-primary transition-all rounded-full"
+            onClick={openCart}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {totals.totalBooks > 0 && (
+              <motion.span 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-background"
+              >
+                {totals.totalBooks}
+              </motion.span>
+            )}
+            <span className="sr-only">Open cart</span>
+          </Button>
 
           {authLoading ? (
             <div className="h-9 w-24 animate-pulse rounded-md bg-muted/50" />

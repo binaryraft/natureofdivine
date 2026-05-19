@@ -1,19 +1,18 @@
-
 'use client';
 
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { placeOrder, validateDiscountCode, trackEvent, calculateOrderTotalAction, fetchOrderByIdAction } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, Truck, CreditCard, Book, Tag, ArrowLeft, User, MapPin, BadgePercent, Ship } from 'lucide-react';
+import { Loader2, ArrowRight, Truck, CreditCard, Book, Tag, ArrowLeft, User, MapPin, BadgePercent, Ship, ShoppingCart, Package } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { Stock, BookVariant } from '@/lib/definitions';
+import type { Stock, BookVariant, OrderItem, OrderItemStatus } from '@/lib/definitions';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLocation } from '@/hooks/useLocation';
@@ -23,14 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { countries } from '@/lib/countries';
 import type { SiteSettings } from '@/lib/definitions';
-
-const isPrepaidEnabled = true;
-
-const physicalVariants: BookVariant[] = ['paperback', 'hardcover'];
-
-const VariantSchema = z.object({
-    variant: z.enum(['paperback', 'hardcover'], { required_error: 'Please select a book type.' }),
-});
+import { books, combos } from '@/lib/data';
 
 const DetailsSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -46,8 +38,8 @@ const DetailsSchema = z.object({
 });
 
 type FormState = {
-    step: 'variant' | 'details' | 'payment' | 'processing';
-    variant: Exclude<BookVariant, 'ebook'> | null;
+    step: 'details' | 'payment' | 'processing';
+    items: OrderItem[];
     details: z.infer<typeof DetailsSchema>;
     orderSummary: { productPrice: number, shippingCost: number, totalPrice: number } | null;
     paymentMethod: 'cod' | 'prepaid' | null;
@@ -61,14 +53,13 @@ type FormState = {
 };
 
 type FormAction =
-    | { type: 'SET_VARIANT'; payload: Exclude<BookVariant, 'ebook'> }
+    | { type: 'SET_ITEMS'; payload: OrderItem[] }
     | { type: 'SET_DETAILS'; payload: z.infer<typeof DetailsSchema> }
     | { type: 'SET_PAYMENT_METHOD'; payload: 'cod' | 'prepaid' }
     | { type: 'SET_ERRORS'; payload: Record<string, string[]> | null }
     | { type: 'NEXT_STEP' }
     | { type: 'PREVIOUS_STEP' }
     | { type: 'SET_PROCESSING' }
-    | { type: 'RESET_TO_VARIANT'; payload?: Exclude<BookVariant, 'ebook'> | null }
     | { type: 'SET_DISCOUNT_CODE'; payload: string }
     | { type: 'APPLY_DISCOUNT'; payload: { percent: number; message: string } }
     | { type: 'SET_DISCOUNT_MESSAGE'; payload: string }
@@ -77,8 +68,8 @@ type FormAction =
     | { type: 'SET_FORM_VALUE'; payload: { field: keyof z.infer<typeof DetailsSchema>, value: string | boolean | undefined } };
 
 const initialState: FormState = {
-    step: 'variant',
-    variant: null,
+    step: 'details',
+    items: [],
     details: {
         name: '',
         email: '',
@@ -86,7 +77,7 @@ const initialState: FormState = {
         address: '',
         street: '',
         city: '',
-        country: 'IN', // Default to India
+        country: 'IN',
         state: '',
         pinCode: '',
         saveAddress: false,
@@ -104,8 +95,8 @@ const initialState: FormState = {
 
 function formReducer(state: FormState, action: FormAction): FormState {
     switch (action.type) {
-        case 'SET_VARIANT':
-            return { ...state, variant: action.payload, errors: null };
+        case 'SET_ITEMS':
+            return { ...state, items: action.payload, errors: null };
         case 'SET_DETAILS':
             return { ...state, details: action.payload, errors: null };
         case 'SET_ORDER_SUMMARY': {
@@ -142,38 +133,19 @@ function formReducer(state: FormState, action: FormAction): FormState {
         case 'SET_ERRORS':
             return { ...state, errors: action.payload };
         case 'NEXT_STEP': {
-            if (state.step === 'variant') {
-                return { ...state, step: 'details' };
-            }
-            if (state.step === 'details') {
-                // Skip shipping step
-                return { ...state, step: 'payment' };
-            }
+            if (state.step === 'details') return { ...state, step: 'payment' };
             return state;
         }
         case 'PREVIOUS_STEP': {
             if (state.step === 'payment') return { ...state, step: 'details', paymentMethod: null, errors: null };
-            if (state.step === 'details') return { ...state, step: 'variant', errors: null, discount: initialState.discount };
             return state;
         }
         case 'SET_PROCESSING':
             return { ...state, step: 'processing' };
-        case 'RESET_TO_VARIANT':
-            return {
-                ...initialState,
-                details: state.details,
-                step: action.payload ? 'details' : 'variant',
-                variant: action.payload || null,
-            }
         default:
             return state;
     }
 }
-
-const variantDetails: Record<Exclude<BookVariant, 'ebook'>, { name: string; icon: React.ElementType, description: string }> = {
-    paperback: { name: 'Paperback', icon: Book, description: "The classic physical copy." },
-    hardcover: { name: 'Hardcover', icon: Book, description: "A durable, premium edition." },
-};
 
 export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSettings }) {
     const router = useRouter();
@@ -185,552 +157,580 @@ export function OrderForm({ stock, settings }: { stock: Stock, settings: SiteSet
     const [state, dispatch] = useReducer(formReducer, initialState);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isPincodeLoading, setIsPincodeLoading] = useState(false);
-    const [pincodeError, setPincodeError] = useState<string | null>(null);
     const [isCheckingCode, setIsCheckingCode] = useState(false);
     const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
 
-    const isTestMode = process.env.NEXT_PUBLIC_ENVIA_IS_TEST === 'true';
+    // Auto-apply discount code from URL param (e.g. ?code=WELCOME20)
+    useEffect(() => {
+        const urlCode = searchParams.get('code');
+        if (urlCode) {
+            dispatch({ type: 'SET_DISCOUNT_CODE', payload: urlCode.toUpperCase() });
+            validateDiscountCode(urlCode.toUpperCase()).then(res => {
+                if (res.success) {
+                    dispatch({ type: 'APPLY_DISCOUNT', payload: { percent: res.percent!, message: res.message } });
+                }
+            });
+        }
+    }, []);
 
+    // Initialize Items from Search Params
+    useEffect(() => {
+        const bookIdParam = searchParams.getAll('bookId[]');
+        const qtyParam = searchParams.getAll('qty[]');
+        const singleBookId = searchParams.get('bookId');
+        const comboId = searchParams.get('comboId');
+        const variant = searchParams.get('variant') as BookVariant || 'paperback';
+
+        let initialItems: OrderItem[] = [];
+
+        // 1. Handle Cart (Multi-item)
+        if (bookIdParam.length > 0) {
+            bookIdParam.forEach((id, index) => {
+                const book = books.find(b => b.id === id);
+                const quantity = parseInt(qtyParam[index] || '1');
+                if (book) {
+                    initialItems.push({
+                        id: book.id,
+                        name: book.title,
+                        type: 'book',
+                        price: book.price,
+                        quantity: quantity,
+                        variant: variant === 'hardcover' ? 'hardcover' : 'paperback'
+                    });
+                }
+            });
+        } 
+        // 2. Handle Single Combo
+        else if (comboId) {
+            const combo = combos.find(c => c.id === comboId);
+            if (combo) {
+                initialItems.push({
+                    id: combo.id,
+                    name: combo.name,
+                    type: 'combo',
+                    price: combo.price,
+                    quantity: 1,
+                    subItems: combo.books.map(bId => {
+                        const book = books.find(b => b.id === bId);
+                        return {
+                            bookId: bId,
+                            title: book?.title || 'Unknown Book',
+                            status: 'pending'
+                        };
+                    })
+                });
+            }
+        } 
+        // 3. Handle Single Book
+        else if (singleBookId) {
+            const book = books.find(b => b.id === singleBookId);
+            if (book) {
+                initialItems.push({
+                    id: book.id,
+                    name: book.title,
+                    type: 'book',
+                    price: book.price,
+                    quantity: 1,
+                    variant: variant === 'hardcover' ? 'hardcover' : 'paperback'
+                });
+            }
+        } 
+        // 4. Default
+        else {
+            const ntd = books.find(b => b.id === 'nature-of-the-divine');
+            if (ntd) {
+                initialItems.push({
+                    id: ntd.id,
+                    name: ntd.title,
+                    type: 'book',
+                    price: ntd.price,
+                    quantity: 1,
+                    variant: variant === 'hardcover' ? 'hardcover' : 'paperback'
+                });
+            }
+        }
+
+        if (initialItems.length > 0) {
+            dispatch({ type: 'SET_ITEMS', payload: initialItems });
+        }
+    }, [searchParams]);
+
+    // Handle Order Verification (Payment Redirects)
     useEffect(() => {
         const orderId = searchParams.get('orderId');
         if (orderId && user) {
             setIsVerifying(true);
             const checkStatus = async () => {
                 try {
-                    let order = await fetchOrderByIdAction(user.uid, orderId);
-
-                    if (!order) {
-                        toast({
-                            variant: 'destructive',
-                            title: 'Order Not Found',
-                            description: 'The requested order could not be found. Redirecting to home...',
-                        });
-                        router.push('/');
-                        return;
-                    }
-
-                    // Poll for status update if still pending (callback might be slightly delayed)
-                    let attempts = 0;
-                    while (order?.status === 'pending' && attempts < 5) {
-                        await new Promise(r => setTimeout(r, 2000));
-                        order = await fetchOrderByIdAction(user.uid, orderId);
-                        attempts++;
-                    }
-
-                    if (order) {
-                        if (order.status === 'new' || order.status === 'dispatched' || order.status === 'delivered') {
-                            router.push(`/orders?success=true&orderId=${orderId}`);
-                            return;
-                        } else if (order.status === 'cancelled') {
-                            toast({
-                                variant: 'destructive',
-                                title: 'Payment Failed',
-                                description: 'Your payment was not successful. Redirecting to home...'
-                            });
-                            router.push('/');
-                            return;
-                        } else if (order.status === 'pending') {
-                            toast({
-                                title: 'Payment Processing',
-                                description: 'Your payment is still being verified. Please check the orders page in a moment.'
-                            });
-                            router.push('/orders');
-                            return;
-                        }
+                    const order = await fetchOrderByIdAction(user.uid, orderId);
+                    if (order && (order.status === 'new' || order.status === 'dispatched')) {
+                        router.push(`/orders?success=true&orderId=${orderId}`);
                     }
                 } catch (e) {
-                    console.error("Error verifying order:", e);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Error',
-                        description: 'An error occurred while verifying your order. Redirecting to home...',
-                    });
-                    router.push('/');
+                    console.error("Order verification error:", e);
                 } finally {
                     setIsVerifying(false);
                 }
             };
             checkStatus();
         }
-    }, [searchParams, user, router, toast]);
+    }, [searchParams, user, router]);
 
-    useEffect(() => {
-        const variantParam = searchParams.get('variant') as Exclude<BookVariant, 'ebook'>;
-
-        // Prevent re-running if we're already past the variant selection step for this variant
-        if (state.variant === variantParam && state.step !== 'variant') {
-            return;
-        }
-
-        if (variantParam && physicalVariants.includes(variantParam)) {
-            if (isTestMode || (stock && stock[variantParam] > 0)) {
-                dispatch({ type: 'SET_VARIANT', payload: variantParam });
-                // Only advance if currently on variant step
-                if (state.step === 'variant') {
-                    dispatch({ type: 'NEXT_STEP' });
-                }
-            } else if (stock && stock[variantParam] <= 0) {
-                if (state.variant !== variantParam) {
-                    toast({ variant: 'destructive', title: 'Out of Stock', description: 'The selected book type is currently unavailable.' });
-                }
+    const handleNextStep = () => {
+        if (state.step === 'details') {
+            const result = DetailsSchema.safeParse(state.details);
+            if (!result.success) {
+                const fieldErrors = result.error.flatten().fieldErrors;
+                dispatch({ type: 'SET_ERRORS', payload: fieldErrors as any });
+                toast({
+                    variant: 'destructive',
+                    title: 'Check your details',
+                    description: 'Please fix the errors in the form before continuing.'
+                });
+                return;
             }
+            calculateTotal();
         }
-    }, [searchParams, stock, toast, isTestMode, state.step, state.variant]);
+        dispatch({ type: 'NEXT_STEP' });
+    };
 
-    // Track analytics events when step changes
-    useEffect(() => {
-        if (state.step === 'payment') {
-            trackEvent('checkout_reached_payment');
-        }
-    }, [state.step]);
-
-
-    useEffect(() => {
-        if (user) {
-            if (!state.details.name && user.displayName) {
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'name', value: user.displayName } })
-            }
-            if (!state.details.email && user.email) {
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: user.email } })
-            }
-            if (!state.details.phone && user.phoneNumber) {
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'phone', value: user.phoneNumber } })
-            }
-        }
-    }, [user, state.details.name, state.details.email, state.details.phone]);
-
-    const handlePincodeChange = async (pinCode: string) => {
-        dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: pinCode } });
-        if (pinCode.length !== 6 || state.details.country !== 'IN') {
-            setPincodeError(null);
-            return;
-        };
-
-        setIsPincodeLoading(true);
-        setPincodeError(null);
+    const calculateTotal = async () => {
+        setIsCalculatingPrice(true);
         try {
-            const res = await fetch(`https://api.postalpincode.in/pincode/${pinCode}`);
-            const data = await res.json();
+            // Calculate item price with bundle logic
+            const totalBooksCount = state.items.reduce((s, i) => s + (i.type === 'book' ? i.quantity : 0), 0);
+            
+            // Re-use logic from cart-context to find the correct tier
+            const BUNDLE_TIERS = [
+                { minBooks: 40, pricePerBook: 99 },
+                { minBooks: 30, pricePerBook: 119 },
+                { minBooks: 20, pricePerBook: 129 },
+                { minBooks: 10, pricePerBook: 149 },
+                { minBooks: 1,  pricePerBook: 199 },
+            ];
+            const tier = BUNDLE_TIERS.find(t => totalBooksCount >= t.minBooks) || BUNDLE_TIERS[BUNDLE_TIERS.length - 1];
 
-            if (data[0].Status === 'Success') {
-                const postOffice = data[0].PostOffice[0];
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: postOffice.District } });
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: postOffice.State } });
-            } else {
-                setPincodeError(data[0].Message || "Invalid PIN code.");
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: '' } });
-                dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: '' } });
+            let productPrice = state.items.reduce((acc, item) => {
+                if (item.type === 'book') {
+                    return acc + (tier.pricePerBook * item.quantity);
+                }
+                // Combos have fixed prices
+                return acc + (item.price * item.quantity);
+            }, 0);
+
+            const shippingCost = 0; // Always FREE shipping
+            
+            let finalPrice = productPrice;
+            let discountAmount = 0;
+
+            if (state.discount.applied) {
+                discountAmount = Math.round(productPrice * (state.discount.percent / 100));
+                finalPrice = productPrice - discountAmount;
             }
 
-        } catch (error) {
-            setPincodeError("Failed to fetch PIN code details.");
+            dispatch({ 
+                type: 'SET_ORDER_SUMMARY', 
+                payload: { productPrice, shippingCost, totalPrice: finalPrice + shippingCost },
+                settings
+            });
+        } catch (e) {
+            console.error("Price calculation error:", e);
         } finally {
-            setIsPincodeLoading(false);
-        }
-    }
-
-    const handleVariantSelect = (variant: Exclude<BookVariant, 'ebook'>) => {
-        const result = VariantSchema.safeParse({ variant });
-        if (result.success) {
-            if (isTestMode || stock[variant] > 0) {
-                dispatch({ type: 'SET_VARIANT', payload: variant });
-                dispatch({ type: 'NEXT_STEP' });
-            } else {
-                toast({ variant: 'destructive', title: 'Out of Stock' });
-            }
-        } else {
-            dispatch({ type: 'SET_ERRORS', payload: result.error.flatten().fieldErrors });
+            setIsCalculatingPrice(false);
         }
     };
 
-    const handleDetailsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (authLoading) {
-            toast({ variant: 'destructive', title: 'Please wait', description: 'Authentication is still loading.' });
-            return;
-        }
+    const handlePlaceOrder = async () => {
         if (!user) {
             toast({
                 variant: 'destructive',
-                title: 'Not Logged In',
-                description: 'You must be logged in to place an order.',
-                action: <Button onClick={() => router.push('/login?redirect=/checkout')}>Login</Button>
+                title: 'Sign in Required',
+                description: 'Please sign in to complete your purchase.'
             });
+            router.push(`/login?redirect=/checkout?${searchParams.toString()}`);
             return;
         }
 
-        const result = DetailsSchema.safeParse(state.details);
-
-        if (result.success) {
-            dispatch({ type: 'SET_DETAILS', payload: result.data });
-
-            // Calculate final price based on location
-            setIsCalculatingPrice(true);
-            const priceResult = await calculateOrderTotalAction(result.data.country, state.variant!);
-
-            if (priceResult.success) {
-                dispatch({
-                    type: 'SET_ORDER_SUMMARY',
-                    payload: {
-                        productPrice: priceResult.productPrice || 0,
-                        shippingCost: priceResult.shippingCost || 0,
-                        totalPrice: priceResult.totalPrice || 0
-                    },
-                    settings // Pass settings to handle payment method auto-selection
-                });
-                dispatch({ type: 'NEXT_STEP' });
-            } else {
-                toast({ variant: 'destructive', title: 'Pricing Error', description: priceResult.message });
-            }
-            setIsCalculatingPrice(false);
-
-        } else {
-            dispatch({ type: 'SET_ERRORS', payload: result.error.flatten().fieldErrors });
+        if (!state.paymentMethod) {
+            toast({
+                variant: 'destructive',
+                title: 'Payment Method Required',
+                description: 'Please select a payment method.'
+            });
+            return;
         }
-    };
-
-    const handleApplyDiscount = async () => {
-        setIsCheckingCode(true);
-        const result = await validateDiscountCode(state.discount.code);
-        if (result.success) {
-            dispatch({ type: 'APPLY_DISCOUNT', payload: { percent: result.percent!, message: result.message } });
-        } else {
-            dispatch({ type: 'SET_DISCOUNT_MESSAGE', payload: result.message });
-        }
-        setIsCheckingCode(false);
-    }
-
-    const handlePaymentSubmit = async () => {
-        if (!state.variant || !state.details || !state.paymentMethod || !state.orderSummary || !user) return;
 
         setIsSubmitting(true);
         dispatch({ type: 'SET_PROCESSING' });
 
-        const orderPayload = {
-            variant: state.variant,
-            ...state.details,
-            userId: user.uid,
-            discountCode: state.discount.applied ? state.discount.code : undefined,
-            paymentMethod: state.paymentMethod,
-            // Pass a dummy shipping method to satisfy schema validation on server, though server ignores it for calculation
-            shippingMethod: {
-                carrier: 'Standard',
-                service: 'Standard Shipping',
-                rate: 0
-            }
-        };
-
         try {
-            const result = await placeOrder(orderPayload);
+            const payload = {
+                ...state.details,
+                items: state.items,
+                userId: user.uid,
+                discountCode: state.discount.applied ? state.discount.code : undefined,
+                paymentMethod: state.paymentMethod,
+            };
+
+            const result = await placeOrder(payload as any);
             if (result.success) {
                 if (result.paymentData?.redirectUrl) {
                     window.location.href = result.paymentData.redirectUrl;
                 } else {
-                    toast({ title: 'Order Placed!', description: `Your order ID is ${result.orderId}.` });
                     router.push(`/orders?success=true&orderId=${result.orderId}`);
                 }
             } else {
-                throw new Error(result.message);
+                toast({
+                    variant: 'destructive',
+                    title: 'Order Failed',
+                    description: result.message
+                });
+                dispatch({ type: 'NEXT_STEP' }); // Go back to payment step
             }
         } catch (e: any) {
             toast({
                 variant: 'destructive',
-                title: 'Error Placing Order',
-                description: e.message || 'An unexpected error occurred. Please try again.',
-                duration: 10000,
+                title: 'Error',
+                description: e.message || 'An unexpected error occurred.'
             });
-            dispatch({ type: 'RESET_TO_VARIANT', payload: state.variant });
         } finally {
             setIsSubmitting(false);
         }
-    }
+    };
 
-    if (state.step === 'processing' || isSubmitting || isVerifying) {
+    if (isVerifying) {
         return (
-            <div className="flex flex-col items-center justify-center gap-4 my-8 min-h-[300px]">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-lg text-muted-foreground">{isVerifying ? 'Verifying payment...' : 'Processing your order...'}</p>
-                <p className="text-sm text-muted-foreground">Please do not refresh or go back.</p>
+                <p className="text-lg font-headline">Verifying your payment...</p>
             </div>
-        )
+        );
     }
 
-    const renderStepContent = () => {
-        switch (state.step) {
-            case 'variant':
-                return (
-                    <Card className="border-none shadow-none">
-                        <CardHeader className="p-0 text-center">
-                            <CardTitle className="text-2xl">Select Book Type</CardTitle>
-                            <CardDescription>Choose the version you&apos;d like to order.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6 pt-8 p-0">
-                            {state.errors?.variant && <Alert variant="destructive"><AlertDescription>{state.errors.variant[0]}</AlertDescription></Alert>}
-                            {priceLoading || !priceData ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Skeleton className="h-40 w-full" />
-                                    <Skeleton className="h-40 w-full" />
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {physicalVariants.map(variant => {
-                                        if (variant === 'ebook') return null;
-
-                                        const currentStock = stock ? stock[variant] : 0;
-                                        const isAvailable = isTestMode || currentStock > 0;
-                                        const { name, icon: Icon, description } = variantDetails[variant];
-
-                                        return (
-                                            <div
-                                                key={variant}
-                                                onClick={() => isAvailable && handleVariantSelect(variant)}
-                                                className={cn(
-                                                    "rounded-lg border-2 p-6 transition-all flex flex-col items-center justify-center text-center group",
-                                                    isAvailable
-                                                        ? "cursor-pointer hover:border-primary hover:shadow-xl"
-                                                        : "opacity-50 cursor-not-allowed bg-muted/50 border-muted hover:border-muted hover:shadow-none"
-                                                )}
-                                            >
-                                                <Icon className={cn("h-12 w-12 mb-3 transition-transform", isAvailable ? "text-primary group-hover:scale-110" : "text-muted-foreground")} />
-                                                <p className="font-bold text-xl font-headline">{name}</p>
-                                                <p className="text-muted-foreground text-sm mb-1">{description}</p>
-                                                <p className="text-[10px] text-primary font-medium tracking-widest uppercase mb-3 flex items-center gap-1 justify-center">
-                                                    <Truck className="h-3 w-3" /> 2-7 Days Delivery
-                                                </p>
-                                                {!isAvailable ? (
-                                                    <p className="text-destructive font-medium mt-2 text-sm bg-destructive/10 px-3 py-1 rounded-full">Out of Stock</p>
-                                                ) : (
-                                                    <p className="text-green-600 font-medium mt-2 text-sm bg-green-100 px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">In Stock</p>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                );
-
-            case 'details':
-                return (
-                    <Card className="border-none shadow-none">
-                        <CardHeader className="p-0 mb-6">
-                            <Button variant="ghost" size="sm" onClick={() => dispatch({ type: 'PREVIOUS_STEP' })} className="self-start px-2 -ml-2 mb-2">
-                                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                            </Button>
-                            <CardTitle className="text-2xl">Shipping Details</CardTitle>
-                            <CardDescription>
-                                Enter your information. You must be logged in to proceed.
-                            </CardDescription>
-                        </CardHeader>
-                        {!user && !authLoading && (
-                            <Alert variant="destructive">
-                                <AlertDescription className="flex items-center justify-between">
-                                    <span>Please login to continue.</span>
-                                    <Button size="sm" onClick={() => router.push('/login?redirect=/checkout')}>Login</Button>
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                        <form onSubmit={handleDetailsSubmit} className="space-y-6">
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Full Name</Label>
-                                        <Input id="name" name="name" required value={state.details?.name} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'name', value: e.target.value } })} />
-                                        {state.errors?.name && <p className="text-sm text-destructive">{state.errors.name[0]}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email">Email Address</Label>
-                                        <Input id="email" name="email" type="email" required value={state.details?.email} readOnly={!!user?.email} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: e.target.value } })} />
-                                        {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email[0]}</p>}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Phone Number</Label>
-                                    <Input id="phone" name="phone" type="tel" required value={state.details?.phone} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'phone', value: e.target.value } })} />
-                                    {state.errors?.phone && <p className="text-sm text-destructive">{state.errors.phone[0]}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="address">Address</Label>
-                                    <Textarea id="address" name="address" required value={state.details?.address} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'address', value: e.target.value } })} placeholder="House No, Building Name, Area" />
-                                    {state.errors?.address && <p className="text-sm text-destructive">{state.errors.address[0]}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="street">Landmark (optional)</Label>
-                                    <Input id="street" name="street" value={state.details?.street} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'street', value: e.target.value } })} />
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="country">Country</Label>
-                                        <Select onValueChange={(val) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: val } })} value={state.details.country}>
-                                            <SelectTrigger><SelectValue placeholder="Select a country" /></SelectTrigger>
-                                            <SelectContent>
-                                                {countries.map(c => <SelectItem key={c.iso2} value={c.iso2}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        {state.errors?.country && <p className="text-sm text-destructive">{state.errors.country[0]}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="pinCode">PIN/Postal Code</Label>
-                                        <div className="relative flex items-center">
-                                            <Input id="pinCode" name="pinCode" required value={state.details?.pinCode} onChange={(e) => state.details.country === 'IN' ? handlePincodeChange(e.target.value) : dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: e.target.value } })} />
-                                            {isPincodeLoading && <Loader2 className="absolute right-2.5 h-4 w-4 animate-spin" />}
-                                        </div>
-                                        {pincodeError && <p className="text-sm text-destructive">{pincodeError}</p>}
-                                        {state.errors?.pinCode && <p className="text-sm text-destructive">{state.errors.pinCode[0]}</p>}
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="city">City / District</Label>
-                                        <Input id="city" name="city" required value={state.details?.city} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: e.target.value } })} />
-                                        {state.errors?.city && <p className="text-sm text-destructive">{state.errors.city[0]}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="state">State / Province</Label>
-                                        <Input id="state" name="state" required value={state.details?.state} onChange={e => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: e.target.value } })} />
-                                        {state.errors?.state && <p className="text-sm text-destructive">{state.errors.state[0]}</p>}
-                                    </div>
-                                </div>
-                                {user && (
-                                    <div className="flex items-center space-x-2 pt-2">
-                                        <Checkbox id="save-address" name="saveAddress" checked={state.details?.saveAddress} onCheckedChange={checked => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'saveAddress', value: !!checked } })} />
-                                        <Label htmlFor="save-address" className="font-normal text-muted-foreground">Save this address for future orders</Label>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="pt-4">
-                                <Button type="submit" className="w-full" size="lg" disabled={!user || authLoading || isCalculatingPrice}>
-                                    {isCalculatingPrice && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </div>
-                        </form>
-                    </Card>
-                );
-
-            case 'payment':
-                if (priceLoading || !priceData || !state.variant || !state.orderSummary) return <div className="text-center min-h-[300px] flex items-center justify-center"><Loader2 className="animate-spin" /></div>
-
-                const { productPrice, shippingCost, totalPrice } = state.orderSummary;
-
-                const discountAmount = state.discount.applied ? Math.round(productPrice * (state.discount.percent / 100)) : 0;
-                const finalPrice = totalPrice - discountAmount;
-
-                const formattedOriginalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(productPrice);
-                const formattedShippingPrice = shippingCost === 0 ? "Included" : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(shippingCost);
-                const formattedFinalPrice = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(finalPrice);
-                const formattedDiscount = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(discountAmount);
-
-                const isInternational = state.details.country !== 'IN';
-                const isCODEnabled = isInternational ? settings.codEnabledInternational : settings.codEnabled;
-
-                return (
-                    <Card className="border-none shadow-none">
-                        <CardHeader className="p-0 mb-6">
-                            <Button variant="ghost" size="sm" onClick={() => dispatch({ type: 'PREVIOUS_STEP' })} className="self-start px-2 -ml-2 mb-2">
-                                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                            </Button>
-                            <CardTitle className="text-2xl">Confirm & Pay</CardTitle>
-                            <CardDescription>
-                                Confirm your order total and select a payment method.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6 p-0">
-                            <Card className="bg-secondary/50">
-                                <CardContent className="p-6 space-y-4 text-sm">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Item ({state.variant}):</span>
-                                        <span className={cn("font-medium", state.discount.applied && "line-through text-muted-foreground")}>{formattedOriginalPrice}</span>
-                                    </div>
-                                    {state.discount.applied && (
-                                        <div className="flex justify-between items-center text-green-600">
-                                            <span>Discount ({state.discount.percent}%):</span>
-                                            <span className="font-medium">- {formattedDiscount}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Shipping:</span>
-                                        <span className="font-medium">{formattedShippingPrice}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center font-bold text-lg border-t pt-4 mt-4">
-                                        <span>Total Amount:</span>
-                                        <span>{formattedFinalPrice}</span>
-                                    </div>
-                                    <div className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] flex items-center gap-1 justify-center pt-2">
-                                        <Ship className="h-3 w-3" /> Secure Express Delivery (2-7 Days)
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="discount-code">Discount Code</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        id="discount-code"
-                                        placeholder="Enter promo code"
-                                        value={state.discount.code}
-                                        onChange={e => dispatch({ type: 'SET_DISCOUNT_CODE', payload: e.target.value.toUpperCase() })}
-                                        disabled={state.discount.applied}
-                                    />
-                                    {state.discount.applied ? (
-                                        <Button variant="outline" onClick={() => dispatch({ type: 'RESET_DISCOUNT' })}>Remove</Button>
-                                    ) : (
-                                        <Button onClick={handleApplyDiscount} disabled={isCheckingCode || !state.discount.code}>
-                                            {isCheckingCode && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Apply
-                                        </Button>
-                                    )}
-                                </div>
-                                {state.discount.message && <p className={cn("text-sm pt-1", state.discount.applied ? "text-green-600" : "text-destructive")}>{state.discount.message}</p>}
-                            </div>
-
-                            <RadioGroup
-                                name="paymentMethod"
-                                className="space-y-4 pt-4"
-                                onValueChange={(val) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: val as 'cod' | 'prepaid' })}
-                                value={state.paymentMethod || ''}
-                            >
-                                {isCODEnabled && (
-                                    <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all")}>
-                                        <RadioGroupItem value="cod" id="cod" />
-                                        <Truck className="h-6 w-6 text-primary" />
-                                        <div className="flex-grow">
-                                            <span className="font-semibold">Cash on Delivery</span>
-                                            <p className="text-xs text-muted-foreground">Pay with cash upon delivery.</p>
-                                        </div>
-                                    </Label>
-                                )}
-                                <Label className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:shadow-md transition-all")}>
-                                    <RadioGroupItem value="prepaid" id="prepaid" disabled={!isPrepaidEnabled} />
-                                    <CreditCard className="h-6 w-6 text-primary" />
-                                    <div className="flex-grow">
-                                        <span className="font-semibold">{isInternational ? "PhonePe International Checkout" : "Prepaid / Online"}</span>
-                                        <p className="text-xs text-muted-foreground">{isInternational ? "Secure payment for international orders." : "Pay via PhonePe (UPI, Card, etc)."}</p>
-                                        {!isPrepaidEnabled && <p className="text-sm text-muted-foreground">(Currently unavailable)</p>}
-                                    </div>
-                                </Label>
-                            </RadioGroup>
-                            <div className="pt-4">
-                                <Button onClick={handlePaymentSubmit} disabled={!state.paymentMethod || isSubmitting} className="w-full" size="lg">
-                                    {isSubmitting ? <Loader2 className="animate-spin" /> : 'Place Order'}
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                );
-            default:
-                return null;
-        }
-    }
-
+    const currentItem = state.items[0];
 
     return (
-        <div>
-            {renderStepContent()}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Form Area */}
+            <div className="lg:col-span-2 space-y-6">
+                
+                {/* Step Indicators */}
+                <div className="flex items-center gap-4 mb-8">
+                    {['Details', 'Payment'].map((step, idx) => (
+                        <div key={step} className="flex items-center gap-2">
+                            <div className={cn(
+                                "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
+                                (idx === 0 && state.step === 'details') || (idx === 1 && state.step === 'payment')
+                                    ? "bg-primary text-white ring-4 ring-primary/20"
+                                    : "bg-slate-200 text-slate-500"
+                            )}>
+                                {idx + 1}
+                            </div>
+                            <span className={cn(
+                                "text-sm font-medium",
+                                (idx === 0 && state.step === 'details') || (idx === 1 && state.step === 'payment')
+                                    ? "text-slate-900"
+                                    : "text-slate-400"
+                            )}>{step}</span>
+                            {idx < 1 && <div className="w-12 h-[2px] bg-slate-200 ml-2" />}
+                        </div>
+                    ))}
+                </div>
+
+                {state.step === 'details' && (
+                    <Card className="border-none shadow-xl bg-white/80 backdrop-blur rounded-3xl overflow-hidden">
+                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
+                            <CardTitle className="text-2xl font-headline flex items-center gap-3">
+                                <User className="h-6 w-6 text-primary" /> Shipping Details
+                            </CardTitle>
+                            <CardDescription>Where should we send your spiritual companion?</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">Full Name</Label>
+                                    <Input 
+                                        id="name" 
+                                        placeholder="John Doe" 
+                                        className="h-12 rounded-xl"
+                                        value={state.details.name}
+                                        onChange={(e) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'name', value: e.target.value } })}
+                                    />
+                                    {state.errors?.name && <p className="text-[10px] text-rose-500 ml-1">{state.errors.name[0]}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">Email Address</Label>
+                                    <Input 
+                                        id="email" 
+                                        type="email" 
+                                        placeholder="john@example.com" 
+                                        className="h-12 rounded-xl"
+                                        value={state.details.email}
+                                        onChange={(e) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'email', value: e.target.value } })}
+                                    />
+                                    {state.errors?.email && <p className="text-[10px] text-rose-500 ml-1">{state.errors.email[0]}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">Phone Number</Label>
+                                    <Input 
+                                        id="phone" 
+                                        placeholder="10-digit mobile number" 
+                                        className="h-12 rounded-xl"
+                                        value={state.details.phone}
+                                        onChange={(e) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'phone', value: e.target.value } })}
+                                    />
+                                    {state.errors?.phone && <p className="text-[10px] text-rose-500 ml-1">{state.errors.phone[0]}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="country" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">Country</Label>
+                                    <Select 
+                                        value={state.details.country} 
+                                        onValueChange={(v) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'country', value: v } })}
+                                    >
+                                        <SelectTrigger className="h-12 rounded-xl">
+                                            <SelectValue placeholder="Select Country" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {countries.map(c => <SelectItem key={c.iso2} value={c.iso2}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label htmlFor="address" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">Complete Address</Label>
+                                <Textarea 
+                                    id="address" 
+                                    placeholder="Flat/House No., Building, Apartment" 
+                                    className="rounded-xl min-h-[100px]"
+                                    value={state.details.address}
+                                    onChange={(e) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'address', value: e.target.value } })}
+                                />
+                                {state.errors?.address && <p className="text-[10px] text-rose-500 ml-1">{state.errors.address[0]}</p>}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="city" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">City</Label>
+                                    <Input 
+                                        id="city" 
+                                        className="h-12 rounded-xl"
+                                        value={state.details.city}
+                                        onChange={(e) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'city', value: e.target.value } })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="state" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">State</Label>
+                                    <Input 
+                                        id="state" 
+                                        className="h-12 rounded-xl"
+                                        value={state.details.state}
+                                        onChange={(e) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'state', value: e.target.value } })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="pincode" className="text-xs uppercase tracking-widest text-muted-foreground ml-1">PIN Code</Label>
+                                    <Input 
+                                        id="pincode" 
+                                        className="h-12 rounded-xl"
+                                        value={state.details.pinCode}
+                                        onChange={(e) => dispatch({ type: 'SET_FORM_VALUE', payload: { field: 'pinCode', value: e.target.value } })}
+                                    />
+                                </div>
+                            </div>
+
+                            <Button onClick={handleNextStep} className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20">
+                                Continue to Payment <ArrowRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {state.step === 'payment' && (
+                    <Card className="border-none shadow-xl bg-white/80 backdrop-blur rounded-3xl overflow-hidden animate-in slide-in-from-right-4 duration-300">
+                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-2xl font-headline flex items-center gap-3">
+                                    <CreditCard className="h-6 w-6 text-primary" /> Payment Method
+                                </CardTitle>
+                                <Button variant="ghost" size="sm" onClick={() => dispatch({ type: 'PREVIOUS_STEP' })} className="text-muted-foreground hover:text-primary">
+                                    <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-8">
+                             <RadioGroup 
+                                value={state.paymentMethod || ''} 
+                                onValueChange={(v) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: v as any })}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                             >
+                                <div className={cn(
+                                    "relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all cursor-pointer",
+                                    state.paymentMethod === 'prepaid' ? "border-primary bg-primary/5 ring-4 ring-primary/5" : "border-slate-100 hover:border-slate-200 bg-white"
+                                )}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                            <CreditCard className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold">Online Payment</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Cards, UPI, NetBanking</p>
+                                        </div>
+                                    </div>
+                                    <RadioGroupItem value="prepaid" id="prepaid" className="sr-only" />
+                                    {state.paymentMethod === 'prepaid' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+
+                                <div className={cn(
+                                    "relative flex items-center justify-between p-6 rounded-2xl border-2 transition-all cursor-pointer",
+                                    state.paymentMethod === 'cod' ? "border-primary bg-primary/5 ring-4 ring-primary/5" : "border-slate-100 hover:border-slate-200 bg-white"
+                                )}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                            <Truck className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold">Cash on Delivery</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Pay when you receive</p>
+                                        </div>
+                                    </div>
+                                    <RadioGroupItem value="cod" id="cod" className="sr-only" />
+                                    {state.paymentMethod === 'cod' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+                             </RadioGroup>
+
+                             <Button 
+                                onClick={handlePlaceOrder} 
+                                disabled={isSubmitting || !state.paymentMethod}
+                                className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"
+                             >
+                                {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Complete Order"}
+                             </Button>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            {/* Sidebar: Order Summary */}
+            <div className="lg:col-span-1">
+                <div className="sticky top-24 space-y-6">
+                    <Card className="border-none shadow-xl bg-white/80 backdrop-blur rounded-3xl overflow-hidden">
+                        <CardHeader className="p-6 border-b border-slate-100">
+                            <CardTitle className="text-xl font-headline flex items-center gap-2">
+                                <ShoppingCart className="h-5 w-5 text-primary" /> Order Summary
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-6">
+                            {state.items.length > 0 ? (
+                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {state.items.map((item, idx) => (
+                                        <div key={`${item.id}-${idx}`} className="flex gap-4 p-3 rounded-2xl bg-slate-50/50 border border-slate-100 group">
+                                            <div className="relative h-16 w-12 rounded-lg overflow-hidden shadow-sm bg-white flex-shrink-0">
+                                                {/* Use BookImage if possible, or fallback to icon */}
+                                                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                    {item.type === 'combo' ? <Package className="h-6 w-6" /> : <Book className="h-6 w-6" />}
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none mb-1">{item.type}</p>
+                                                <h4 className="font-bold text-sm leading-tight line-clamp-2">{item.name}</h4>
+                                                <div className="flex items-center justify-between mt-1">
+                                                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                                                    <p className="text-sm font-bold text-slate-900">₹{item.price}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <Skeleton className="h-20 w-full rounded-xl" />
+                            )}
+
+                            {/* Discount Input */}
+                            <div className="pt-6 border-t border-slate-100 space-y-3">
+                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Discount Code</Label>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        placeholder="Enter code" 
+                                        className="h-10 rounded-xl bg-slate-50 border-none"
+                                        value={state.discount.code}
+                                        onChange={(e) => dispatch({ type: 'SET_DISCOUNT_CODE', payload: e.target.value })}
+                                    />
+                                    <Button variant="outline" className="h-10 rounded-xl" onClick={async () => {
+                                        setIsCheckingCode(true);
+                                        const res = await validateDiscountCode(state.discount.code);
+                                        if (res.success) {
+                                            dispatch({ type: 'APPLY_DISCOUNT', payload: { percent: res.percent!, message: res.message } });
+                                            calculateTotal();
+                                        } else {
+                                            toast({ variant: 'destructive', title: 'Invalid Code', description: res.message });
+                                        }
+                                        setIsCheckingCode(false);
+                                    }}>
+                                        {isCheckingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Totals */}
+                            <div className="pt-6 border-t border-slate-100 space-y-3">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Product Price</span>
+                                    <span className="font-medium">₹{state.orderSummary?.productPrice || currentItem?.price || 0}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-emerald-600">
+                                    <span className="flex items-center gap-1.5"><BadgePercent className="h-4 w-4" /> Discount</span>
+                                    <span className="font-medium">-₹{state.orderSummary?.discountAmount || 0}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-emerald-600">
+                                    <span className="flex items-center gap-1.5"><Ship className="h-4 w-4" /> Shipping</span>
+                                    <span className="font-bold">FREE 🎉</span>
+                                </div>
+                                <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                                    <span className="font-bold text-lg">Total Amount</span>
+                                    <div className="text-right">
+                                        <span className="text-2xl font-bold text-primary">₹{state.orderSummary?.totalPrice || (currentItem ? currentItem.price + 50 : 0)}</span>
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">All taxes included</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Trust Badges */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col items-center text-center gap-2">
+                             <ShieldCheck className="h-6 w-6 text-emerald-500" />
+                             <p className="text-[10px] font-bold uppercase tracking-widest leading-tight">Secure Transaction</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col items-center text-center gap-2">
+                             <Truck className="h-6 w-6 text-amber-500" />
+                             <p className="text-[10px] font-bold uppercase tracking-widest leading-tight">Verified Delivery</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
+}
+
+function ShieldCheck(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+            <path d="m9 12 2 2 4-4" />
+        </svg>
+    )
 }

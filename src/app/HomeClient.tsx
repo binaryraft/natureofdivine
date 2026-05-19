@@ -1,580 +1,338 @@
-
 'use client';
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } from "framer-motion";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { trackEvent, fetchAnalytics, fixBlogImagesOnLoad } from "@/lib/actions";
+import { trackEvent } from "@/lib/actions";
+import { books, combos, type Book, type Combo } from "@/lib/data";
+import { useCart } from "@/lib/cart-context";
+import { BookImage } from "@/components/BookImage";
+import { 
+  ShoppingBag, 
+  ShoppingCart,
+  Sparkles, 
+  ChevronRight, 
+  Star, 
+  TrendingUp, 
+  Zap, 
+  Library, 
+  Package,
+  ArrowRight,
+  Info
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { authorBio, buyLinks, synopsis } from "@/lib/data";
-import { SampleChapter, Stock, Product } from "@/lib/definitions";
-import { BlogPost } from "@/lib/blog-store";
-import { BookOpen, Lock, BookText, User, Quote, Star, ArrowRight, Maximize2, X, ChevronRight, Sparkles, Calendar, MessageCircle, Feather, Truck, CheckCircle } from "lucide-react";
-import dynamic from "next/dynamic";
-import { ProductsSlider } from "@/components/ProductsSlider";
 
-const DynamicTestimonials = dynamic(() => import('@/components/Testimonials').then(mod => mod.Testimonials), {
-  loading: () => (
-    <div className="w-full py-24 flex justify-center">
-      <Skeleton className="h-64 w-full max-w-4xl rounded-2xl" />
-    </div>
-  ),
-  ssr: false
-});
-
-function StarRating({ rating, totalReviews }: { rating: number, totalReviews: number }) {
-  if (totalReviews === 0) return null;
+function ProductCard({ book }: { book: Book }) {
+  const { addToCart } = useCart();
 
   return (
-    <div
-      className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 animate-in fade-in slide-in-from-left-4 duration-500 delay-500 fill-mode-forwards opacity-0"
-      style={{ animationFillMode: 'forwards' }}
+    <motion.div 
+      whileHover={{ y: -5 }}
+      className="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
     >
-      <div className="flex items-center gap-0.5">
-        {[...Array(5)].map((_, i) => (
-          <Star key={i} className={cn("h-4 w-4", i < Math.round(rating) ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-        ))}
-      </div>
-      <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
-        {rating.toFixed(1)} ({totalReviews} reviews)
-      </span>
-    </div>
-  );
-}
-
-interface Book3DProps {
-  src: string;
-}
-
-function Book3D({ src }: Book3DProps) {
-  return (
-    <div className="relative w-[260px] md:w-[320px] aspect-[2/3]">
-      <Image
-        src={src}
-        fill
-        alt="Nature of the Divine Book Cover"
-        className="object-cover rounded-lg"
-        priority
-      />
-    </div>
-  );
-}
-
-interface HomeClientProps {
-  initialChapters: SampleChapter[];
-  stock: Stock;
-  latestBlogs: BlogPost[];
-  products: Product[];
-}
-
-export function HomeClient({ initialChapters, stock, latestBlogs, products }: HomeClientProps) {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 500], [0, 200]);
-  const y2 = useTransform(scrollY, [0, 500], [0, -150]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
-
-  const isOutOfStock = stock.paperback <= 0;
-
-  useEffect(() => {
-    trackEvent('page_view_home', { sessionId: crypto.randomUUID() });
-    fixBlogImagesOnLoad(); // Fix any broken images automatically
-    fetchAnalytics().then(setAnalytics);
-  }, [])
-
-  const buttonStyles: Record<string, string> = {
-    Amazon: 'bg-[#FF9900] text-black hover:bg-[#FF9900]/90',
-    Flipkart: 'bg-[#2874F0] text-white hover:bg-[#2874F0]/90',
-  };
-
-  const visibleBuyLinks = buyLinks.filter(link => link.visible);
-
-  // Create book product for slider
-  const bookProduct = {
-    id: 'nature-of-the-divine-book',
-    name: 'Nature of the Divine',
-    description: 'The manual for being human. Navigate the metaphysics of the soul and activate unshakeable clarity through the precision of higher logic.',
-    price: 299,
-    imageUrl: 'https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png',
-    isBook: true as const,
-    stock: stock.paperback,
-  };
-
-  return (
-    <div className="flex flex-col min-h-[100dvh] bg-background text-foreground overflow-x-hidden selection:bg-primary/30">
-      <main className="flex-1">
-
-        {/* HERO SECTION */}
-        <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden pt-20 pb-10 bg-background">
-
-          {/* Animated Background System - Optimized */}
-          <div className="absolute inset-0 -z-10 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
-
-            {/* Aurora Effects - CSS Gradients (Faster than blur filters) */}
-            <div
-              className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-[radial-gradient(circle,hsl(var(--primary)/0.15)_0%,transparent_70%)] opacity-60 animate-aurora"
-              style={{ willChange: 'opacity, transform' }}
-            />
-            <div
-              className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] bg-[radial-gradient(circle,hsl(var(--accent)/0.15)_0%,transparent_70%)] opacity-50 animate-aurora"
-              style={{ animationDelay: '2s', willChange: 'opacity, transform' }}
-            />
-
-            {/* Subtle Noise Texture */}
-            <div className="absolute inset-0 bg-noise opacity-[0.02] mix-blend-overlay" />
+      <Link href={`/books/${book.id}`} className="block relative aspect-[2/3] overflow-hidden bg-slate-100">
+        <BookImage 
+          src={book.coverImage} 
+          alt={book.title} 
+          fill 
+          className="object-cover group-hover:scale-110 transition-transform duration-500"
+          wrapperClassName="h-full w-full"
+        />
+        {book.isBestSeller && (
+          <div className="absolute top-2 left-2 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
+            BEST SELLER
           </div>
-
-          <div className="container relative z-10 px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-
-              {/* Text Content */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 order-2 lg:order-1"
-              >
-                {/* Badge */}
-                <motion.div
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/50 backdrop-blur-md shadow-lg"
-                >
-                  <Sparkles className="w-3 h-3 text-primary" />
-                  <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">The Science of Transcendence</span>
-                </motion.div>
-
-                {/* Main Title */}
-                <div className="space-y-2">
-                  <h1 className="flex flex-col font-garamond leading-[0.85]">
-                    <span className="text-4xl md:text-5xl font-medium italic text-muted-foreground font-serif tracking-wide">
-                      Nature of the
-                    </span>
-                    <span className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary drop-shadow-2xl">
-                      Divine
-                    </span>
-                  </h1>
-                </div>
-
-                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl font-light">
-                  Stop searching. Start aligning. The blueprint for a life of <strong className="text-foreground font-medium">unshakeable clarity</strong> and <strong className="text-foreground font-medium">profound peace</strong> is already within you. Decode the architecture of your soul and wake up to who you really are.
-                </p>
-
-                {/* Buttons */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full sm:w-auto">
-                  {isOutOfStock ? (
-                    <Button
-                      size="lg"
-                      disabled
-                      className="h-14 px-8 rounded-full bg-muted text-muted-foreground font-semibold text-lg cursor-not-allowed w-full sm:w-auto"
-                    >
-                      Out of Stock
-                    </Button>
-                  ) : (
-                    <Button asChild size="lg" className="h-14 px-8 rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold text-lg shadow-[0_0_20px_rgba(219,192,124,0.3)] hover:shadow-[0_0_30px_rgba(219,192,124,0.5)] transition-all duration-300 w-full sm:w-auto" onClick={() => trackEvent('click_buy_hero')}>
-                      <Link href="/checkout?variant=paperback">
-                        <span className="flex items-center gap-2">
-                          <Feather className="w-5 h-5" /> Buy Signed Copy
-                        </span>
-                      </Link>
-                    </Button>
-                  )}
-
-                  <Button asChild variant="outline" size="lg" className="h-14 px-6 rounded-full border-primary/20 bg-transparent text-foreground hover:bg-primary/10 hover:border-primary/40 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_read_sample_hero')}>
-                    <Link href="#sample-chapters">
-                      <span className="flex items-center gap-2">
-                        <BookOpen className="w-5 h-5" /> Read Sample
-                      </span>
-                    </Link>
-                  </Button>
-
-                  <Button asChild variant="ghost" size="lg" className="h-14 px-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5 text-lg w-full sm:w-auto transition-all" onClick={() => trackEvent('click_chat_hero')}>
-                    <Link href="/community">
-                      <span className="flex items-center gap-2">
-                        <MessageCircle className="w-5 h-5" /> Chat
-                      </span>
-                    </Link>
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-6 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-700 fill-mode-forwards opacity-0">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
-                    <Truck className="h-3.5 w-3.5" /> 2-7 Days Express Delivery
-                  </div>
-                  <div className="h-4 w-[1px] bg-border/50" />
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                    <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> Secure Payments
-                  </div>
-                </div>
-
-                {/* Social Proof */}
-                <div className="pt-2">
-                  {analytics?.reviews && (
-                    <StarRating rating={analytics.reviews.averageRating} totalReviews={analytics.reviews.total} />
-                  )}
-                </div>
-              </motion.div>
-
-              {/* Hero 3D Book */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                style={{ y: y2 }} // Combine with scroll parallax
-                className="relative flex justify-center lg:justify-center py-10 lg:py-0 order-1 lg:order-2"
-              >
-                {/* Sacred Geometry / Halo Effect behind book */}
-                <div
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full -z-10"
-                >
-                  <div className="w-full h-full animate-spin-slow rounded-full">
-                    <div className="absolute inset-[20px] border border-white/5 rounded-full" />
-                    <div className="absolute inset-[100px] border border-dashed border-white/5 rounded-full opacity-50" />
-                  </div>
-                </div>
-
-                <Book3D src="https://res.cloudinary.com/dj2w2phri/image/upload/v1751279827/1_3_qzfmjp.png" />
-
-                {/* Light Flares */}
-                <div
-                  className="absolute top-0 right-10 w-32 h-32 bg-primary/20 blur-[50px] rounded-full -z-10 mix-blend-screen animate-flare"
-                />
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Scroll Indicator */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, 10, 0] }}
-            transition={{ delay: 2, duration: 2, repeat: Infinity }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500 flex flex-col items-center gap-3"
-          >
-            <span className="text-[10px] uppercase tracking-[0.2em]">Scroll to Explore</span>
-            <div className="w-[1px] h-12 bg-gradient-to-b from-gray-500/0 via-gray-500/50 to-gray-500/0" />
-          </motion.div>
-        </section>
-
-
-        {/* PRODUCTS SLIDER SECTION */}
-        <ProductsSlider products={products} bookProduct={bookProduct} />
-
-
-        {/* SYNOPSIS SECTION */}
-        <section id="synopsis" className="py-24 md:py-32 relative overflow-hidden">
-          <div className="container px-4 md:px-6">
-            <div className="max-w-4xl mx-auto space-y-12">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                className="text-center space-y-4"
-              >
-                <BookText className="w-10 h-10 mx-auto text-primary opacity-80" />
-                <h2 className="text-3xl md:text-5xl font-bold font-garamond text-foreground">A Journey Within</h2>
-                <div className="h-1 w-20 bg-primary/30 mx-auto rounded-full" />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="prose prose-lg md:prose-xl prose-stone dark:prose-invert mx-auto text-muted-foreground leading-loose text-center font-light"
-                dangerouslySetInnerHTML={{ __html: synopsis }}
-              />
-            </div>
-          </div>
-        </section>
-
-
-        {/* CHAPTERS SECTION */}
-        <section id="sample-chapters" className="py-24 md:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="space-y-4"
-              >
-                <h2 className="text-4xl md:text-6xl font-bold font-garamond">Sample <br /><span className="text-primary">Chapters</span></h2>
-                <p className="text-muted-foreground max-w-md">Read the first two chapters for free. No email required. Just pure <strong className="text-foreground">wisdom</strong>.</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-              >
-                <Button asChild variant="outline" className="group">
-                  <Link href="#buy">
-                    Get Full Access <Lock className="w-4 h-4 ml-2 group-hover:text-primary transition-colors" />
-                  </Link>
-                </Button>
-              </motion.div>
-            </div>
-
-            <div className="grid gap-6 max-w-5xl mx-auto">
-              <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={`item-${initialChapters[0]?.number}`}>
-                {initialChapters.map((chapter, index) => (
-                  <motion.div
-                    key={chapter.number}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <AccordionItem
-                      value={`item-${chapter.number}`}
-                      className="border border-border rounded-xl bg-card overflow-hidden data-[state=open]:ring-1 data-[state=open]:ring-primary/20 shadow-sm transition-all duration-300"
-                    >
-                      <AccordionTrigger
-                        onClick={() => trackEvent('view_sample_chapter', { chapter: chapter.number })}
-                        className="px-6 py-5 hover:bg-secondary/50 transition-colors hover:no-underline group"
-                      >
-                        <div className="flex items-center gap-6">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground font-garamond font-bold text-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                            {chapter.number}
-                          </span>
-                          <div className="text-left">
-                            <h3 className={cn("text-xl md:text-2xl font-garamond font-medium transition-colors", chapter.locked ? "text-muted-foreground" : "text-foreground group-hover:text-primary")}>
-                              {chapter.title}
-                            </h3>
-                            {chapter.locked && <span className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1 mt-1"><Lock className="w-3 h-3" /> Premium</span>}
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-8 pt-2">
-                        <div className="pl-[4rem]">
-                          {!chapter.locked ? (
-                            <div className="prose prose-lg prose-stone dark:prose-invert max-w-none font-serif leading-relaxed text-muted-foreground">
-                              {chapter.content}
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center py-12 bg-secondary/20 rounded-lg border border-dashed border-border text-center">
-                              <Lock className="w-10 h-10 text-muted-foreground/50 mb-4" />
-                              <h4 className="text-xl font-medium mb-2">This Chapter is Locked</h4>
-                              <p className="text-muted-foreground mb-6 max-w-md">Purchase the full book to unlock all chapters and discover the complete philosophy.</p>
-                              {isOutOfStock ? (
-                                <Button disabled className="cta-button opacity-50 cursor-not-allowed">
-                                  Out of Stock
-                                </Button>
-                              ) : (
-                                <Button asChild className="cta-button" onClick={() => trackEvent('click_buy_signed_sample_chapter')}>
-                                  <Link href="/checkout?variant=paperback">Buy Signed Copy</Link>
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </motion.div>
-                ))}
-              </Accordion>
-            </div>
-          </div>
-        </section>
-
-
-        {/* AUTHOR SECTION */}
-        <section id="author" className="py-24 md:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="container px-4 md:px-6">
-              <div className="max-w-4xl mx-auto items-center">
-                {/* Image Removed as per request */}
-
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  className="space-y-8 text-center"
-                >
-                  <div>
-                    <div className="inline-block rounded-full bg-secondary px-4 py-1.5 text-sm text-secondary-foreground font-medium mb-4">The Mind Behind</div>
-                    <h2 className="text-4xl md:text-5xl font-bold font-garamond">Alfas B</h2>
-                  </div>
-                  <div
-                    className="prose prose-lg prose-stone dark:prose-invert text-muted-foreground font-light leading-relaxed mx-auto"
-                    dangerouslySetInnerHTML={{ __html: authorBio }}
-                  />
-                  <div className="pt-4">
-                    <Image
-                      src="/signature.png"
-                      width={200}
-                      height={80}
-                      alt="Signature"
-                      className="opacity-80 dark:invert mx-auto"
-                      style={{ display: 'none' }} // Placeholder if signature image exists
-                    />
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* LATEST BLOGS SECTION */}
-        {latestBlogs && latestBlogs.length > 0 && (
-          <section className="py-24 md:py-32 bg-muted/30">
-            <div className="container px-4 md:px-6">
-              <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  className="space-y-4"
-                >
-                  <h2 className="text-4xl md:text-6xl font-bold font-garamond">Wisdom for the <br /><span className="text-primary">Modern Seeker</span></h2>
-                  <p className="text-muted-foreground max-w-md">Practical spirituality, meditation tips, and philosophical inquiries.</p>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                >
-                  <Button asChild variant="outline" className="group">
-                    <Link href="/blogs">
-                      View All Articles <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                  </Button>
-                </motion.div>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-8">
-                {latestBlogs.map((post, index) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Link href={`/blogs/${post.slug}`} className="group flex flex-col h-full">
-                      <div className="aspect-[16/9] relative overflow-hidden rounded-2xl mb-6 bg-secondary/30">
-                        <div 
-                          className="w-full h-full bg-cover bg-center transform group-hover:scale-105 transition-transform duration-500"
-                          style={{ backgroundImage: `url(${(post.image && post.image !== 'undefined' && post.image !== 'null') ? post.image : '/images/blog-default.png'})` }}
-                        />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                      </div>
-                      <div className="space-y-3 flex-1">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                          <Calendar className="w-3 h-3" />
-                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <h3 className="text-2xl font-headline font-bold leading-tight group-hover:text-primary transition-colors">
-                          {post.title}
-                        </h3>
-                        <p className="text-muted-foreground line-clamp-2 text-sm leading-relaxed">
-                          {post.excerpt || post.content.replace(/<[^>]+>/g, '').substring(0, 100) + '...'}
-                        </p>
-                      </div>
-                      <div className="pt-4 flex items-center gap-2 text-sm font-semibold text-primary">
-                        Read More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
         )}
+      </Link>
+      <div className="p-4 flex-1 flex flex-col">
+        <div className="flex-1">
+          <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">{book.category}</p>
+          <h3 className="font-headline text-base line-clamp-1 group-hover:text-primary transition-colors">{book.title}</h3>
+          <p className="text-xs text-muted-foreground mb-3">by {book.author}</p>
+        </div>
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
+          <div>
+            <span className="text-lg font-bold">₹{book.price}</span>
+            <span className="text-[10px] text-muted-foreground ml-1">+ shipping</span>
+          </div>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-8 w-8 p-0 rounded-full hover:bg-primary hover:text-white transition-colors"
+            onClick={() => addToCart(book)}
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
-        {/* TESTIMONIALS */}
-        <DynamicTestimonials />
+function ComboCard({ combo }: { combo: Combo }) {
+  return (
+    <motion.div 
+      whileHover={{ scale: 1.02 }}
+      className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl overflow-hidden p-6 text-white shadow-2xl group"
+    >
+      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+        <Library className="h-32 w-32" />
+      </div>
+      
+      <div className="relative z-10 h-full flex flex-col">
+        <div className="mb-4">
+          <span className="bg-primary/20 text-primary text-[10px] font-bold px-3 py-1 rounded-full border border-primary/30 uppercase tracking-widest">
+            Value Bundle
+          </span>
+        </div>
+        
+        <h3 className="text-2xl font-headline mb-2">{combo.name}</h3>
+        <p className="text-sm text-slate-300 mb-6 line-clamp-2">{combo.description}</p>
+        
+        <div className="mt-auto space-y-4">
+          <div className="flex items-end gap-3">
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Total Price</p>
+              <span className="text-3xl font-bold">₹{combo.price}</span>
+            </div>
+            <div className="pb-1">
+              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Only</p>
+              <span className="text-lg font-medium text-emerald-400">₹{combo.pricePerBook}/book</span>
+            </div>
+          </div>
+          
+          <Button className="w-full bg-white text-slate-900 hover:bg-primary hover:text-white transition-all font-bold rounded-xl h-11" asChild>
+            <Link href={`/bundles/${combo.id}`}>
+              View Bundle Details <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
-        {/* NEWSLETTER SECTION */}
-        <section id="newsletter" className="py-24 relative overflow-hidden">
-          <div className="absolute inset-0 bg-secondary/20" />
-          <div className="container px-4 md:px-6 relative z-10">
-            <div className="max-w-2xl mx-auto text-center space-y-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+export function HomeClient() {
+  useEffect(() => {
+    trackEvent('page_view_publisher_home', { sessionId: crypto.randomUUID() });
+  }, []);
+
+  const latestBooks = books.filter(b => b.isLatest || b.category === 'Spiritual');
+  const bestSellers = books.filter(b => b.isBestSeller);
+
+  return (
+    <div className="min-h-screen bg-[#fdfbf7] text-slate-900">
+      
+      {/* HERO SECTION */}
+      <section className="relative pt-20 pb-24 overflow-hidden border-b border-slate-200">
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary blur-[120px]" />
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10 text-center max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-8">
+              <Sparkles className="h-4 w-4" /> Curated Wisdom For Seekers
+            </div>
+            <h1 className="text-5xl md:text-7xl font-headline leading-tight mb-6">
+              Nature of the Divine <br/>
+              <span className="text-primary italic">& Publisher</span>
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+              We curate and publish essential spiritual and self-help literature to guide your awakening. Access masterpieces at prices that welcome everyone.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button size="lg" className="rounded-full px-8 h-14 font-bold text-base shadow-xl shadow-primary/20" asChild>
+                <Link href="#shop-all">Explore Catalog</Link>
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-full px-8 h-14 font-bold text-base bg-white/50 backdrop-blur" asChild>
+                <Link href="#combos">View Combo Deals</Link>
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* QUICK STATS */}
+      <div className="bg-white border-b border-slate-200 py-6">
+        <div className="container mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center">
+              <Zap className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Flat Price</p>
+              <p className="font-bold">₹199 / Book</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center">
+              <Package className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Fast Delivery</p>
+              <p className="font-bold">Pan-India Shipping</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center">
+              <Star className="h-5 w-5 text-rose-600" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Community</p>
+              <p className="font-bold">50k+ Readers</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      {/* WELCOME DISCOUNT BANNER */}
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-bold text-base leading-tight">🎉 New Customer Welcome Offer</p>
+                <p className="text-emerald-100 text-sm">Free shipping on all orders + 20% off your first purchase</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="bg-white/20 border border-white/40 rounded-xl px-4 py-2 font-mono font-bold text-lg tracking-widest">
+                WELCOME20
+              </div>
+              <Button 
+                size="sm" 
+                className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold rounded-xl px-5 h-10 shadow-lg"
+                asChild
               >
-                <h2 className="text-3xl md:text-5xl font-bold font-garamond mb-4">Quiet the Noise. Tune into the Signal.</h2>
-                <p className="text-muted-foreground text-lg">
-                  Join 10,000+ seekers receiving weekly transmissions on <strong className="text-foreground font-medium">clarity</strong>, <strong className="text-foreground font-medium">purpose</strong>, and the <strong className="text-foreground font-medium">art of being</strong>. No fluff. Just truth.
-                </p>
-              </motion.div>
+                <Link href="/checkout?code=WELCOME20">
+                  Claim 20% Off <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              <motion.form
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  trackEvent('newsletter_subscribe', { location: 'home_footer' });
-                  // @ts-ignore
-                  alert("Thank you for subscribing! Your journey to clarity begins.");
-                }}
-              >
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  required
-                  className="flex-1 h-12 px-4 rounded-full bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                />
-                <Button type="submit" size="lg" className="rounded-full px-8">
-                  Subscribe
-                </Button>
-              </motion.form>
-              <p className="text-xs text-muted-foreground">Unsubscribe at any time.</p>
+      <main className="container mx-auto px-4 py-16 space-y-24">
+        
+        {/* SECTION: BEST SELLERS */}
+        <section>
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <div className="flex items-center gap-2 text-rose-600 text-xs font-bold uppercase tracking-widest mb-2">
+                <TrendingUp className="h-4 w-4" /> Everyone's Reading
+              </div>
+              <h2 className="text-3xl md:text-4xl font-headline">Best Sellers</h2>
+            </div>
+            <Link href="#shop-all" className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
+              View All <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {bestSellers.map(book => (
+              <ProductCard key={book.id} book={book} />
+            ))}
+          </div>
+        </section>
+
+        {/* SECTION: COMBOS (THE LITERARY PACKS) */}
+        <section id="combos" className="scroll-mt-24">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4">
+              <Library className="h-5 w-5" /> Maximum Wisdom, Minimum Price
+            </div>
+            <h2 className="text-4xl md:text-5xl font-headline mb-4">Unbeatable Combo Deals</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Build your library in one go. Our combo packs offer the best value per book, perfect for serious students of self-mastery.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {combos.map(combo => (
+              <ComboCard key={combo.id} combo={combo} />
+            ))}
+          </div>
+          
+          {/* Combo details info */}
+          <div className="mt-12 bg-white rounded-3xl border border-slate-200 p-8 flex flex-col md:flex-row items-center gap-8">
+            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Info className="h-8 w-8 text-primary" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h4 className="font-headline text-xl mb-2">How Combos Work</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                When you order a combo, you can either let our editors curate the best mix for you, or specify your preferred titles in the order notes. We ensure each book is sourced and quality-checked before shipment.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* CTA / FOOTER HERO */}
-        <section id="buy" className="py-32 relative bg-primary text-primary-foreground overflow-hidden">
-          <div className="absolute inset-0 bg-noise opacity-20 mix-blend-overlay" />
-          <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-transparent" />
+        {/* SECTION: LATEST RELEASES */}
+        <section>
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <div className="flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-2">
+                <Sparkles className="h-4 w-4" /> New Arrivals
+              </div>
+              <h2 className="text-3xl md:text-4xl font-headline">Latest Releases</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {latestBooks.map(book => (
+              <ProductCard key={book.id} book={book} />
+            ))}
+          </div>
+        </section>
 
-          <div className="container px-4 md:px-6 relative z-10 text-center space-y-10">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-            >
-              <Sparkles className="w-12 h-12 mx-auto mb-6 text-primary-foreground/80" />
-              <h2 className="text-5xl md:text-7xl font-bold font-garamond tracking-tight">Ready to Transform Your Life?</h2>
-              <p className="text-xl md:text-2xl text-primary-foreground/90 max-w-2xl mx-auto mt-6 font-light">
-                The path to <strong className="font-semibold">clarity</strong> is waiting. Order your signed copy today and align with your true nature.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-wrap justify-center items-center gap-6"
-            >
-              {visibleBuyLinks.map((link) => (
-                <Button
-                  key={link.name}
-                  asChild
-                  size="lg"
-                  className={cn(buttonStyles[link.name], "h-16 px-10 text-lg rounded-full font-bold shadow-2xl hover:scale-105 transition-all duration-300")}
-                  onClick={() => trackEvent(`click_buy_${link.name.toLowerCase()}_footer`)}
-                >
-                  <a href={link.url} target="_blank" rel="noopener noreferrer">
-                    Buy on {link.name}
-                  </a>
-                </Button>
+        {/* SECTION: SHOP ALL GRID */}
+        <section id="shop-all" className="scroll-mt-24">
+          <div className="border-t border-slate-200 pt-16">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-headline mb-4">Complete Catalog</h2>
+              <p className="text-muted-foreground">Every single book in our collection is priced at ₹199 to ensure wisdom is accessible to all.</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+              {books.map(book => (
+                <ProductCard key={book.id} book={book} />
               ))}
-            </motion.div>
+            </div>
           </div>
         </section>
 
       </main>
+
+      {/* FOOTER CALL TO ACTION */}
+      <section className="bg-slate-900 py-24 text-white overflow-hidden relative">
+        <div className="absolute inset-0 opacity-[0.05] pointer-events-none">
+          <Image 
+            src="https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=2000&auto=format&fit=crop" 
+            alt="Library" 
+            fill 
+            className="object-cover"
+          />
+        </div>
+        <div className="container mx-auto px-4 text-center relative z-10 max-w-2xl">
+          <Library className="h-12 w-12 text-primary mx-auto mb-6" />
+          <h2 className="text-4xl font-headline mb-6">Start Your Spiritual Library Today</h2>
+          <p className="text-slate-400 mb-10 text-lg">
+            From individual masterpieces to 40-book collections, we provide the tools you need for a life of purpose and alignment.
+          </p>
+          <Button size="lg" className="rounded-full px-10 h-14 font-bold text-lg" asChild>
+            <Link href="#shop-all">Browse All Books</Link>
+          </Button>
+        </div>
+      </section>
 
     </div>
   );

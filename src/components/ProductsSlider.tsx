@@ -195,7 +195,7 @@ export function ProductsSlider({ products, bookProduct }: ProductsSliderProps) {
                                                                     disabled={product.stock <= 0}
                                                                     className="h-14 px-8 rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold shadow-lg hover:shadow-xl transition-all"
                                                                 >
-                                                                    <Link href="/checkout?variant=paperback">
+                                                                    <Link href={`/books/${product.id}`}>
                                                                         <BookOpen className="w-5 h-5 mr-2" />
                                                                         Buy Signed Copy
                                                                     </Link>
@@ -348,7 +348,7 @@ export function ProductsSlider({ products, bookProduct }: ProductsSliderProps) {
                                                             disabled={product.stock <= 0}
                                                             className="w-full rounded-full bg-gradient-to-r from-primary to-[#C6A55C] hover:brightness-110 text-black font-semibold"
                                                         >
-                                                            <Link href="/checkout?variant=paperback">
+                                                            <Link href={`/books/${product.id}`}>
                                                                 <BookOpen className="w-4 h-4 mr-2" />
                                                                 Buy Now
                                                             </Link>

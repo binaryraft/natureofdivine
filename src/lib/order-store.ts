@@ -31,7 +31,14 @@ const docToOrder = (doc: any): Order => {
     state: data.state || '',
     pinCode: data.pinCode || '',
     paymentMethod: data.paymentMethod || 'cod',
-    variant: data.variant || 'paperback',
+    items: data.items || [{ 
+        id: 'nature-of-the-divine', 
+        name: 'Nature of the Divine', 
+        type: 'book', 
+        price: data.price || 0, 
+        quantity: 1, 
+        variant: data.variant || 'paperback' 
+    }],
     price: data.price || 0,
     originalPrice: data.originalPrice,
     discountCode: data.discountCode,
@@ -77,7 +84,7 @@ export async function addOrder(orderData: NewOrderData): Promise<Order> {
             state: orderData.state,
             pinCode: orderData.pinCode,
             paymentMethod: orderData.paymentMethod,
-            variant: orderData.variant,
+            items: orderData.items,
             price: orderData.price,
             originalPrice: orderData.originalPrice,
             discountCode: orderData.discountCode,
@@ -239,7 +246,10 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: '
             newStatus = 'new';
             // Only decrease stock and increment discount if it's the first time success is recorded
             if(order.status === 'pending') {
-                await decreaseStock(order.variant, 1);
+                // If it was a legacy variant order, decrease stock
+                if ((order as any).variant) {
+                    await decreaseStock((order as any).variant, 1);
+                }
                 if (order.discountCode) {
                     await incrementDiscountUsage(order.discountCode);
                 }
@@ -290,5 +300,34 @@ export async function updateOrderShippingDetails(userId: string, orderId: string
         await addLog('error', 'updateOrderShippingDetails failed', { userId, orderId, error: { message: (error as Error).message } });
         console.error(`Error updating shipping details for order ${orderId}:`, error);
         throw new Error("Could not update the order shipping details.");
+    }
+}
+
+export async function updateComboItemStatus(userId: string, orderId: string, itemIndex: number, subItemIndex: number, status: string): Promise<void> {
+    if (!userId || !orderId) throw new Error("Missing IDs");
+    
+    try {
+        const orderSnap = await getDoc(doc(allOrdersCollection, orderId));
+        if (!orderSnap.exists()) throw new Error("Order not found");
+        
+        const order = orderSnap.data() as Order;
+        if (!order.items[itemIndex] || !order.items[itemIndex].subItems?.[subItemIndex]) {
+            throw new Error("Item not found in order");
+        }
+        
+        const updatedItems = [...order.items];
+        updatedItems[itemIndex].subItems![subItemIndex].status = status as any;
+        
+        const batch = writeBatch(db);
+        const updateData = { items: updatedItems };
+        
+        batch.update(doc(allOrdersCollection, orderId), updateData);
+        batch.update(doc(db, 'users', userId, 'orders', orderId), updateData);
+        
+        await batch.commit();
+        await addLog('info', 'updateComboItemStatus success', { orderId, itemIndex, subItemIndex, status });
+    } catch (error: any) {
+        await addLog('error', 'updateComboItemStatus failed', { orderId, error: error.message });
+        throw error;
     }
 }

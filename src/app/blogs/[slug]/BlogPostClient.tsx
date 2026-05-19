@@ -88,16 +88,16 @@ export function BlogPostClient({ post }: { post: BlogPost }) {
                         {/* Meta and Share */}
                         <div className="flex items-center justify-between border-b pb-6 mb-8">
                             <div className="flex items-center gap-3">
-                                {/* <div className="h-10 w-10 rounded-full overflow-hidden relative border border-white/10">
+                                <div className="h-10 w-10 rounded-full overflow-hidden relative border border-border">
                                     <Image
-                                        src="/author-icon.png"
-                                        alt="Author"
+                                        src="/author.jpg"
+                                        alt="Alfas B."
                                         fill
                                         className="object-cover"
                                     />
-                                </div> */}
+                                </div>
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-semibold text-foreground">Nature of the Divine Team</span>
+                                    <span className="text-sm font-semibold text-foreground">Alfas B.</span>
                                     <span className="text-xs text-muted-foreground">Author</span>
                                 </div>
                             </div>

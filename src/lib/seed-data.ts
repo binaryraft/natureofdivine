@@ -93,17 +93,17 @@ export const seedBlogPosts = [
     excerpt: "You are not a drop in the ocean; you are the ocean in a drop. Discover why loneliness is a lie and how to feel connected to everything, instantly.",
     content: `
       <h2>The Root of Your Struggle</h2>
-      <p>Do you often feel isolated, as if you are fighting the world alone? This sense of separation is the root of much human suffering. We believe we are separate entities, cut off from the universe and each other. This belief creates fear, competition, and loneliness.</p>
+      <p>Do you often feel isolated, as if you are fighting the world alone? This sense of separation is the root of much human suffering. We believe we are separate entities, cut off from the universe and each other. This belief creates fear, competition, and loneliness. But what if this separation is the ultimate illusion?</p>
       
       <h2>You Are the Ocean</h2>
-      <p>Imagine a wave asking, "Where is the ocean?" The wave <em>is</em> the ocean. Similarly, you are not separate from the <i class="font-garamond">divine intelligence</i> that animates the cosmos. You are the universe experiencing itself. Realizing this doesn't lose your individuality; it expands it.</p>
+      <p>Imagine a wave asking, "Where is the ocean?" The wave <em>is</em> the ocean. Similarly, you are not separate from the <i class="font-garamond">divine intelligence</i> that animates the cosmos. You are the universe experiencing itself. Realizing this doesn't just lose your individuality; it expands it into a state of <i class="font-garamond">cosmic consciousness</i>.</p>
       
       <h2>Shifting Your Perspective</h2>
-      <p>Spiritual awakening is simply noticing this truth. When you look at a tree, a star, or another person, try to see them not as "other," but as another expression of the same life force that beats in your heart. This shift brings immediate <i class="font-garamond">inner peace</i>.</p>
+      <p>Spiritual awakening is simply noticing this truth. When you look at a tree, a star, or another person, try to see them not as "other," but as another expression of the same life force that beats in your heart. This shift in perspective brings immediate <i class="font-garamond">inner peace</i> and aligns you with the <i class="font-garamond">soul journey</i> you were meant to walk.</p>
       
       <div class="bg-muted/30 p-6 rounded-xl mt-8 border border-primary/10">
-          <h3 class="font-headline text-lg font-bold mb-2">Deepen Your Practice</h3>
-          <p class="text-sm text-muted-foreground mb-4">Enjoyed this reflection? Join our newsletter for weekly insights or explore the full philosophy in the book.</p>
+          <h3 class="font-headline text-lg font-bold mb-2">Deepen Your Alignment</h3>
+          <p class="text-sm text-muted-foreground mb-4">Enjoyed this reflection? Join our newsletter for weekly transmissions on <i class="font-garamond">mindful living</i> or explore the full philosophy in the book.</p>
           <div class="flex gap-4">
              <a href="#newsletter" class="text-primary text-sm font-semibold hover:underline">Subscribe for Reflections</a>
              <span class="text-muted-foreground text-sm">•</span>
@@ -120,27 +120,27 @@ export const seedBlogPosts = [
     slug: "meditation-for-clarity",
     excerpt: "Silence isn't empty; it's full of answers. Learn how to turn down the volume of the world so you can finally hear yourself think.",
     content: `
-      <h2>Escaping the Noise</h2>
-      <p>Modern life is a constant stream of notifications, demands, and mental chatter. In this noise, it is impossible to hear the subtle guidance of your <i class="font-garamond">soul</i>. We are addicted to distraction, but we crave peace.</p>
+      <h2>Escaping the Mental Noise</h2>
+      <p>Modern life is a constant stream of notifications, demands, and mental chatter. In this noise, it is impossible to hear the subtle guidance of your <i class="font-garamond">soul</i>. We are addicted to distraction, but we crave <i class="font-garamond">inner peace</i>. <i class="font-garamond">Mindfulness meditation</i> is the key to tuning back into the frequency of the divine.</p>
       
-      <h2>Silence is a Presence</h2>
-      <p>Silence is not just the absence of sound; it is a rich, living presence. It is the canvas upon which the Divine paints. When you cultivate silence, you aren't emptying your mind; you are opening it to a higher frequency of intelligence.</p>
+      <h2>Silence is a Living Presence</h2>
+      <p>Silence is not just the absence of sound; it is a rich, living presence. It is the canvas upon which the Divine paints. When you cultivate silence, you aren't just emptying your mind; you are opening it to a higher frequency of <i class="font-garamond">divine intelligence</i>. This is how you find clarity in a chaotic world.</p>
       
-      <h2>Simple Steps to Start</h2>
-      <p>You don't need to be a monk. Try this:</p>
+      <h2>How to Meditate for Clarity</h2>
+      <p>You don't need to be a monk to experience the benefits of meditation. Try these simple <i class="font-garamond">daily spiritual habits</i>:</p>
       <ul>
-        <li><strong>The 5-Minute Morning:</strong> Stay in bed for 5 minutes without your phone. Just breathe.</li>
-        <li><strong>The Pause:</strong> Before reacting to a stressful email, take one deep conscious breath.</li>
-        <li><strong>Listening Walks:</strong> Walk in nature without headphones. Listen to the world exist.</li>
+        <li><strong>The 5-Minute Morning Meditation:</strong> Stay in bed for 5 minutes without your phone. Just breathe and align with your intent.</li>
+        <li><strong>The Conscious Pause:</strong> Before reacting to stress, take one deep, conscious breath to reconnect with your center.</li>
+        <li><strong>Mindful Listening:</strong> Walk in nature without headphones. Listen to the world exist and feel the <i class="font-garamond">cosmic mind</i> at work.</li>
       </ul>
       
       <div class="bg-muted/30 p-6 rounded-xl mt-8 border border-primary/10">
-          <h3 class="font-headline text-lg font-bold mb-2">Deepen Your Practice</h3>
-          <p class="text-sm text-muted-foreground mb-4">Enjoyed this reflection? Join our newsletter for weekly insights or explore the full philosophy in the book.</p>
+          <h3 class="font-headline text-lg font-bold mb-2">Step into the Silence</h3>
+          <p class="text-sm text-muted-foreground mb-4">Ready to go deeper? Join our newsletter for <i class="font-garamond">guided meditation</i> tips or start your journey with the book.</p>
           <div class="flex gap-4">
-             <a href="#newsletter" class="text-primary text-sm font-semibold hover:underline">Subscribe for Reflections</a>
+             <a href="#newsletter" class="text-primary text-sm font-semibold hover:underline">Join Discussion</a>
              <span class="text-muted-foreground text-sm">•</span>
-             <a href="/checkout" class="text-primary text-sm font-semibold hover:underline">Read the Book</a>
+             <a href="/checkout" class="text-primary text-sm font-semibold hover:underline">Get the Book</a>
           </div>
       </div>
     `,

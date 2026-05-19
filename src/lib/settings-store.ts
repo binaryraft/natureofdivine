@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/lib/firebase';
+import { db, isDummyConfig } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { SiteSettings } from './definitions';
 import { revalidatePath } from 'next/cache';
@@ -26,6 +26,9 @@ const defaultSettings: SiteSettings = {
 };
 
 export async function getSettings(): Promise<SiteSettings> {
+    if (isDummyConfig) {
+        return defaultSettings;
+    }
     try {
         const docSnap = await getDoc(settingsDocRef);
         if (docSnap.exists()) {
